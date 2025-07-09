@@ -4,8 +4,8 @@ services:
   postgres:
     image: postgres:15
     container_name: fintech_postgres
-    ports:
-      - "${DB_PORT}:5432"
+    networks:
+      - fintech_net
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -16,14 +16,14 @@ services:
   redis:
     image: redis:7
     container_name: fintech_redis
-    ports:
-      - "${REDIS_PORT}:6379"
+    networks:
+      - fintech_net
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: fintech_zookeeper
-    ports:
-      - "${ZOOKEEPER_PORT}:2181"
+    networks:
+      - fintech_net
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -31,8 +31,8 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: fintech_kafka
-    ports:
-      - "${KAFKA_PORT}:9092"
+    networks:
+      - fintech_net
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
@@ -44,9 +44,8 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: fintech_rabbitmq
-    ports:
-      - "${RABBITMQ_PORT}:5672"
-      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    networks:
+      - fintech_net
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
@@ -54,20 +53,117 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:1.52
     container_name: fintech_jaeger
-    ports:
-      - "${JAEGER_PORT}:16686"
-      - "6831:6831/udp"   # for tracing agent
+    networks:
+      - fintech_net
 
   splunk:
     image: splunk/splunk:8.2.2
     container_name: fintech_splunk
+    networks:
+      - fintech_net
     environment:
       SPLUNK_START_ARGS: --accept-license
       SPLUNK_PASSWORD: ${SPLUNK_PASSWORD}
       SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN}
+
+  config-server:
+    build:
+      context: ../services/config-server
+    container_name: fintech_config_server
+    networks:
+      - fintech_net
+    depends_on:
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=native
+    volumes:
+      - ../services/config-repo:/app/config-repo:ro
+
+  gateway-service:
+    build:
+      context: ../services/gateway-service
+    container_name: fintech_gateway_service
+    networks:
+      - fintech_net
+    depends_on:
+      - config-server
     ports:
-      - "${SPLUNK_PORT}:8088"
-      - "${SPLUNK_WEB_PORT}:8000"
+      - "8081:8081"
+
+  auth-service:
+    build:
+      context: ../services/auth-service
+    container_name: fintech_auth_service
+    networks:
+      - fintech_net
+    depends_on:
+      - config-server
+
+  payment-service:
+    build:
+      context: ../services/payment-service
+    container_name: fintech_payment_service
+    networks:
+      - fintech_net
+    depends_on:
+      - config-server
+
+  notification-service:
+    build:
+      context: ../services/notification-service
+    container_name: fintech_notification_service
+    networks:
+      - fintech_net
+    depends_on:
+      - config-server
+
+  reporting-service:
+    build:
+      context: ../services/reporting-service
+    container_name: fintech_reporting_service
+    networks:
+      - fintech_net
+    depends_on:
+      - config-server
+
+  retry-service:
+    build:
+      context: ../services/retry-service
+    container_name: fintech_retry_service
+    networks:
+      - fintech_net
+    depends_on:
+      - config-server
+
+  scheduler-service:
+    build:
+      context: ../services/scheduler-service
+    container_name: fintech_scheduler_service
+    networks:
+      - fintech_net
+    depends_on:
+      - config-server
+
+  transaction-service:
+    build:
+      context: ../services/transaction-service
+    container_name: fintech_transaction_service
+    networks:
+      - fintech_net
+    depends_on:
+      - config-server
+
+  user-service:
+    build:
+      context: ../services/user-service
+    container_name: fintech_user_service
+    networks:
+      - fintech_net
+    depends_on:
+      - config-server
+networks:
+  fintech_net:
+    driver: bridge
 
 volumes:
   postgres-data:
