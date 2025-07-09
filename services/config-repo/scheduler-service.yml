@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: scheduler-service
+  quartz:
+    job-store-type: memory
+    scheduler-name: fintech-scheduler
+
+management:
+  tracing:
+    enabled: true

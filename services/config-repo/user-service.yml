@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/userdb
+  redis:
+    cache-key-prefix: user-cache
+
+management:
+  tracing:
+    enabled: true

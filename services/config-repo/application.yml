@@ -1,0 +1,98 @@
+server:
+  ssl:
+    enabled: true
+    key-store: classpath:certs/fintech.p12
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
+    key-alias: fintech
+
+spring:
+  cloud:
+    config:
+      fail-fast: true
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASS}
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT}
+  quartz:
+    job-store-type: memory
+    scheduler-name: fintech-scheduler
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: fintech-scheduler
+          threadPool:
+            threadCount: 10
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://${EUREKA_HOST}:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  tracing:
+    enabled: true
+  metrics:
+    export:
+      simple:
+        enabled: true
+  health:
+    defaults:
+      enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    com.fintech: DEBUG
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      default:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+  retry:
+    instances:
+      default:
+        maxAttempts: 3
+        waitDuration: 5s
+  ratelimiter:
+    instances:
+      default:
+        limitForPeriod: 50
+        limitRefreshPeriod: 1s
+        timeoutDuration: 500ms
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 86400000
+
+splunk:
+  host: ${SPLUNK_HOST}
+  token: ${SPLUNK_TOKEN}
+  index: fintech-logs
+  web-port: ${SPLUNK_WEB_PORT}
+  username: ${SPLUNK_USERNAME}
+  password: ${SPLUNK_PASSWORD}

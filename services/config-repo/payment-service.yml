@@ -1,0 +1,13 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: payment-service
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      transactionService:
+        failureRateThreshold: 60
+        waitDurationInOpenState: 15s

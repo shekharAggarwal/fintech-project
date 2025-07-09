@@ -1,0 +1,13 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: transaction-service
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      dbAccess:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s

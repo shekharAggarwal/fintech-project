@@ -1,0 +1,17 @@
+server:
+  servlet:
+    context-path: /config-server
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.config: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
