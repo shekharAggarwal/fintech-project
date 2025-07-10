@@ -1,5 +1,7 @@
-
-
+server:
+  port: 8081
+  ssl:
+    enabled: false
 spring:
   application:
     name: gateway-service
@@ -18,3 +20,16 @@ spring:
           uri: lb://TRANSACTION-SERVICE
           predicates:
             - Path=/api/transaction/**
+  # Actuator config
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: '*'
+    endpoint:
+      health:
+        show-details: always
+  # Logging config to suppress Netty HttpServerOperations warnings
+  logging:
+    level:
+      reactor.netty.http.server.HttpServerOperations: ERROR

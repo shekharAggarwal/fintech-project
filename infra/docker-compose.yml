@@ -76,8 +76,14 @@ services:
       - postgres
     environment:
       - SPRING_PROFILES_ACTIVE=native
+      - CONFIG_REPO_PATH=file:/app/config-repo
     volumes:
       - ../services/config-repo:/app/config-repo:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
   gateway-service:
     build:
@@ -86,9 +92,12 @@ services:
     networks:
       - fintech_net
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
     ports:
       - "8081:8081"
+    volumes:
+      - ../certs:/app/certs:ro
 
   auth-service:
     build:
@@ -97,7 +106,8 @@ services:
     networks:
       - fintech_net
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
 
   payment-service:
     build:
@@ -106,7 +116,8 @@ services:
     networks:
       - fintech_net
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
 
   notification-service:
     build:
@@ -115,7 +126,8 @@ services:
     networks:
       - fintech_net
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
 
   reporting-service:
     build:
@@ -124,7 +136,8 @@ services:
     networks:
       - fintech_net
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
 
   retry-service:
     build:
@@ -133,7 +146,8 @@ services:
     networks:
       - fintech_net
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
 
   scheduler-service:
     build:
@@ -142,7 +156,8 @@ services:
     networks:
       - fintech_net
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
 
   transaction-service:
     build:
@@ -151,7 +166,8 @@ services:
     networks:
       - fintech_net
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
 
   user-service:
     build:
@@ -160,7 +176,8 @@ services:
     networks:
       - fintech_net
     depends_on:
-      - config-server
+      config-server:
+        condition: service_healthy
 networks:
   fintech_net:
     driver: bridge
