@@ -10,3 +10,5 @@ resilience4j:
       transactionService:
         failureRateThreshold: 60
         waitDurationInOpenState: 15s
+server:
+  port: 8083

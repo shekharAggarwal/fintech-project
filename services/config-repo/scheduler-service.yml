@@ -5,6 +5,9 @@ spring:
     job-store-type: memory
     scheduler-name: fintech-scheduler
 
+server:
+  port: 8087
+
 management:
   tracing:
     enabled: true

@@ -3,3 +3,5 @@
 spring:
   application:
     name: retry-service
+server:
+  port: 8086

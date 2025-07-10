@@ -6,6 +6,9 @@ spring:
   redis:
     cache-key-prefix: user-cache
 
+server:
+  port: 8089
+
 management:
   tracing:
     enabled: true

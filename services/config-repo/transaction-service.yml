@@ -10,3 +10,5 @@ resilience4j:
       dbAccess:
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
+server:
+  port: 8088

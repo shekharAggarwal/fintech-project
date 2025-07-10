@@ -3,3 +3,5 @@
 spring:
   application:
     name: reporting-service
+server:
+  port: 8085
