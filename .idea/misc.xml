@@ -3,6 +3,7 @@
   <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="FrameworkDetectionExcludesConfiguration">
     <file type="web" url="file://$PROJECT_DIR$/services/auth-service" />
+    <file type="web" url="file://$PROJECT_DIR$/services/authorization-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/config-server" />
     <file type="web" url="file://$PROJECT_DIR$/services/gateway-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/notification-service" />

@@ -101,6 +101,16 @@ services:
     environment:
       - SSL_KEYSTORE_PASSWORD=${SSL_KEYSTORE_PASSWORD}
 
+  authorization-service:
+    build:
+      context: ../services/authorization-service
+    container_name: fintech_authorization_service
+    networks:
+      - fintech_net
+    depends_on:
+      config-server:
+        condition: service_healthy
+
   auth-service:
     build:
       context: ../services/auth-service
