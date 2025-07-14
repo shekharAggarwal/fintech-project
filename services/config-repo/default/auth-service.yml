@@ -1,0 +1,12 @@
+
+
+spring:
+  application:
+    name: auth-service
+
+jwt:
+  keystore-path: ${JWT_KEYSTORE_PATH}
+  keystore-password: ${JWT_KEYSTORE_PASSWORD}
+  key-alias: ${JWT_KEY_ALIAS}
+server:
+  port: 8082

@@ -3,3 +3,6 @@ server:
 spring:
   application:
     name: authorization-service
+
+jwt:
+  public-cert-path: ${JWT_PUBLIC_CERT_PATH}

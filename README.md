@@ -55,8 +55,3 @@ docker compose up -d <service-name>
   ```
 
 Press `Ctrl+C` to stop following logs (containers keep running).
-
-## Notes
-- Only the gateway-service is exposed to the host (port 8081 by default).
-- All other services and infra are private to the Docker network.
-- For production, use Kubernetes manifests and override config as needed.
