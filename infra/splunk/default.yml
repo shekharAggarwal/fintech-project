@@ -1,0 +1,34 @@
+splunk:
+  password: splunkpassword123
+  start_args: --accept-license
+  conf:
+    - key: inputs
+      value:
+        directory: /opt/splunk/etc/system/local
+        content:
+          http:
+            disabled: 0
+            port: 8088
+            enableSSL: 0
+            dedicatedIoThreads: 2
+            maxThreads: 0
+            maxSockets: 0
+            compression: true
+            
+          "http://fintech-hec":
+            disabled: 0
+            token: fintech-hec-token-2024
+            indexes: fintech,main
+            sourcetype: json
+            
+    - key: indexes
+      value:
+        directory: /opt/splunk/etc/system/local
+        content:
+          fintech:
+            homePath: $SPLUNK_DB/fintech/db
+            coldPath: $SPLUNK_DB/fintech/colddb
+            thawedPath: $SPLUNK_DB/fintech/thaweddb
+            maxDataSize: auto_high_volume
+            maxHotBuckets: 10
+            maxWarmDBCount: 300

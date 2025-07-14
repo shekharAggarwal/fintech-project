@@ -4,11 +4,63 @@ spring:
   application:
     name: payment-service
 
+server:
+  port: 8084
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 60s
+        descriptions: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+
+opentelemetry:
+  service:
+    name: payment-service
+  exporter:
+    jaeger:
+      endpoint: http://${JAEGER_HOST:jaeger}:${JAEGER_PORT:14268}/api/traces
+
 resilience4j:
   circuitbreaker:
     instances:
       transactionService:
         failureRateThreshold: 60
         waitDurationInOpenState: 15s
-server:
-  port: 8083
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+        permittedNumberOfCallsInHalfOpenState: 3
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2s
+      default:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+  retry:
+    instances:
+      paymentProcessing:
+        maxAttempts: 3
+        waitDuration: 2s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+  ratelimiter:
+    instances:
+      paymentApi:
+        limitForPeriod: 100
+        limitRefreshPeriod: 1s
+        timeoutDuration: 1s

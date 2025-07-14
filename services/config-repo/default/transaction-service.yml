@@ -4,11 +4,68 @@ spring:
   application:
     name: transaction-service
 
+server:
+  port: 8085
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 60s
+        descriptions: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+
+opentelemetry:
+  service:
+    name: transaction-service
+  exporter:
+    jaeger:
+      endpoint: http://${JAEGER_HOST:jaeger}:${JAEGER_PORT:14268}/api/traces
+
 resilience4j:
   circuitbreaker:
     instances:
       dbAccess:
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
-server:
-  port: 8088
+        slidingWindowSize: 15
+        minimumNumberOfCalls: 8
+        permittedNumberOfCallsInHalfOpenState: 3
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2s
+      paymentService:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        slidingWindowSize: 15
+        minimumNumberOfCalls: 8
+      default:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+  retry:
+    instances:
+      transactionProcessing:
+        maxAttempts: 4
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 1.5
+  ratelimiter:
+    instances:
+      transactionApi:
+        limitForPeriod: 80
+        limitRefreshPeriod: 1s
+        timeoutDuration: 1s
