@@ -2,10 +2,12 @@ server:
   port: 8081
   ssl:
     enabled: true
-    key-store: /app/certs/fintech.p12
+    key-store: ${SSL_KEYSTORE_PATH}
     key-store-password: ${SSL_KEYSTORE_PASSWORD}
-    key-store-type: PKCS12
-    key-alias: gateway-ssl
+    key-store-type: ${SSL_KEYSTORE_TYPE}
+    key-alias: ${SSL_KEY_ALIAS}
+jwt:
+  public-cert-path: ${JWT_PUBLIC_CERT_PATH}
 spring:
   application:
     name: gateway-service

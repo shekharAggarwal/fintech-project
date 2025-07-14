@@ -1,33 +1,28 @@
-server:
-  ssl:
-    enabled: true
-    key-store: classpath:certs/fintech.p12
-    key-store-password: ${SSL_KEYSTORE_PASSWORD}
-    key-alias: fintech
-
 spring:
   cloud:
     config:
       fail-fast: true
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-    username: ${DB_USER}
-    password: ${DB_PASS}
+    url: jdbc:postgresql://localhost:5432/fintechdb
+    username: fintech
+    password: fintech123
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
   rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USER}
-    password: ${RABBITMQ_PASS}
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
   redis:
-    host: ${REDIS_HOST}
-    port: ${REDIS_PORT}
+    host: localhost
+    port: 6379
+  redisson:
+    address: redis://localhost:6379
   kafka:
-    bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT}
+    bootstrap-servers: localhost:9092
   quartz:
     job-store-type: memory
     scheduler-name: fintech-scheduler
@@ -38,14 +33,6 @@ spring:
             instanceName: fintech-scheduler
           threadPool:
             threadCount: 10
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://${EUREKA_HOST}:8761/eureka/
-    register-with-eureka: true
-    fetch-registry: true
-
 management:
   endpoints:
     web:
@@ -84,13 +71,8 @@ resilience4j:
         limitForPeriod: 50
         limitRefreshPeriod: 1s
         timeoutDuration: 500ms
-
-jwt:
-  secret: ${JWT_SECRET}
-  expiration: 86400000
-
 splunk:
-  host: ${SPLUNK_HOST}
+  host: localhost
   token: ${SPLUNK_TOKEN}
   index: fintech-logs
   web-port: ${SPLUNK_WEB_PORT}
