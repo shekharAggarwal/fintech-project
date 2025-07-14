@@ -20,8 +20,31 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    
+    // Tracing dependencies - Use Spring Boot 3 compatible versions
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation 'io.micrometer:micrometer-observation'
+    implementation 'io.micrometer:micrometer-tracing'
+    
+    // Circuit Breaker
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
+    
+    // Logging dependencies
+    implementation 'ch.qos.logback:logback-classic'
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+    
+    // Database
+    implementation 'org.postgresql:postgresql'
+    
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -29,6 +52,7 @@ dependencies {
 dependencyManagement {
     imports {
         mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0-M1")
+        mavenBom("io.micrometer:micrometer-tracing-bom:1.2.2")
     }
 }
 

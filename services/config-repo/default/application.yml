@@ -46,33 +46,85 @@ management:
     web:
       exposure:
         include: "*"
+  endpoint:
+    health:
+      show-details: always
   tracing:
     enabled: true
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://${JAEGER_HOST:jaeger}:${JAEGER_OTLP_PORT:4318}/v1/traces
   metrics:
     export:
+      prometheus:
+        enabled: true
       simple:
         enabled: true
   health:
     defaults:
       enabled: true
 
+# Jaeger Configuration
+opentelemetry:
+  service:
+    name: ${spring.application.name}
+  exporter:
+    jaeger:
+      endpoint: http://${JAEGER_HOST:jaeger}:${JAEGER_PORT:14268}/api/traces
+
 logging:
   level:
     root: INFO
     org.springframework.web: DEBUG
     com.fintech: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
+# Resilience4j Circuit Breaker Configuration
 resilience4j:
   circuitbreaker:
     instances:
       default:
         failureRateThreshold: 50
         waitDurationInOpenState: 10s
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2s
+        recordExceptions:
+          - java.lang.Exception
+      payment-service:
+        failureRateThreshold: 60
+        waitDurationInOpenState: 15s
+        slidingWindowSize: 20
+        minimumNumberOfCalls: 10
+      transaction-service:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        slidingWindowSize: 15
+        minimumNumberOfCalls: 8
+      auth-service:
+        failureRateThreshold: 40
+        waitDurationInOpenState: 5s
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
   retry:
     instances:
       default:
         maxAttempts: 3
         waitDuration: 5s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+      payment-service:
+        maxAttempts: 5
+        waitDuration: 3s
+      transaction-service:
+        maxAttempts: 4
+        waitDuration: 2s
   ratelimiter:
     instances:
       default:
@@ -80,10 +132,14 @@ resilience4j:
         limitRefreshPeriod: 1s
         timeoutDuration: 500ms
 
+# Splunk Configuration
 splunk:
   host: ${SPLUNK_HOST}
+  port: ${SPLUNK_PORT:8088}
   token: ${SPLUNK_TOKEN}
-  index: fintech-logs
+  source: fintech-microservices
+  sourcetype: spring-boot
+  index: fintech
   web-port: ${SPLUNK_WEB_PORT}
   username: ${SPLUNK_USERNAME}
   password: ${SPLUNK_PASSWORD}

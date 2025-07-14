@@ -10,6 +10,31 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/fintech-monitoring-dashboard.json:/etc/grafana/provisioning/dashboards/fintech-monitoring-dashboard.json
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - jaeger
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: fintech_prometheus
+    networks:
+      - fintech_net
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
 
   postgres:
     image: postgres:15
@@ -67,16 +92,43 @@ services:
     container_name: fintech_jaeger
     networks:
       - fintech_net
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
 
   splunk:
-    image: splunk/splunk:8.2.2
+    image: splunk/splunk:9.1.2
     container_name: fintech_splunk
     networks:
       - fintech_net
+    ports:
+      - "8000:8000"
+      - "8088:8088"
+      - "8089:8089"
     environment:
       SPLUNK_START_ARGS: --accept-license
       SPLUNK_PASSWORD: ${SPLUNK_PASSWORD}
       SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN}
+      SPLUNK_APPS_URL: ""
+      SPLUNK_ENABLE_LISTEN: 9997
+      SPLUNK_ADD: "tcp 1514"
+      SPLUNK_CMD: "enable listen 9997 -auth admin:${SPLUNK_PASSWORD}"
+      SPLUNK_CMD_1: "add tcp 1514 -auth admin:${SPLUNK_PASSWORD}"
+      SPLUNK_CMD_2: "http-event-collector enable -auth admin:${SPLUNK_PASSWORD}"
+      SPLUNK_CMD_3: "http-event-collector create fintech-hec -token ${SPLUNK_HEC_TOKEN} -index main -auth admin:${SPLUNK_PASSWORD}"
+    volumes:
+      - splunk-data:/opt/splunk/var
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   config-server:
     build:
@@ -256,8 +308,11 @@ services:
       - EUREKA_HOST=${EUREKA_HOST}
       - JAEGER_HOST=${JAEGER_HOST}
       - JAEGER_PORT=${JAEGER_PORT}
+      - JAEGER_OTLP_PORT=${JAEGER_OTLP_PORT}
       - SPLUNK_HOST=${SPLUNK_HOST}
+      - SPLUNK_PORT=${SPLUNK_PORT}
       - SPLUNK_TOKEN=${SPLUNK_TOKEN}
+      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN}
       - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
       - SPLUNK_USERNAME=${SPLUNK_USERNAME}
       - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
@@ -484,3 +539,6 @@ networks:
 
 volumes:
   postgres-data:
+  splunk-data:
+  prometheus-data:
+  grafana-data:
