@@ -1,32 +1,94 @@
 
+server:
+  port: ${TRANSACTION_SERVICE_PORT:8086}
 
 spring:
   application:
     name: transaction-service
+    
+  # Database sharding configuration for transactions
+  datasource:
+    main:
+      url: ${MAIN_DB_URL:jdbc:postgresql://localhost:5432/fintech_main}
+      username: ${DB_USER:fintech_user}
+      password: ${DB_PASS:fintech_password}
+    shard1:
+      url: ${SHARD1_DB_URL:jdbc:postgresql://localhost:5433/fintech_shard1}
+      username: ${DB_USER:fintech_user}
+      password: ${DB_PASS:fintech_password}
+    shard2:
+      url: ${SHARD2_DB_URL:jdbc:postgresql://localhost:5434/fintech_shard2}
+      username: ${DB_USER:fintech_user}
+      password: ${DB_PASS:fintech_password}
+    shard3:
+      url: ${SHARD3_DB_URL:jdbc:postgresql://localhost:5435/fintech_shard3}
+      username: ${DB_USER:fintech_user}
+      password: ${DB_PASS:fintech_password}
+    driver-class-name: org.postgresql.Driver
+    
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show_sql: false
+        format_sql: true
+    hibernate:
+      ddl-auto: update
+      
+  # Redis Configuration for transaction caching
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: ${REDIS_TIMEOUT:2000ms}
+      ttl: ${TRANSACTION_CACHE_TTL:900} # 15 minutes
+      database: ${REDIS_TRANSACTION_DB:3}
+      
+  # RabbitMQ configuration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: ${RABBITMQ_TIMEOUT:30000}
 
-server:
-  port: 8085
+# Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      transaction-service:
+        sliding-window-size: 100
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 5
+      transaction-cache:
+        sliding-window-size: 50
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 10s
+        
+  retry:
+    instances:
+      transaction-retry:
+        max-attempts: 3
+        wait-duration: 500ms
+        
+  timelimiter:
+    instances:
+      transaction-service:
+        timeout-duration: 5s
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always
-    metrics:
-      enabled: true
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-        step: 60s
-        descriptions: true
-  tracing:
-    enabled: true
-    sampling:
-      probability: 1.0
+# Eureka client configuration
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+    hostname: ${HOSTNAME:localhost}
 
 opentelemetry:
   service:
