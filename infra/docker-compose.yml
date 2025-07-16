@@ -1,23 +1,9 @@
-
 version: "3.8"
-services:
-  grafana:
-    image: grafana/grafana:10.4.2
-    container_name: fintech_grafana
-    networks:
-      - fintech_net
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/fintech-monitoring-dashboard.json:/etc/grafana/provisioning/dashboards/fintech-monitoring-dashboard.json
-      - grafana-data:/var/lib/grafana
-    depends_on:
-      - prometheus
-      - jaeger
 
+services:
+  #-----------------------------------
+  # MONITORING & LOGGING STACK
+  #-----------------------------------
   prometheus:
     image: prom/prometheus:v2.45.0
     container_name: fintech_prometheus
@@ -36,25 +22,69 @@ services:
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
 
-  postgres:
-    image: postgres:15
-    container_name: fintech_postgres
-    networks:
-      - fintech_net
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASS}
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7
-    container_name: fintech_redis
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: fintech_grafana
     networks:
       - fintech_net
     ports:
-      - "6379:6379"
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/fintech-monitoring-dashboard.json:/etc/grafana/provisioning/dashboards/fintech-monitoring-dashboard.json
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.52
+    container_name: fintech_jaeger
+    networks:
+      - fintech_net
+    ports:
+      - "16686:16686" # Jaeger UI
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      
+  splunk:
+    image: splunk/splunk:9.1.2
+    container_name: fintech_splunk
+    networks:
+      - fintech_net
+    ports:
+      - "8000:8000"
+      - "8088:8088"
+    environment:
+      SPLUNK_START_ARGS: --accept-license
+      SPLUNK_PASSWORD: ${SPLUNK_PASSWORD}
+      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN}
+    volumes:
+      - splunk-data:/opt/splunk/var
+
+  #-----------------------------------
+  # INFRASTRUCTURE & PLATFORM SERVICES
+  #-----------------------------------
+  config-server:
+    build:
+      context: ../services/config-server
+    container_name: fintech_config_server
+    networks:
+      - fintech_net
+    ports:
+      - "8888:8888"
+    volumes:
+      - ../services/config-repo/default:/config
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: /config
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8888/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -70,10 +100,12 @@ services:
     container_name: fintech_kafka
     networks:
       - fintech_net
+    ports:
+      - "9092:9092"
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:${KAFKA_PORT}
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
@@ -83,462 +115,255 @@ services:
     container_name: fintech_rabbitmq
     networks:
       - fintech_net
+    ports:
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
 
-  jaeger:
-    image: jaegertracing/all-in-one:1.52
-    container_name: fintech_jaeger
+  fintech_redis:
+    image: redis:7
+    container_name: fintech_redis
     networks:
       - fintech_net
     ports:
-      - "16686:16686"
-      - "14268:14268"
-      - "14250:14250"
-      - "4317:4317"
-      - "4318:4318"
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
+      - "6379:6379"
 
-  splunk:
-    image: splunk/splunk:9.1.2
-    container_name: fintech_splunk
+  #-----------------------------------
+  # DATABASE INSTANCES (SHARDING)
+  #-----------------------------------
+  postgres-main:
+    image: postgres:15
+    container_name: fintech_postgres_main
     networks:
       - fintech_net
     ports:
-      - "8000:8000"
-      - "8088:8088"
-      - "8089:8089"
+      - "5432:5432"
     environment:
-      SPLUNK_START_ARGS: --accept-license
-      SPLUNK_PASSWORD: ${SPLUNK_PASSWORD}
-      SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN}
-      SPLUNK_APPS_URL: ""
-      SPLUNK_ENABLE_LISTEN: 9997
-      SPLUNK_ADD: "tcp 1514"
-      SPLUNK_CMD: "enable listen 9997 -auth admin:${SPLUNK_PASSWORD}"
-      SPLUNK_CMD_1: "add tcp 1514 -auth admin:${SPLUNK_PASSWORD}"
-      SPLUNK_CMD_2: "http-event-collector enable -auth admin:${SPLUNK_PASSWORD}"
-      SPLUNK_CMD_3: "http-event-collector create fintech-hec -token ${SPLUNK_HEC_TOKEN} -index main -auth admin:${SPLUNK_PASSWORD}"
+      POSTGRES_DB: fintech_main
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
     volumes:
-      - splunk-data:/opt/splunk/var
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
+      - postgres-main-data:/var/lib/postgresql/data
 
-  config-server:
-    build:
-      context: ../services/config-server
-    container_name: fintech_config_server
+  postgres-shard-1:
+    image: postgres:15
+    container_name: fintech_postgres_shard_1
     networks:
       - fintech_net
-    depends_on:
-      - postgres
+    ports:
+      - "5433:5432"
     environment:
-      - CONFIG_REPO_PATH=file:/app/config-repo
+      POSTGRES_DB: fintech_shard1
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
     volumes:
-      - ../services/config-repo/default:/app/config-repo:ro
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8888/actuator/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
+      - postgres-shard-1-data:/var/lib/postgresql/data
 
+  postgres-shard-2:
+    image: postgres:15
+    container_name: fintech_postgres_shard_2
+    networks:
+      - fintech_net
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: fintech_shard2
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - postgres-shard-2-data:/var/lib/postgresql/data
+
+  postgres-shard-3:
+    image: postgres:15
+    container_name: fintech_postgres_shard_3
+    networks:
+      - fintech_net
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_DB: fintech_shard3
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - postgres-shard-3-data:/var/lib/postgresql/data
+
+  postgres-auth:
+    image: postgres:15
+    container_name: fintech_postgres_auth
+    networks:
+      - fintech_net
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_DB: fintech_auth
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+
+  postgres-scheduler:
+    image: postgres:15
+    container_name: fintech_postgres_scheduler
+    networks:
+      - fintech_net
+    ports:
+      - "5437:5432"
+    environment:
+      POSTGRES_DB: fintech_scheduler
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - postgres-scheduler-data:/var/lib/postgresql/data
+
+  postgres-retry:
+    image: postgres:15
+    container_name: fintech_postgres_retry
+    networks:
+      - fintech_net
+    ports:
+      - "5438:5432"
+    environment:
+      POSTGRES_DB: fintech_retry
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+    volumes:
+      - postgres-retry-data:/var/lib/postgresql/data
+
+  #-----------------------------------
+  # APPLICATION MICROSERVICES
+  #-----------------------------------
   gateway-service:
-    build:
-      context: ../services/gateway-service
+    build: ../services/gateway-service
     container_name: fintech_gateway_service
     networks:
       - fintech_net
-    depends_on:
-      config-server:
-        condition: service_healthy
     ports:
-      - "8081:8081"
+      - "${GATEWAY_SERVICE_PORT}:${GATEWAY_SERVICE_PORT}"
     volumes:
       - ../certs:/app/certs:ro
-    environment:
-      - SSL_KEYSTORE_PATH=${SSL_KEYSTORE_PATH}
-      - SSL_KEYSTORE_PASSWORD=${SSL_KEYSTORE_PASSWORD}
-      - SSL_KEYSTORE_TYPE=${SSL_KEYSTORE_TYPE}
-      - SSL_KEY_ALIAS=${SSL_KEY_ALIAS}
-      - JWT_PUBLIC_CERT_PATH=${JWT_PUBLIC_CERT_PATH}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - JWT_KEYSTORE_PATH=${JWT_KEYSTORE_PATH}
-      - JWT_KEYSTORE_PASSWORD=${JWT_KEYSTORE_PASSWORD}
-      - JWT_KEY_ALIAS=${JWT_KEY_ALIAS}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-
-  authorization-service:
-    build:
-      context: ../services/authorization-service
-    container_name: fintech_authorization_service
-    networks:
-      - fintech_net
+    env_file: .env
     depends_on:
       config-server:
         condition: service_healthy
-    volumes:
-      - ../certs:/app/certs:ro
-    environment:
-      - JWT_PUBLIC_CERT_PATH=${JWT_PUBLIC_CERT_PATH}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - JWT_KEYSTORE_PATH=${JWT_KEYSTORE_PATH}
-      - JWT_KEYSTORE_PASSWORD=${JWT_KEYSTORE_PASSWORD}
-      - JWT_KEY_ALIAS=${JWT_KEY_ALIAS}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
 
   auth-service:
-    build:
-      context: ../services/auth-service
+    build: ../services/auth-service
     container_name: fintech_auth_service
     networks:
       - fintech_net
-    depends_on:
-      config-server:
-        condition: service_healthy
+    env_file: .env
     volumes:
       - ../certs:/app/certs:ro
-    environment:
-      - JWT_KEYSTORE_PATH=${JWT_KEYSTORE_PATH}
-      - JWT_KEYSTORE_PASSWORD=${JWT_KEYSTORE_PASSWORD}
-      - JWT_KEY_ALIAS=${JWT_KEY_ALIAS}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-
-  payment-service:
-    build:
-      context: ../services/payment-service
-    container_name: fintech_payment_service
-    networks:
-      - fintech_net
     depends_on:
       config-server:
         condition: service_healthy
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - JAEGER_OTLP_PORT=${JAEGER_OTLP_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_PORT=${SPLUNK_PORT}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      postgres-main:
+        condition: service_started
+      postgres-shard-1:
+        condition: service_started
 
-  notification-service:
-    build:
-      context: ../services/notification-service
-    container_name: fintech_notification_service
+  authorization-service:
+    build: ../services/authorization-service
+    container_name: fintech_authorization_service
     networks:
       - fintech_net
+    env_file: .env
+    volumes:
+      - ../certs:/app/certs:ro
     depends_on:
       config-server:
         condition: service_healthy
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-
-  reporting-service:
-    build:
-      context: ../services/reporting-service
-    container_name: fintech_reporting_service
-    networks:
-      - fintech_net
-    depends_on:
-      config-server:
-        condition: service_healthy
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-
-  retry-service:
-    build:
-      context: ../services/retry-service
-    container_name: fintech_retry_service
-    networks:
-      - fintech_net
-    depends_on:
-      config-server:
-        condition: service_healthy
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-
-  scheduler-service:
-    build:
-      context: ../services/scheduler-service
-    container_name: fintech_scheduler_service
-    networks:
-      - fintech_net
-    depends_on:
-      config-server:
-        condition: service_healthy
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-
-  transaction-service:
-    build:
-      context: ../services/transaction-service
-    container_name: fintech_transaction_service
-    networks:
-      - fintech_net
-    depends_on:
-      config-server:
-        condition: service_healthy
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+      postgres-auth:
+        condition: service_started
 
   user-service:
-    build:
-      context: ../services/user-service
+    build: ../services/user-service
     container_name: fintech_user_service
     networks:
       - fintech_net
+    env_file: .env
     depends_on:
       config-server:
         condition: service_healthy
-    environment:
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - SPRING_REDIS_HOST=${SPRING_REDIS_HOST}
-      - SPRING_REDIS_PORT=${SPRING_REDIS_PORT}
-      - REDIS_URL=${REDIS_URL}
-      - KAFKA_HOST=${KAFKA_HOST}
-      - KAFKA_PORT=${KAFKA_PORT}
-      - ZOOKEEPER_PORT=${ZOOKEEPER_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-      - RABBITMQ_MANAGEMENT_PORT=${RABBITMQ_MANAGEMENT_PORT}
-      - EUREKA_HOST=${EUREKA_HOST}
-      - JAEGER_HOST=${JAEGER_HOST}
-      - JAEGER_PORT=${JAEGER_PORT}
-      - SPLUNK_HOST=${SPLUNK_HOST}
-      - SPLUNK_TOKEN=${SPLUNK_TOKEN}
-      - SPLUNK_WEB_PORT=${SPLUNK_WEB_PORT}
-      - SPLUNK_USERNAME=${SPLUNK_USERNAME}
-      - SPLUNK_PASSWORD=${SPLUNK_PASSWORD}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
+
+  payment-service:
+    build: ../services/payment-service
+    container_name: fintech_payment_service
+    networks:
+      - fintech_net
+    env_file: .env
+    depends_on:
+      config-server:
+        condition: service_healthy
+
+  transaction-service:
+    build: ../services/transaction-service
+    container_name: fintech_transaction_service
+    networks:
+      - fintech_net
+    env_file: .env
+    depends_on:
+      config-server:
+        condition: service_healthy
+
+  notification-service:
+    build: ../services/notification-service
+    container_name: fintech_notification_service
+    networks:
+      - fintech_net
+    env_file: .env
+    depends_on:
+      config-server:
+        condition: service_healthy
+
+  reporting-service:
+    build: ../services/reporting-service
+    container_name: fintech_reporting_service
+    networks:
+      - fintech_net
+    env_file: .env
+    depends_on:
+      config-server:
+        condition: service_healthy
+
+  scheduler-service:
+    build: ../services/scheduler-service
+    container_name: fintech_scheduler_service
+    networks:
+      - fintech_net
+    env_file: .env
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-scheduler:
+        condition: service_started
+
+  retry-service:
+    build: ../services/retry-service
+    container_name: fintech_retry_service
+    networks:
+      - fintech_net
+    env_file: .env
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-retry:
+        condition: service_started
+
 networks:
   fintech_net:
     driver: bridge
 
 volumes:
-  postgres-data:
-  splunk-data:
   prometheus-data:
   grafana-data:
+  splunk-data:
+  postgres-main-data:
+  postgres-shard-1-data:
+  postgres-shard-2-data:
+  postgres-shard-3-data:
+  postgres-auth-data:
+  postgres-scheduler-data:
+  postgres-retry-data:

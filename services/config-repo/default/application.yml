@@ -4,42 +4,38 @@ spring:
       fail-fast: true
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
     username: ${DB_USER}
     password: ${DB_PASS}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   rabbitmq:
     host: ${RABBITMQ_HOST}
     port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASS}
   redis:
-    host: ${SPRING_REDIS_HOST:}
+    host: ${SPRING_REDIS_HOST}
     port: ${SPRING_REDIS_PORT}
-  redisson:
-    address: ${REDIS_URL}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
   kafka:
     bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT}
   quartz:
     job-store-type: memory
-    scheduler-name: fintech-scheduler
     properties:
-      org:
-        quartz:
-          scheduler:
-            instanceName: fintech-scheduler
-          threadPool:
-            threadCount: 10
-
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://${EUREKA_HOST}:8761/eureka/
-    register-with-eureka: true
-    fetch-registry: true
+      org.quartz.scheduler.instanceName: fintech-scheduler
+      org.quartz.threadPool.threadCount: 10
 
 management:
   endpoints:
@@ -49,41 +45,23 @@ management:
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
   tracing:
-    enabled: true
     sampling:
       probability: 1.0
   otlp:
     tracing:
-      endpoint: http://${JAEGER_HOST:jaeger}:${JAEGER_OTLP_PORT:4318}/v1/traces
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-      simple:
-        enabled: true
-  health:
-    defaults:
-      enabled: true
-
-# Jaeger Configuration
-opentelemetry:
-  service:
-    name: ${spring.application.name}
-  exporter:
-    jaeger:
-      endpoint: http://${JAEGER_HOST:jaeger}:${JAEGER_PORT:14268}/api/traces
+      endpoint: ${JAEGER_OTLP_ENDPOINT}
 
 logging:
   level:
-    root: INFO
-    org.springframework.web: DEBUG
-    com.fintech: DEBUG
+    com.fintech: INFO
+    org.springframework.web: INFO
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    level: "%5p [${spring.application.name},%X{traceId:-},%X{spanId:-}]"
 
-# Resilience4j Circuit Breaker Configuration
+# Default Resilience4j configurations for all services
 resilience4j:
   circuitbreaker:
     instances:
@@ -97,21 +75,6 @@ resilience4j:
         slowCallDurationThreshold: 2s
         recordExceptions:
           - java.lang.Exception
-      payment-service:
-        failureRateThreshold: 60
-        waitDurationInOpenState: 15s
-        slidingWindowSize: 20
-        minimumNumberOfCalls: 10
-      transaction-service:
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        slidingWindowSize: 15
-        minimumNumberOfCalls: 8
-      auth-service:
-        failureRateThreshold: 40
-        waitDurationInOpenState: 5s
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
   retry:
     instances:
       default:
@@ -119,27 +82,9 @@ resilience4j:
         waitDuration: 5s
         enableExponentialBackoff: true
         exponentialBackoffMultiplier: 2
-      payment-service:
-        maxAttempts: 5
-        waitDuration: 3s
-      transaction-service:
-        maxAttempts: 4
-        waitDuration: 2s
   ratelimiter:
     instances:
       default:
         limitForPeriod: 50
         limitRefreshPeriod: 1s
         timeoutDuration: 500ms
-
-# Splunk Configuration
-splunk:
-  host: ${SPLUNK_HOST}
-  port: ${SPLUNK_PORT:8088}
-  token: ${SPLUNK_TOKEN}
-  source: fintech-microservices
-  sourcetype: spring-boot
-  index: fintech
-  web-port: ${SPLUNK_WEB_PORT}
-  username: ${SPLUNK_USERNAME}
-  password: ${SPLUNK_PASSWORD}

@@ -1,21 +1,22 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.4.4'
-	id 'io.spring.dependency-management' version '1.1.7'
+    id 'java'
+    id 'org.springframework.boot' version '3.4.4'
+    id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'com.fintech'
 version = '0.0.1-SNAPSHOT'
 
 java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
-	}
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 repositories {
-	mavenCentral()
-	maven { url 'https://repo.spring.io/milestone' }
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://splunk.jfrog.io/splunk/ext-releases-local' }
 }
 
 dependencies {
@@ -34,6 +35,7 @@ dependencies {
     implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
     implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
     implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-spring6:2.2.0'
     
     // Logging dependencies
     implementation 'ch.qos.logback:logback-classic'
@@ -44,11 +46,11 @@ dependencies {
 }
 
 dependencyManagement {
-	imports {
-		mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0-M1")
-	}
+    imports {
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0-M1")
+    }
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
 }

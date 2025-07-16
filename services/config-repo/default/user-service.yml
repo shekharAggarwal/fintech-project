@@ -1,14 +1,36 @@
+server:
+  port: ${USER_SERVICE_PORT}
+
 spring:
   application:
     name: user-service
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/userdb
-  redis:
-    cache-key-prefix: user-cache
+    main:
+      url: ${MAIN_DB_URL}
+    shard1:
+      url: ${SHARD1_DB_URL}
+    shard2:
+      url: ${SHARD2_DB_URL}
+    shard3:
+      url: ${SHARD3_DB_URL}
+  data:
+    redis:
+      database: 2 # Redis DB for user caching
 
-server:
-  port: 8089
-
-management:
-  tracing:
-    enabled: true
+resilience4j:
+  circuitbreaker:
+    instances:
+      user-cache:
+        sliding-window-size: 50
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 10s
+  retry:
+    instances:
+      user-retry:
+        max-attempts: 3
+        wait-duration: 500ms
+  timelimiter:
+    instances:
+      user-service:
+        timeout-duration: 5s

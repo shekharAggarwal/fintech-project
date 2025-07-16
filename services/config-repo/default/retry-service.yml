@@ -1,7 +1,30 @@
-
+server:
+  port: ${RETRY_SERVICE_PORT}
 
 spring:
   application:
     name: retry-service
-server:
-  port: 8086
+  datasource:
+    url: ${RETRY_DB_URL}
+  data:
+    redis:
+      database: 8 # Redis DB for retry state
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      retry-executor:
+        sliding-window-size: 30
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 70
+        wait-duration-in-open-state: 60s
+  retry:
+    instances:
+      retry-service-retry:
+        max-attempts: 5
+        wait-duration: 2s
+        exponential-backoff-multiplier: 2
+  timelimiter:
+    instances:
+      retry-service:
+        timeout-duration: 15s

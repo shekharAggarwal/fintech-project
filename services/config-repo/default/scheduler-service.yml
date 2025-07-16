@@ -1,13 +1,31 @@
+server:
+  port: ${SCHEDULER_SERVICE_PORT}
+
 spring:
   application:
     name: scheduler-service
+  datasource:
+    url: ${SCHEDULER_DB_URL}
   quartz:
-    job-store-type: memory
-    scheduler-name: fintech-scheduler
+    job-store-type: jdbc
+  data:
+    redis:
+      database: 7 # Redis DB for scheduler caching
 
-server:
-  port: 8087
-
-management:
-  tracing:
-    enabled: true
+resilience4j:
+  circuitbreaker:
+    instances:
+      job-executor:
+        sliding-window-size: 50
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 20s
+  retry:
+    instances:
+      scheduler-retry:
+        max-attempts: 3
+        wait-duration: 1s
+  timelimiter:
+    instances:
+      scheduler-service:
+        timeout-duration: 10s

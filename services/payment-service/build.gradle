@@ -16,6 +16,7 @@ java {
 repositories {
     mavenCentral()
     maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://splunk.jfrog.io/splunk/ext-releases-local' }
 }
 
 dependencies {
@@ -37,6 +38,7 @@ dependencies {
     implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
     implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
     implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
+    implementation 'io.github.resilience4j:resilience4j-spring6:2.2.0'
     
     // Logging dependencies
     implementation 'ch.qos.logback:logback-classic'

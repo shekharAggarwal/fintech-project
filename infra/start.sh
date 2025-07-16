@@ -1,45 +1,39 @@
 #!/bin/bash
 set -e
 
+# Define infrastructure services
+# Note: All postgres instances are listed to support the sharded architecture
+INFRA_SERVICES="fintech_redis grafana prometheus jaeger splunk zookeeper kafka rabbitmq"
+DB_SERVICES="postgres-main postgres-shard-1 postgres-shard-2 postgres-shard-3 postgres-auth postgres-scheduler postgres-retry"
+
 echo "🐳 Building and starting all services and infra with Docker Compose..."
-echo "🔧 Setting up observability infrastructure (Jaeger, Splunk, Grafana, Prometheus)..."
 
 if [ "$1" == "infra" ]; then
-  echo "Starting only infra containers (redis, grafana, prometheus, postgres, rabbitmq, kafka, jaeger, splunk)..."
-  docker compose --env-file .env -f docker-compose.yml up -d redis grafana prometheus postgres rabbitmq kafka jaeger splunk zookeeper
+  echo "Starting only infra containers..."
+  docker compose --env-file .env -f docker-compose.yml up -d $INFRA_SERVICES $DB_SERVICES
 else
-  echo "🚀 Starting all services with enhanced observability..."
-  echo "  - Jaeger tracing on http://localhost:16686"
-  echo "  - Grafana dashboards on http://localhost:3000 (admin/admin)"
-  echo "  - Splunk logging on http://localhost:8000 (admin/admin123)"
-  echo "  - Prometheus metrics on http://localhost:9090"
-  
   # Start infrastructure first
-  docker compose --env-file .env -f docker-compose.yml up -d redis grafana prometheus postgres rabbitmq kafka jaeger splunk zookeeper
-  
+  echo "🔧 Setting up infrastructure ($INFRA_SERVICES $DB_SERVICES)..."
+  docker compose --env-file .env -f docker-compose.yml up -d $INFRA_SERVICES $DB_SERVICES
+
   # Wait for infrastructure
   echo "⏳ Waiting for infrastructure to be ready..."
   sleep 20
-  
+
   # Start config server
   echo "🔧 Starting config server..."
   docker compose --env-file .env -f docker-compose.yml up -d config-server
-  
+
   # Wait for config server
-  echo "⏳ Waiting for config server..."
+  echo "⏳ Waiting for config server to be ready..."
   sleep 15
-  
+
   # Start all application services
   echo "🚀 Starting all application services..."
+  # The 'up' command will also start any dependencies that aren't running,
+  # but we start them explicitly above for clarity and control.
+  # The --build flag ensures services are rebuilt if their source code has changed.
   docker compose --env-file .env -f docker-compose.yml up --build -d
-  
-  echo ""
-  echo "✅ All services started with observability features:"
-  echo "  📊 Grafana Dashboard: http://localhost:3000 (admin/admin)"
-  echo "  🔍 Jaeger Tracing: http://localhost:16686"
-  echo "  📝 Splunk Logging: http://localhost:8000 (admin/admin123)"
-  echo "  📈 Prometheus Metrics: http://localhost:9090"
-  echo "  🌐 Gateway Service: https://localhost:8081"
-  echo ""
-  echo "🔧 Circuit breakers, distributed tracing, and centralized logging are now active!"
 fi
+
+echo "✅ All services are starting up."

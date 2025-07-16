@@ -1,56 +1,30 @@
-
+server:
+  port: ${PAYMENT_SERVICE_PORT}
 
 spring:
   application:
     name: payment-service
-
-server:
-  port: 8084
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always
-    metrics:
-      enabled: true
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-        step: 60s
-        descriptions: true
-  tracing:
-    enabled: true
-    sampling:
-      probability: 1.0
-
-opentelemetry:
-  service:
-    name: payment-service
-  exporter:
-    jaeger:
-      endpoint: http://${JAEGER_HOST:jaeger}:${JAEGER_PORT:14268}/api/traces
+  datasource:
+    main:
+      url: ${MAIN_DB_URL}
+    shard1:
+      url: ${SHARD1_DB_URL}
+    shard2:
+      url: ${SHARD2_DB_URL}
+    shard3:
+      url: ${SHARD3_DB_URL}
+  data:
+    redis:
+      database: 4 # Redis DB for payment caching
 
 resilience4j:
   circuitbreaker:
     instances:
-      transactionService:
+      payment-service:
         failureRateThreshold: 60
         waitDurationInOpenState: 15s
         slidingWindowSize: 20
         minimumNumberOfCalls: 10
-        permittedNumberOfCallsInHalfOpenState: 3
-        slowCallRateThreshold: 50
-        slowCallDurationThreshold: 2s
-      default:
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
   retry:
     instances:
       paymentProcessing:
