@@ -18,19 +18,19 @@ import java.util.UUID;
 @Component
 public class JwtUtil {
     
-    @Value("${JWT_KEYSTORE_PATH:/jwt-keystore.p12}")
+    @Value("${JWT_KEYSTORE_PATH}")
     private String keystorePath;
     
-    @Value("${JWT_KEYSTORE_PASSWORD:fintech123}")
+    @Value("${JWT_KEYSTORE_PASSWORD}")
     private String keystorePassword;
     
-    @Value("${JWT_KEY_ALIAS:fintech-jwt}")
+    @Value("${JWT_KEY_ALIAS}")
     private String keyAlias;
     
-    @Value("${JWT_ACCESS_TOKEN_EXPIRATION:60000}") // 1 minute in milliseconds
+    @Value("${JWT_ACCESS_TOKEN_EXPIRATION}")
     private long accessTokenExpiration;
     
-    @Value("${JWT_REFRESH_TOKEN_EXPIRATION:600000}") // 10 minutes in milliseconds
+    @Value("${JWT_REFRESH_TOKEN_EXPIRATION}")
     private long refreshTokenExpiration;
     
     private PrivateKey privateKey;
