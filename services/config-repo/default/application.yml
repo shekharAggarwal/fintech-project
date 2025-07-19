@@ -2,6 +2,13 @@ spring:
   cloud:
     config:
       fail-fast: true
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+  
+  # Default datasource configuration (will be overridden by service-specific configs)
   datasource:
     driver-class-name: org.postgresql.Driver
     username: ${DB_USER}
@@ -12,25 +19,68 @@ spring:
       idle-timeout: 300000
       max-lifetime: 1200000
       connection-timeout: 20000
+      leak-detection-threshold: 60000
+      
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: validate  # Changed from update for production safety
+    show-sql: false  # Changed to false for production
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT}
-    username: ${RABBITMQ_USER}
-    password: ${RABBITMQ_PASS}
+        format_sql: false
+        batch_size: 20
+        order_inserts: true
+        order_updates: true
+        jdbc:
+          batch_size: 20
+          batch_versioned_data: true
+    open-in-view: false  # Better performance
+    
+  # Redis configuration
   redis:
-    host: ${SPRING_REDIS_HOST}
-    port: ${SPRING_REDIS_PORT}
+    host: ${REDIS_HOST:fintech_redis}
+    port: ${REDIS_PORT:6379}
     password: ${REDIS_PASSWORD:}
     timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 10
+        min-idle: 1
+        max-wait: -1ms
+        
+  # RabbitMQ configuration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:fintech_rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_DEFAULT_USER}
+    password: ${RABBITMQ_DEFAULT_PASS}
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+        max-interval: 10000ms
+        multiplier: 2.0
+        
+  # Kafka configuration
   kafka:
-    bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT}
+    bootstrap-servers: ${KAFKA_HOST:fintech_kafka}:${KAFKA_PORT:9092}
+    producer:
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 1
+      buffer-memory: 33554432
+    consumer:
+      group-id: ${spring.application.name}
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      
+  # Quartz configuration
   quartz:
     job-store-type: memory
     properties:

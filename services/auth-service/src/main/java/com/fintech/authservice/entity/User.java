@@ -13,13 +13,19 @@ import java.time.LocalDateTime;
 @Table(name = "users", indexes = {
     @Index(name = "idx_user_email", columnList = "email"),
     @Index(name = "idx_user_account_number", columnList = "accountNumber"),
-    @Index(name = "idx_user_phone", columnList = "phoneNumber")
+    @Index(name = "idx_user_phone", columnList = "phoneNumber"),
+    @Index(name = "idx_user_user_id", columnList = "userId"),
+    @Index(name = "idx_user_shard_key", columnList = "shardKey")
 })
 public class User {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    
+    // Unique user identifier for sharding
+    @Column(nullable = false, unique = true, length = 255)
+    private String userId;
     
     @NotBlank(message = "Full name is required")
     @Size(min = 2, max = 100, message = "Full name must be between 2 and 100 characters")
@@ -142,6 +148,14 @@ public class User {
     
     public void setId(Long id) {
         this.id = id;
+    }
+    
+    public String getUserId() {
+        return userId;
+    }
+    
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
     
     public String getFullName() {
