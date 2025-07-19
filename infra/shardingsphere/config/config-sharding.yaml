@@ -1,0 +1,162 @@
+databaseName: fintech_db
+
+dataSources:
+  # Master databases
+  main_master:
+    url: jdbc:postgresql://fintech_postgres_main:5432/fintech_main
+    username: fintech_user
+    password: fintech_password
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+    
+  shard1_master:
+    url: jdbc:postgresql://fintech_postgres_shard_1:5432/fintech_shard1
+    username: fintech_user
+    password: fintech_password
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+    
+  shard2_master:
+    url: jdbc:postgresql://fintech_postgres_shard_2:5432/fintech_shard2
+    username: fintech_user
+    password: fintech_password
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+    
+  shard3_master:
+    url: jdbc:postgresql://fintech_postgres_shard_3:5432/fintech_shard3
+    username: fintech_user
+    password: fintech_password
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+    
+  # Read replicas
+  main_replica:
+    url: jdbc:postgresql://fintech_postgres_main_replica:5432/fintech_main
+    username: fintech_user
+    password: fintech_password
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+    
+  shard1_replica:
+    url: jdbc:postgresql://fintech_postgres_shard_1_replica:5432/fintech_shard1
+    username: fintech_user
+    password: fintech_password
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+    
+  shard2_replica:
+    url: jdbc:postgresql://fintech_postgres_shard_2_replica:5432/fintech_shard2
+    username: fintech_user
+    password: fintech_password
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+    
+  shard3_replica:
+    url: jdbc:postgresql://fintech_postgres_shard_3_replica:5432/fintech_shard3
+    username: fintech_user
+    password: fintech_password
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 1
+
+rules:
+  - !READWRITE_SPLITTING
+    dataSources:
+      main_ds:
+        writeDataSourceName: main_master
+        readDataSourceNames:
+          - main_replica
+        loadBalancerName: round_robin
+      shard1_ds:
+        writeDataSourceName: shard1_master
+        readDataSourceNames:
+          - shard1_replica
+        loadBalancerName: round_robin
+      shard2_ds:
+        writeDataSourceName: shard2_master
+        readDataSourceNames:
+          - shard2_replica
+        loadBalancerName: round_robin
+      shard3_ds:
+        writeDataSourceName: shard3_master
+        readDataSourceNames:
+          - shard3_replica
+        loadBalancerName: round_robin
+    loadBalancers:
+      round_robin:
+        type: ROUND_ROBIN
+        
+  - !SHARDING
+    tables:
+      users:
+        actualDataNodes: shard${1..3}_ds.users
+        databaseStrategy:
+          standard:
+            shardingColumn: user_id
+            shardingAlgorithmName: user_database_inline
+        keyGenerateStrategy:
+          column: id
+          keyGeneratorName: snowflake
+      user_sessions:
+        actualDataNodes: shard${1..3}_ds.user_sessions
+        databaseStrategy:
+          standard:
+            shardingColumn: user_id
+            shardingAlgorithmName: user_database_inline
+      transactions:
+        actualDataNodes: shard${1..3}_ds.transactions
+        databaseStrategy:
+          standard:
+            shardingColumn: user_id
+            shardingAlgorithmName: user_database_inline
+        keyGenerateStrategy:
+          column: id
+          keyGeneratorName: snowflake
+      accounts:
+        actualDataNodes: shard${1..3}_ds.accounts
+        databaseStrategy:
+          standard:
+            shardingColumn: user_id
+            shardingAlgorithmName: user_database_inline
+        keyGenerateStrategy:
+          column: id
+          keyGeneratorName: snowflake
+      audit_logs:
+        actualDataNodes: main_ds.audit_logs
+        keyGenerateStrategy:
+          column: id
+          keyGeneratorName: snowflake
+    
+    shardingAlgorithms:
+      user_database_inline:
+        type: INLINE
+        props:
+          algorithm-expression: shard$->{(user_id.hashCode() % 3) + 1}_ds
+          
+    keyGenerators:
+      snowflake:
+        type: SNOWFLAKE
