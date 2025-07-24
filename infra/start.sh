@@ -5,9 +5,7 @@ set -e
 INFRA_SERVICES="fintech_redis grafana prometheus jaeger splunk zookeeper kafka rabbitmq"
 
 # Define database services with read replicas and ShardingSphere-Proxy
-DB_SERVICES="postgres-main postgres-shard-1 postgres-shard-2 postgres-shard-3 postgres-auth postgres-scheduler postgres-retry"
-DB_REPLICA_SERVICES="postgres-main-replica postgres-shard-1-replica postgres-shard-2-replica postgres-shard-3-replica"
-SHARDING_PROXY="shardingsphere-proxy"
+DB_SERVICES="postgres-main postgres-auth postgres-scheduler postgres-retry"
 
 # Define application services for ordered startup
 CONFIG_SERVICE="config-server"
@@ -19,7 +17,7 @@ echo "🐳 Building and starting FinTech microservices with ShardingSphere-Proxy
 
 if [ "$1" == "infra" ]; then
   echo "🔧 Starting only infrastructure containers..."
-  docker compose --env-file .env -f docker-compose.yml up -d $INFRA_SERVICES $DB_SERVICES $DB_REPLICA_SERVICES $SHARDING_PROXY
+  docker compose --env-file .env -f docker-compose.yml up -d $INFRA_SERVICES $DB_SERVICES
   echo "✅ Infrastructure services started."
 
 else
@@ -29,18 +27,7 @@ else
   
   echo "⏳ Waiting for master databases to initialize..."
   sleep 30
-  
-  echo "🔄 Step 2: Starting read replicas..."
-  docker compose --env-file .env -f docker-compose.yml up -d $DB_REPLICA_SERVICES
-  
-  echo "⏳ Waiting for replicas to sync..."
-  sleep 20
-  
-  echo "🔀 Step 3: Starting ShardingSphere-Proxy..."
-  docker compose --env-file .env -f docker-compose.yml up -d $SHARDING_PROXY
-  
-  echo "⏳ Waiting for proxy to be ready..."
-  sleep 15
+
   
   echo "🔧 Step 4: Starting infrastructure services..."
   docker compose --env-file .env -f docker-compose.yml up -d $INFRA_SERVICES

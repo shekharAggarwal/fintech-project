@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/fintech-project.iml" filepath="$PROJECT_DIR$/.idea/fintech-project.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/gateway-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/gateway-service.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/gateway-service.test.iml" filepath="$PROJECT_DIR$/.idea/modules/gateway-service.test.iml" />
     </modules>
   </component>
 </project>

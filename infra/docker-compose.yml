@@ -165,9 +165,6 @@ services:
       retries: 3
       start_period: 30s
 
-  #-----------------------------------------------
-  # MAIN AND SHARDED DATABASES (with Replication)
-  #-----------------------------------------------
   postgres-main:
     image: postgres:15
     container_name: fintech_postgres_main
@@ -177,110 +174,18 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_DB: fintech_main
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGUSER: ${POSTGRES_USER}
     volumes:
       - postgres-main-data:/var/lib/postgresql/data
-      - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    command: >
-      postgres
-      -c config_file=/etc/postgresql/postgresql.conf
-      -c hba_file=/etc/postgresql/pg_hba.conf
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_main"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_main"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
 
-  postgres-shard-1:
-    image: postgres:15
-    container_name: fintech_postgres_shard_1
-    networks:
-      - fintech_net
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_DB: fintech_shard1
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
-    volumes:
-      - postgres-shard-1-data:/var/lib/postgresql/data
-      - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    command: >
-      postgres
-      -c config_file=/etc/postgresql/postgresql.conf
-      -c hba_file=/etc/postgresql/pg_hba.conf
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_shard1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  postgres-shard-2:
-    image: postgres:15
-    container_name: fintech_postgres_shard_2
-    networks:
-      - fintech_net
-    ports:
-      - "5434:5432"
-    environment:
-      POSTGRES_DB: fintech_shard2
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
-    volumes:
-      - postgres-shard-2-data:/var/lib/postgresql/data
-      - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    command: >
-      postgres
-      -c config_file=/etc/postgresql/postgresql.conf
-      -c hba_file=/etc/postgresql/pg_hba.conf
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_shard2"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  postgres-shard-3:
-    image: postgres:15
-    container_name: fintech_postgres_shard_3
-    networks:
-      - fintech_net
-    ports:
-      - "5435:5432"
-    environment:
-      POSTGRES_DB: fintech_shard3
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
-    volumes:
-      - postgres-shard-3-data:/var/lib/postgresql/data
-      - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    command: >
-      postgres
-      -c config_file=/etc/postgresql/postgresql.conf
-      -c hba_file=/etc/postgresql/pg_hba.conf
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_shard3"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  # --- Specialized Database Services ---
   postgres-auth:
     image: postgres:15
     container_name: fintech_postgres_auth
@@ -290,14 +195,14 @@ services:
       - "5436:5432"
     environment:
       POSTGRES_DB: fintech_auth
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGUSER: ${POSTGRES_USER}
     volumes:
       - postgres-auth-data:/var/lib/postgresql/data
       - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_auth"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_auth"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -312,14 +217,14 @@ services:
       - "5437:5432"
     environment:
       POSTGRES_DB: fintech_scheduler
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGUSER: ${POSTGRES_USER}
     volumes:
       - postgres-scheduler-data:/var/lib/postgresql/data
       - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_scheduler"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_scheduler"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -334,226 +239,18 @@ services:
       - "5438:5432"
     environment:
       POSTGRES_DB: fintech_retry
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGUSER: ${POSTGRES_USER}
     volumes:
       - postgres-retry-data:/var/lib/postgresql/data
       - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_retry"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_retry"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
-
-  # ShardingSphere Proxy
-  shardingsphere-proxy:
-    build:
-      context: ./shardingsphere
-      dockerfile: Dockerfile
-    container_name: fintech_shardingsphere_proxy
-    networks:
-      - fintech_net
-    ports:
-      - "3307:3307"
-    environment:
-      PORT: 3307
-      JVM_OPTS: "-Xmx2g -Xms1g"
-    volumes:
-      - ./shardingsphere/config:/opt/shardingsphere-proxy/conf
-    depends_on:
-      postgres-main:
-        condition: service_healthy
-      postgres-shard-1:
-        condition: service_healthy
-      postgres-shard-2:
-        condition: service_healthy
-      postgres-shard-3:
-        condition: service_healthy
-      postgres-main-replica:
-        condition: service_healthy
-      postgres-shard-1-replica:
-        condition: service_healthy
-      postgres-shard-2-replica:
-        condition: service_healthy
-      postgres-shard-3-replica:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "3307"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
-
-  # Read Replicas - WITH PROPER CONFIGURATION
-  postgres-main-replica:
-    image: postgres:15
-    container_name: fintech_postgres_main_replica
-    user: postgres
-    networks:
-      - fintech_net
-    ports:
-      - "5442:5432"
-    environment:
-      POSTGRES_DB: fintech_main
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
-      PGPASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-    volumes:
-      - postgres-main-replica-data:/var/lib/postgresql/data
-      - ./postgres/replica-scripts:/docker-entrypoint-initdb.d:ro
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    depends_on:
-      postgres-main:
-        condition: service_healthy
-    command: >
-      bash -c "
-        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
-          until pg_isready -h fintech_postgres_main -p 5432 -U ${POSTGRES_USER:-fintech_user}; do
-            echo 'Waiting for master database to be ready...'
-            sleep 2
-          done
-          PGPASSWORD=${POSTGRES_PASSWORD:-fintech_password} pg_basebackup -h fintech_postgres_main -p 5432 -U ${POSTGRES_USER:-fintech_user} -D /var/lib/postgresql/data -v -P -R
-          chmod 700 /var/lib/postgresql/data
-          chown -R postgres:postgres /var/lib/postgresql/data
-        fi
-        exec postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf -c hot_standby=on
-      "
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_main"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-
-  postgres-shard-1-replica:
-    image: postgres:15
-    container_name: fintech_postgres_shard_1_replica
-    user: postgres
-    networks:
-      - fintech_net
-    ports:
-      - "5443:5432"
-    environment:
-      POSTGRES_DB: fintech_shard1
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
-      PGPASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-    volumes:
-      - postgres-shard-1-replica-data:/var/lib/postgresql/data
-      - ./postgres/replica-scripts:/docker-entrypoint-initdb.d:ro
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    depends_on:
-      postgres-shard-1:
-        condition: service_healthy
-    command: >
-      bash -c "
-        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
-          until pg_isready -h fintech_postgres_shard_1 -p 5432 -U ${POSTGRES_USER:-fintech_user}; do
-            echo 'Waiting for master database to be ready...'
-            sleep 2
-          done
-          PGPASSWORD=${POSTGRES_PASSWORD:-fintech_password} pg_basebackup -h fintech_postgres_shard_1 -p 5432 -U ${POSTGRES_USER:-fintech_user} -D /var/lib/postgresql/data -v -P -R
-          chmod 700 /var/lib/postgresql/data
-          chown -R postgres:postgres /var/lib/postgresql/data
-        fi
-        exec postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf -c hot_standby=on
-      "
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_shard1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-
-  postgres-shard-2-replica:
-    image: postgres:15
-    container_name: fintech_postgres_shard_2_replica
-    user: postgres
-    networks:
-      - fintech_net
-    ports:
-      - "5444:5432"
-    environment:
-      POSTGRES_DB: fintech_shard2
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
-      PGPASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-    volumes:
-      - postgres-shard-2-replica-data:/var/lib/postgresql/data
-      - ./postgres/replica-scripts:/docker-entrypoint-initdb.d:ro
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    depends_on:
-      postgres-shard-2:
-        condition: service_healthy
-    command: >
-      bash -c "
-        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
-          until pg_isready -h fintech_postgres_shard_2 -p 5432 -U ${POSTGRES_USER:-fintech_user}; do
-            echo 'Waiting for master database to be ready...'
-            sleep 2
-          done
-          PGPASSWORD=${POSTGRES_PASSWORD:-fintech_password} pg_basebackup -h fintech_postgres_shard_2 -p 5432 -U ${POSTGRES_USER:-fintech_user} -D /var/lib/postgresql/data -v -P -R
-          chmod 700 /var/lib/postgresql/data
-          chown -R postgres:postgres /var/lib/postgresql/data
-        fi
-        exec postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf -c hot_standby=on
-      "
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_shard2"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
-
-  postgres-shard-3-replica:
-    image: postgres:15
-    container_name: fintech_postgres_shard_3_replica
-    user: postgres
-    networks:
-      - fintech_net
-    ports:
-      - "5445:5432"
-    environment:
-      POSTGRES_DB: fintech_shard3
-      POSTGRES_USER: ${POSTGRES_USER:-fintech_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-      PGUSER: ${POSTGRES_USER:-fintech_user}
-      PGPASSWORD: ${POSTGRES_PASSWORD:-fintech_password}
-    volumes:
-      - postgres-shard-3-replica-data:/var/lib/postgresql/data
-      - ./postgres/replica-scripts:/docker-entrypoint-initdb.d:ro
-      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
-      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
-    depends_on:
-      postgres-shard-3:
-        condition: service_healthy
-    command: >
-      bash -c "
-        if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
-          until pg_isready -h fintech_postgres_shard_3 -p 5432 -U ${POSTGRES_USER:-fintech_user}; do
-            echo 'Waiting for master database to be ready...'
-            sleep 2
-          done
-          PGPASSWORD=${POSTGRES_PASSWORD:-fintech_password} pg_basebackup -h fintech_postgres_shard_3 -p 5432 -U ${POSTGRES_USER:-fintech_user} -D /var/lib/postgresql/data -v -P -R
-          chmod 700 /var/lib/postgresql/data
-          chown -R postgres:postgres /var/lib/postgresql/data
-        fi
-        exec postgres -c config_file=/etc/postgresql/postgresql.conf -c hba_file=/etc/postgresql/pg_hba.conf -c hot_standby=on
-      "
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fintech_user} -d fintech_shard3"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 40s
 
   #-----------------------------------
   # INFRASTRUCTURE & PLATFORM SERVICES
@@ -614,8 +311,6 @@ services:
     depends_on:
       config-server:
         condition: service_healthy
-      shardingsphere-proxy:
-        condition: service_healthy
       fintech_redis:
         condition: service_healthy
       rabbitmq:
@@ -656,8 +351,6 @@ services:
     depends_on:
       config-server:
         condition: service_healthy
-      shardingsphere-proxy:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:${USER_SERVICE_PORT}/actuator/health"]
       interval: 30s
@@ -673,8 +366,6 @@ services:
     env_file: .env
     depends_on:
       config-server:
-        condition: service_healthy
-      shardingsphere-proxy:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -693,8 +384,6 @@ services:
     env_file: .env
     depends_on:
       config-server:
-        condition: service_healthy
-      shardingsphere-proxy:
         condition: service_healthy
       kafka:
         condition: service_healthy
@@ -731,8 +420,6 @@ services:
     env_file: .env
     depends_on:
       config-server:
-        condition: service_healthy
-      shardingsphere-proxy:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:${REPORTING_SERVICE_PORT}/actuator/health"]
