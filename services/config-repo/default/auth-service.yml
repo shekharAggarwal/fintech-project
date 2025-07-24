@@ -14,49 +14,15 @@ spring:
   # This approach provides automatic sharding and read/write splitting
   datasource:
     # ShardingSphere-Proxy configuration (recommended for production)
-    url: jdbc:postgresql://fintech_shardingsphere_proxy:3307/fintech_db
-    username: ${DB_USER}
-    password: ${DB_PASS}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      idle-timeout: 300000
-      connection-timeout: 20000
-      leak-detection-threshold: 60000
-    
-    # Alternative: Direct sharding configuration (commented out)
-    # Use this for development/testing when proxy is not available
-    # main:
-    #   url: ${MAIN_DB_URL:jdbc:postgresql://fintech_postgres_main:5432/fintech_main}
-    #   username: ${DB_USER}
-    #   password: ${DB_PASS}
-  
-  # JPA Configuration
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: false
-        use_sql_comments: false
-        batch_size: 20
-        order_inserts: true
-        order_updates: true
-        jdbc:
-          batch_size: 20
-          batch_versioned_data: true
-    open-in-view: false
+    url: ${SHARDINGSPHERE_PROXY_URL}
   
   # Redis Configuration
   data:
     redis:
       database: 0
-      host: ${REDIS_HOST:fintech_redis}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
       timeout: 2000ms
       lettuce:
         pool:
@@ -64,22 +30,6 @@ spring:
           max-idle: 10
           min-idle: 1
           max-wait: -1ms
-  
-  # RabbitMQ Configuration
-  rabbitmq:
-    host: ${RABBITMQ_HOST:fintech_rabbitmq}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_DEFAULT_USER}
-    password: ${RABBITMQ_DEFAULT_PASS}
-    publisher-confirm-type: correlated
-    publisher-returns: true
-    template:
-      retry:
-        enabled: true
-        initial-interval: 1000ms
-        max-attempts: 3
-        max-interval: 10000ms
-        multiplier: 2.0
 
 # JWT Configuration
 jwt:

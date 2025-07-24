@@ -1,9 +1,9 @@
 databaseName: fintech_db
 
 dataSources:
-  # Master databases
+  # Patroni Master databases
   main_master:
-    url: jdbc:postgresql://fintech_postgres_main:5432/fintech_main
+    url: jdbc:postgresql://patroni-main-master:5432/fintech_main
     username: fintech_user
     password: fintech_password
     connectionTimeoutMilliseconds: 30000
@@ -13,7 +13,7 @@ dataSources:
     minPoolSize: 1
     
   shard1_master:
-    url: jdbc:postgresql://fintech_postgres_shard_1:5432/fintech_shard1
+    url: jdbc:postgresql://patroni-shard-1-master:5432/fintech_shard1
     username: fintech_user
     password: fintech_password
     connectionTimeoutMilliseconds: 30000
@@ -23,7 +23,7 @@ dataSources:
     minPoolSize: 1
     
   shard2_master:
-    url: jdbc:postgresql://fintech_postgres_shard_2:5432/fintech_shard2
+    url: jdbc:postgresql://patroni-shard-2-master:5432/fintech_shard2
     username: fintech_user
     password: fintech_password
     connectionTimeoutMilliseconds: 30000
@@ -33,7 +33,7 @@ dataSources:
     minPoolSize: 1
     
   shard3_master:
-    url: jdbc:postgresql://fintech_postgres_shard_3:5432/fintech_shard3
+    url: jdbc:postgresql://patroni-shard-3-master:5432/fintech_shard3
     username: fintech_user
     password: fintech_password
     connectionTimeoutMilliseconds: 30000
@@ -42,9 +42,9 @@ dataSources:
     maxPoolSize: 50
     minPoolSize: 1
     
-  # Read replicas
+  # Patroni Read replicas
   main_replica:
-    url: jdbc:postgresql://fintech_postgres_main_replica:5432/fintech_main
+    url: jdbc:postgresql://patroni-main-replica:5432/fintech_main
     username: fintech_user
     password: fintech_password
     connectionTimeoutMilliseconds: 30000
@@ -54,7 +54,7 @@ dataSources:
     minPoolSize: 1
     
   shard1_replica:
-    url: jdbc:postgresql://fintech_postgres_shard_1_replica:5432/fintech_shard1
+    url: jdbc:postgresql://patroni-shard-1-replica:5432/fintech_shard1
     username: fintech_user
     password: fintech_password
     connectionTimeoutMilliseconds: 30000
@@ -64,7 +64,7 @@ dataSources:
     minPoolSize: 1
     
   shard2_replica:
-    url: jdbc:postgresql://fintech_postgres_shard_2_replica:5432/fintech_shard2
+    url: jdbc:postgresql://patroni-shard-2-replica:5432/fintech_shard2
     username: fintech_user
     password: fintech_password
     connectionTimeoutMilliseconds: 30000
@@ -74,7 +74,7 @@ dataSources:
     minPoolSize: 1
     
   shard3_replica:
-    url: jdbc:postgresql://fintech_postgres_shard_3_replica:5432/fintech_shard3
+    url: jdbc:postgresql://patroni-shard-3-replica:5432/fintech_shard3
     username: fintech_user
     password: fintech_password
     connectionTimeoutMilliseconds: 30000

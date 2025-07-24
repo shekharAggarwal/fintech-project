@@ -11,8 +11,8 @@ spring:
   # Default datasource configuration (will be overridden by service-specific configs)
   datasource:
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USER}
-    password: ${DB_PASS}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -24,11 +24,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate  # Changed from update for production safety
-    show-sql: false  # Changed to false for production
+    show-sql: true  # Changed to false for production
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: false
+        format_sql: true
         batch_size: 20
         order_inserts: true
         order_updates: true
@@ -52,8 +52,8 @@ spring:
         
   # RabbitMQ configuration
   rabbitmq:
-    host: ${RABBITMQ_HOST:fintech_rabbitmq}
-    port: ${RABBITMQ_PORT:5672}
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_DEFAULT_USER}
     password: ${RABBITMQ_DEFAULT_PASS}
     publisher-confirm-type: correlated
@@ -68,7 +68,7 @@ spring:
         
   # Kafka configuration
   kafka:
-    bootstrap-servers: ${KAFKA_HOST:fintech_kafka}:${KAFKA_PORT:9092}
+    bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT}
     producer:
       acks: all
       retries: 3
