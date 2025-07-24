@@ -18,19 +18,19 @@ import java.util.UUID;
 @Component
 public class JwtUtil {
     
-    @Value("${JWT_KEYSTORE_PATH}")
+    @Value("${jwt.keystore-path}")
     private String keystorePath;
     
-    @Value("${JWT_KEYSTORE_PASSWORD}")
+    @Value("${jwt.keystore-password}")
     private String keystorePassword;
     
-    @Value("${JWT_KEY_ALIAS}")
+    @Value("${jwt.key-alias}")
     private String keyAlias;
     
-    @Value("${JWT_ACCESS_TOKEN_EXPIRATION}")
+    @Value("${jwt.access-token-expiration}")
     private long accessTokenExpiration;
     
-    @Value("${JWT_REFRESH_TOKEN_EXPIRATION}")
+    @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpiration;
     
     private PrivateKey privateKey;

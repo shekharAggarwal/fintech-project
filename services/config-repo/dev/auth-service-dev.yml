@@ -8,7 +8,7 @@ spring:
   # Database Configuration - Direct connection for local development
   # This bypasses ShardingSphere-Proxy for simplicity
   datasource:
-    url: jdbc:postgresql://localhost:5433/fintech_shard1
+    url: jdbc:postgresql://localhost:5432/fintech_main
     username: fintech_user
     password: fintech_password
     driver-class-name: org.postgresql.Driver
