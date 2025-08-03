@@ -1,16 +1,15 @@
-# Common observability configuration template for all services
-# Add this section to all microservice application.yml files
-
-# Management endpoints with full observability
+# Management endpoints for monitoring and observability
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus,circuitbreakers,circuitbreakerevents,env,configprops
+        include: health,info,metrics,prometheus,circuitbreakers,circuitbreakerevents,env,configprops,ratelimiters,retries,timelimiters
   endpoint:
     health:
       show-details: always
       show-components: always
+      probes:
+        enabled: true
   tracing:
     sampling:
       probability: 1.0
@@ -20,7 +19,7 @@ management:
         enabled: true
   otlp:
     tracing:
-      endpoint: ${JAEGER_OTLP_ENDPOINT:http://localhost:4317}
+      endpoint: ${JAEGER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 # Circuit Breaker Configuration for Resilience4j
 resilience4j:
@@ -32,7 +31,7 @@ resilience4j:
         minimum-number-of-calls: 5
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
-        wait-duration-in-open-state: 5s
+        wait-duration-in-open-state: 10s
         failure-rate-threshold: 50
         event-consumer-buffer-size: 10
       emailService:
@@ -47,18 +46,50 @@ resilience4j:
         minimum-number-of-calls: 10
         failure-rate-threshold: 50
         wait-duration-in-open-state: 5s
+      userService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+      paymentService:
+        register-health-indicator: true
+        sliding-window-size: 15
+        minimum-number-of-calls: 8
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 15s
   retry:
     instances:
       default:
         max-attempts: 3
-        wait-duration: 100ms
+        wait-duration: 1s
         exponential-backoff-multiplier: 2
       emailService:
         max-attempts: 2
-        wait-duration: 200ms
+        wait-duration: 2s
       databaseService:
         max-attempts: 3
-        wait-duration: 50ms
+        wait-duration: 500ms
+      userService:
+        max-attempts: 3
+        wait-duration: 1s
+      paymentService:
+        max-attempts: 4
+        wait-duration: 2s
+  ratelimiter:
+    instances:
+      default:
+        limit-for-period: 50
+        limit-refresh-period: 1s
+        timeout-duration: 500ms
+      userService:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 1s
+      paymentService:
+        limit-for-period: 30
+        limit-refresh-period: 1s
+        timeout-duration: 2s
   timelimiter:
     instances:
       default:
@@ -67,19 +98,10 @@ resilience4j:
         timeout-duration: 5s
       databaseService:
         timeout-duration: 2s
-
-# Logging configuration with Splunk and structured logging
-logging:
-  level:
-    '[com.fintech]': ${LOG_LEVEL:DEBUG}
-    '[io.github.resilience4j]': DEBUG
-    '[org.springframework.web]': DEBUG
-    '[org.springframework.amqp]': DEBUG
-    '[org.springframework.data]': DEBUG
-  pattern:
-    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
-  config: classpath:logback-spring.xml
+      userService:
+        timeout-duration: 4s
+      paymentService:
+        timeout-duration: 10s
 
 # Environment variable configuration
 environment:
@@ -92,10 +114,29 @@ environment:
 spring:
   application:
     name: ${SERVICE_NAME:unknown-service}
-  zipkin:
-    base-url: ${JAEGER_ZIPKIN_ENDPOINT:http://localhost:9411}
-  sleuth:
-    opentracing:
-      jaeger:
-        http-sender:
-          url: ${JAEGER_ENDPOINT:http://localhost:14268/api/traces}
+  # Micrometer Tracing with OTLP for Spring Boot 3 (Jaeger endpoint configured above)
+
+# Fintech-specific monitoring configurations
+fintech:
+  monitoring:
+    # Enable custom metrics for financial operations
+    transaction-metrics:
+      enabled: true
+    payment-metrics:
+      enabled: true
+    security-metrics:
+      enabled: true
+  
+  # Security and compliance monitoring
+  security:
+    audit-logging:
+      enabled: true
+    rate-limiting:
+      enabled: true
+      default-limit: 100
+    
+  # Performance monitoring thresholds
+  performance:
+    transaction-timeout: 30s
+    payment-timeout: 60s
+    database-timeout: 5s

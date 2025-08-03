@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-    
+
     <!-- Console Appender with JSON format -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -10,20 +10,18 @@
             <customFields>{"service":"${spring.application.name:-unknown}"}</customFields>
         </encoder>
     </appender>
-    
-    <!-- Splunk HTTP Event Collector Appender -->
-    <appender name="SPLUNK" class="com.splunk.logging.SplunkCimLogbackAppender">
-        <layout class="com.splunk.logging.SplunkCimLayout">
-            <facility>${spring.application.name:-unknown}</facility>
-            <includeLoggerName>true</includeLoggerName>
-            <includeThreadName>true</includeThreadName>
-        </layout>
-        <hecUrl>http://${SPLUNK_HOST:splunk}:${SPLUNK_PORT:8088}</hecUrl>
-        <hecToken>${SPLUNK_HEC_TOKEN:abcd1234-ef56-7890-abcd-1234567890ab}</hecToken>
+
+    <!-- Splunk HTTP Event Collector Appender (Fixed configuration) -->
+    <appender name="SPLUNK" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
+        <url>http://localhost:8088</url>
+        <token>fintech-hec-token-2024</token>
+        <index>fintech</index>
+        <source>gateway-service</source>
+        <sourcetype>json</sourcetype>
         <disableCertificateValidation>true</disableCertificateValidation>
     </appender>
-    
-    <!-- File Appender with JSON format -->
+
+    <!-- File Appender with JSON format and Rolling Policy -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/${spring.application.name:-unknown}.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -39,14 +37,14 @@
             <customFields>{"service":"${spring.application.name:-unknown}"}</customFields>
         </encoder>
     </appender>
-    
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="SPLUNK"/>
         <appender-ref ref="FILE"/>
     </root>
-    
-    <!-- Enhanced logging for fintech services -->
+
+    <!-- Custom logger levels for software packages -->
     <logger name="com.fintech" level="DEBUG"/>
     <logger name="org.springframework.web" level="DEBUG"/>
     <logger name="io.micrometer" level="DEBUG"/>

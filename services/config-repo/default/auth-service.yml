@@ -10,13 +10,11 @@ spring:
   application:
     name: auth-service
   
-  # Database Configuration using ShardingSphere-Proxy
-  # This approach provides automatic sharding and read/write splitting
+  # Database Configuration - using direct connection for simplicity
   datasource:
-    # ShardingSphere-Proxy configuration (recommended for production)
-    url: jdbc:postgresql://fintech_shardingsphere_proxy:3307/fintech_db
-    username: ${DB_USER}
-    password: ${DB_PASS}
+    url: ${AUTH_DB_URL:jdbc:postgresql://fintech_postgres_auth:5432/fintech_auth}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
@@ -24,13 +22,6 @@ spring:
       idle-timeout: 300000
       connection-timeout: 20000
       leak-detection-threshold: 60000
-    
-    # Alternative: Direct sharding configuration (commented out)
-    # Use this for development/testing when proxy is not available
-    # main:
-    #   url: ${MAIN_DB_URL:jdbc:postgresql://fintech_postgres_main:5432/fintech_main}
-    #   username: ${DB_USER}
-    #   password: ${DB_PASS}
   
   # JPA Configuration
   jpa:
