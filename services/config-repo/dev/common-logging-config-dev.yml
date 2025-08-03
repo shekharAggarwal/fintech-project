@@ -1,0 +1,11 @@
+logging:
+  config: C:/spring-boot/fintech-project/services/common-logging-config/logback-spring-template.xml
+  level:
+    root: INFO
+    com.fintech: DEBUG
+
+splunk:
+  host: splunk
+  port: 8088
+  hec-token: fintech-hec-token-2024
+  index: fintech-dev

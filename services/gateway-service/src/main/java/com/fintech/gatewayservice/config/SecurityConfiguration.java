@@ -14,7 +14,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebFluxSecurity
 @Configuration
 public class SecurityConfiguration {
-    private static final String[] WHITE_LIST_URL = {"/api/auth/**"};
+    private static final String[] WHITE_LIST_URL = {
+        "/api/auth/**",
+        "/actuator/**"  // Allow access to actuator endpoints for monitoring
+    };
 
     private final JwtWebFilter jwtWebFilter;
 
@@ -34,5 +37,17 @@ public class SecurityConfiguration {
             .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
             .addFilterAt(jwtWebFilter, SecurityWebFiltersOrder.AUTHENTICATION)
             .build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.addAllowedOrigin("https://localhost:8080/"); 
+        configuration.addAllowedMethod("*");
+        configuration.addAllowedHeader("*");
+        configuration.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

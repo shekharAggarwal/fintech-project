@@ -4,6 +4,10 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus,circuitbreakers,circuitbreakerevents,env,configprops,ratelimiters,retries,timelimiters
+      # For development - disable security on actuator endpoints
+      cors:
+        allowed-origins: "*"
+        allowed-methods: GET,POST
   endpoint:
     health:
       show-details: always
@@ -13,6 +17,7 @@ management:
   tracing:
     sampling:
       probability: 1.0
+    enabled: true
   prometheus:
     metrics:
       export:
@@ -20,8 +25,40 @@ management:
   otlp:
     tracing:
       endpoint: ${JAEGER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  observations:
+    key-values:
+      application: ${spring.application.name}
+      environment: ${ENVIRONMENT:development}
+  security:
+    enabled: false  # Disable actuator security for development
 
-# Circuit Breaker Configuration for Resilience4j
+# Spring Boot 3 Tracing Configuration
+# Note: spring.application.name should be set in individual service configs
+# This template uses the application name for tracing configuration
+
+# OpenTelemetry Configuration
+otel:
+  sdk:
+    disabled: false
+  resource:
+    attributes:
+      service.name: ${spring.application.name}
+      service.version: ${SERVICE_VERSION:1.0.0}
+  exporter:
+    otlp:
+      endpoint: ${JAEGER_OTLP_ENDPOINT:http://localhost:4318}
+  traces:
+    exporter: otlp
+  metrics:
+    exporter: none
+  logs:
+    exporter: none
+
+# Enhanced Resilience4j configurations for development
 resilience4j:
   circuitbreaker:
     instances:
@@ -110,13 +147,19 @@ environment:
     version: ${SERVICE_VERSION:1.0.0}
     environment: ${ENVIRONMENT:development}
 
-# Distributed tracing configuration
-spring:
-  application:
-    name: ${SERVICE_NAME:unknown-service}
-  # Micrometer Tracing with OTLP for Spring Boot 3 (Jaeger endpoint configured above)
+# Additional Tracing Configuration for Spring Boot 3
+tracing:
+  baggage:
+    enabled: true
+  propagation:
+    type: b3,w3c
 
-# Fintech-specific monitoring configurations
+# Reactive tracing configuration for Spring Gateway
+spring:
+  reactor:
+    context-propagation: auto
+
+# Fintech-specific monitoring configurations for development
 fintech:
   monitoring:
     # Enable custom metrics for financial operations

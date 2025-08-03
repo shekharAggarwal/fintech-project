@@ -3,7 +3,11 @@ spring:
     config:
       fail-fast: true
   
-  # Common JPA Configuration for local development
+  # Common configuration imports
+  config:
+    import: 
+      - C:/spring-boot/fintech-project/services/config-repo/dev/common-logging-config-dev.yml
+      - C:/spring-boot/fintech-project/services/config-repo/dev/common-observability-config-dev.yml
   jpa:
     hibernate:
       ddl-auto: none
@@ -32,49 +36,3 @@ spring:
     properties:
       org.quartz.scheduler.instanceName: fintech-scheduler-dev
       org.quartz.threadPool.threadCount: 10
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-  tracing:
-    sampling:
-      probability: 1.0
-  otlp:
-    tracing:
-      endpoint: http://localhost:4318/v1/traces
-
-
-logging:
-  level:
-    com.fintech: DEBUG
-    org.springframework.web: INFO
-  pattern:
-    level: "%5p [${spring.application.name},%X{traceId:-},%X{spanId:-}]"
-
-# Default Resilience4j configurations
-resilience4j:
-  circuitbreaker:
-    instances:
-      default:
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-  retry:
-    instances:
-      default:
-        maxAttempts: 3
-        waitDuration: 1s
-  ratelimiter:
-    instances:
-      default:
-        limitForPeriod: 50
-        limitRefreshPeriod: 1s
-        timeoutDuration: 500ms

@@ -17,12 +17,9 @@ public class IpRateLimiterHandler {
     }
 
     /**
-     * Distributed rate limiting per IP using Redis counters and one config.
-     *
-     * @param ip Client IP
-     * @return true if allowed, false if rate limited
+     * Returns true if the IP is rate limited, false if allowed.
      */
-    public boolean isAllowed(String ip) {
+    public boolean isRateLimited(String ip) {
         int limit = rateLimiterConfig.getLimitForPeriod();
         long periodSeconds = rateLimiterConfig.getLimitRefreshPeriod().getSeconds();
         String key = String.format("rate:%s", ip);

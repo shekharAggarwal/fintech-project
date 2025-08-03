@@ -1,0 +1,140 @@
+# Common Observability Configuration Template for Production Environment
+# This file contains observability, monitoring, and resilience configurations
+# Import this file in your service's application.yml using spring.config.import
+
+# Management endpoints for monitoring and observability (production-safe)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,circuitbreakers,circuitbreakerevents,ratelimiters,retries,timelimiters
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+      probes:
+        enabled: true
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:0.1}  # Lower sampling for production
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  otlp:
+    tracing:
+      endpoint: ${JAEGER_OTLP_ENDPOINT:http://jaeger:4318/v1/traces}
+
+# Enhanced Resilience4j configurations for production
+resilience4j:
+  circuitbreaker:
+    instances:
+      default:
+        register-health-indicator: true
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        permitted-number-of-calls-in-half-open-state: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 60
+        event-consumer-buffer-size: 50
+      emailService:
+        register-health-indicator: true
+        sliding-window-size: 30
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 70
+        wait-duration-in-open-state: 30s
+      databaseService:
+        register-health-indicator: true
+        sliding-window-size: 50
+        minimum-number-of-calls: 20
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 15s
+      userService:
+        register-health-indicator: true
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 30s
+      paymentService:
+        register-health-indicator: true
+        sliding-window-size: 30
+        minimum-number-of-calls: 15
+        failure-rate-threshold: 70
+        wait-duration-in-open-state: 60s
+  retry:
+    instances:
+      default:
+        max-attempts: 5
+        wait-duration: 2s
+        exponential-backoff-multiplier: 2
+      emailService:
+        max-attempts: 3
+        wait-duration: 3s
+      databaseService:
+        max-attempts: 5
+        wait-duration: 1s
+      userService:
+        max-attempts: 5
+        wait-duration: 2s
+      paymentService:
+        max-attempts: 6
+        wait-duration: 3s
+  ratelimiter:
+    instances:
+      default:
+        limit-for-period: 200
+        limit-refresh-period: 1s
+        timeout-duration: 1s
+      userService:
+        limit-for-period: 500
+        limit-refresh-period: 1s
+        timeout-duration: 2s
+      paymentService:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 3s
+  timelimiter:
+    instances:
+      default:
+        timeout-duration: 5s
+      emailService:
+        timeout-duration: 10s
+      databaseService:
+        timeout-duration: 3s
+      userService:
+        timeout-duration: 8s
+      paymentService:
+        timeout-duration: 15s
+
+# Environment variable configuration
+environment:
+  service:
+    name: ${spring.application.name}
+    version: ${SERVICE_VERSION:1.0.0}
+    environment: ${ENVIRONMENT:production}
+
+# Fintech-specific monitoring configurations for production
+fintech:
+  monitoring:
+    # Enable custom metrics for financial operations
+    transaction-metrics:
+      enabled: true
+    payment-metrics:
+      enabled: true
+    security-metrics:
+      enabled: true
+  
+  # Security and compliance monitoring
+  security:
+    audit-logging:
+      enabled: true
+    rate-limiting:
+      enabled: true
+      default-limit: 500
+    
+  # Performance monitoring thresholds (more conservative for production)
+  performance:
+    transaction-timeout: 60s
+    payment-timeout: 120s
+    database-timeout: 10s

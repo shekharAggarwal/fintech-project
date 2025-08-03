@@ -14,12 +14,12 @@ scrape_configs:
   - job_name: 'gateway-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['gateway-service:8081']
+      - targets: ['host.docker.internal:8080']  # For local development
 
   - job_name: 'auth-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['auth-service:8082']
+      - targets: ['host.docker.internal:8081']  # For local development
 
   - job_name: 'authorization-service'
     metrics_path: '/actuator/prometheus'

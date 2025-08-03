@@ -5,9 +5,8 @@ spring:
   application:
     name: reporting-service
   
-  # Database Configuration using ShardingSphere-Proxy
   datasource:
-    url: jdbc:postgresql://localhost:3307/fintech_db
+  config:
     username: fintech_user
     password: fintech_password
     driver-class-name: org.postgresql.Driver

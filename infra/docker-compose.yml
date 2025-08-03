@@ -78,12 +78,15 @@ services:
     ports:
       - "8000:8000"
       - "8088:8088"
+      - "8089:8089"
     environment:
       SPLUNK_START_ARGS: --accept-license
       SPLUNK_PASSWORD: ${SPLUNK_PASSWORD}
       SPLUNK_HEC_TOKEN: ${SPLUNK_HEC_TOKEN}
     volumes:
       - splunk-data:/opt/splunk/var
+      - ./splunk/default.yml:/tmp/defaults/default.yml:ro
+      - ./splunk/setup-hec.sh:/sbin/setup-hec.sh:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/en-US/account/login"]
       interval: 60s

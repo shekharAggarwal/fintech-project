@@ -1,4 +1,31 @@
 {
+  "splunk_dashboard": {
+    "id": "fintech-monitoring-dashboard",
+    "title": "Fintech Monitoring Dashboard",
+    "description": "Automated dashboard for error rates, rate limiting, auth failures, and service health.",
+    "panels": [
+      {
+        "title": "Error Rate",
+        "type": "statistics",
+        "search": "index=fintech-dev log_level=ERROR | timechart count by service"
+      },
+      {
+        "title": "Rate Limited Requests",
+        "type": "statistics",
+        "search": "index=fintech-dev X-RateLimit-Reason=* | timechart count by service"
+      },
+      {
+        "title": "Auth Failures",
+        "type": "statistics",
+        "search": "index=fintech-dev message=Unauthorized | timechart count by service"
+      },
+      {
+        "title": "Service Health",
+        "type": "statistics",
+        "search": "index=fintech-dev | stats count by service"
+      }
+    ]
+  },
   "annotations": {
     "list": [
       {

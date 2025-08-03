@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <!-- Service-specific variables -->
-    <property name="SERVICE_NAME" value="${SERVICE_NAME:-unknown-service}"/>
+    <!-- Note: spring.application.name might not be available during early logback initialization -->
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="unknown-service"/>
+    <property name="SERVICE_NAME" value="${SERVICE_NAME:-${APP_NAME}}"/>
     <property name="ENVIRONMENT" value="${ENVIRONMENT:-development}"/>
     
     <!-- Development/Local profile -->
@@ -31,9 +33,20 @@
                 </providers>
             </encoder>
         </appender>
+
+        <!-- Splunk HEC Appender for dev testing -->
+        <appender name="SPLUNK" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
+            <url>http://localhost:8088</url>
+            <token>fintech-hec-token-2024</token>
+            <index>fintech</index>
+            <source>${SERVICE_NAME}</source>
+            <sourcetype>spring-boot-json</sourcetype>
+            <disableCertificateValidation>true</disableCertificateValidation>
+        </appender>
         
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="SPLUNK"/>
         </root>
         
         <logger name="com.fintech" level="DEBUG"/>
@@ -72,8 +85,8 @@
 
         <!-- Splunk HEC Appender -->
         <appender name="SPLUNK" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
-            <url>${SPLUNK_HEC_URL:-http://localhost:8088/services/collector/event}</url>
-            <token>${SPLUNK_HEC_TOKEN:-your-splunk-token}</token>
+            <url>${SPLUNK_HEC_URL:-http://localhost:8088}</url>
+            <token>${SPLUNK_HEC_TOKEN:-fintech-hec-token-2024}</token>
             <index>fintech</index>
             <source>${SERVICE_NAME}</source>
             <sourcetype>spring-boot-json</sourcetype>
@@ -106,7 +119,7 @@
         <!-- File Appender for local backup -->
         <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
             <file>logs/${SERVICE_NAME}.log</file>
-            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
                 <fileNamePattern>logs/${SERVICE_NAME}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
                 <maxFileSize>100MB</maxFileSize>
                 <maxHistory>30</maxHistory>
