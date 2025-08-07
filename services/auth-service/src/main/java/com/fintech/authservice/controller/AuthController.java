@@ -2,21 +2,103 @@ package com.fintech.authservice.controller;
 
 import com.fintech.authservice.dto.*;
 import com.fintech.authservice.service.AuthService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
-
+import com.fintech.authservice.service.AuthService.AuthenticationResult;
+import com.fintech.authservice.service.AuthService.RegistrationResult;
+import com.fintech.authservice.service.AuthService.SessionValidationResult;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final AuthService authService;
+    final private AuthService authService;
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
+                                               HttpServletRequest httpRequest) {
+        String ipAddress = getClientIpAddress(httpRequest);
+        String userAgent = getUserAgent(httpRequest);
+
+        AuthenticationResult result = authService.authenticate(
+                request.getEmail(),
+                request.getPassword(),
+                ipAddress,
+                userAgent
+        );
+
+        if (result.isSuccess()) {
+            return ResponseEntity.ok(LoginResponse.success(
+                    result.getAuthCore().getUserId(),
+                    result.getAuthCore().getEmail(),
+                    result.getSession().getSessionId(),
+                    result.getSession().getExpiresAt()
+            ));
+        } else if (result.isPasswordChangeRequired()) {
+            return ResponseEntity.ok(LoginResponse.passwordChangeRequired(
+                    result.getAuthCore().getUserId(),
+                    result.getMessage()
+            ));
+        } else {
+            return ResponseEntity.ok(LoginResponse.failed(result.getMessage(), result.getCode()));
+        }
+    }
+
+
+    @PostMapping("/validate")
+    public ResponseEntity<SessionValidationResponse> validateSession(@Valid @RequestBody SessionValidationRequest request) {
+        SessionValidationResult result = authService.validateSession(request.getSessionId());
+
+        if (result.isValid()) {
+            return ResponseEntity.ok(SessionValidationResponse.valid(
+                    result.getAuthCore().getUserId(),
+                    result.getAuthCore().getEmail(),
+                    result.getAuthCore().getStatus().toString(),
+                    result.getSession().getExpiresAt()
+            ));
+        } else {
+            return ResponseEntity.ok(SessionValidationResponse.invalid(result.getMessage()));
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegistrationRequest request) {
+        RegistrationResult result = authService.registerUser(
+                request.getEmail(),
+                request.getPassword(),
+                request.getFullName()
+        );
+
+        if (result.isSuccess()) {
+            return ResponseEntity.ok(RegistrationResponse.success(
+                    result.getAuthCore().getUserId(),
+                    result.getMessage()
+            ));
+        } else {
+            return ResponseEntity.ok(RegistrationResponse.failed(result.getMessage(), result.getCode()));
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<LogoutResponse> logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request.getSessionId());
+        return ResponseEntity.ok(LogoutResponse.success("Logged out successfully"));
+    }
+
+    @PostMapping("/logout-all")
+    public ResponseEntity<LogoutResponse> logoutAll(@Valid @RequestBody LogoutAllRequest request) {
+        authService.logoutAllDevices(request.getUserId());
+        return ResponseEntity.ok(LogoutResponse.success("Logged out from all devices"));
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
@@ -33,102 +115,5 @@ public class AuthController {
 
     private String getUserAgent(HttpServletRequest request) {
         return request.getHeader("User-Agent") != null ? request.getHeader("User-Agent") : "Unknown";
-    }
-
-    private String getDeviceFingerprint(HttpServletRequest request) {
-        return request.getHeader("X-Device-Fingerprint") != null ? 
-               request.getHeader("X-Device-Fingerprint") : "Unknown";
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegistrationRequest request, 
-                                                HttpServletRequest httpRequest) {
-        String ipAddress = getClientIpAddress(httpRequest);
-        String userAgent = getUserAgent(httpRequest);
-        
-        AuthResponse response = authService.register(request, ipAddress, userAgent);
-
-        if (response.getMessage() != null && response.getMessage().contains("already exists")) {
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, 
-                                            HttpServletRequest httpRequest) {
-        String ipAddress = getClientIpAddress(httpRequest);
-        String userAgent = getUserAgent(httpRequest);
-        String deviceFingerprint = getDeviceFingerprint(httpRequest);
-        
-        AuthResponse response = authService.login(request, ipAddress, userAgent, deviceFingerprint);
-
-        if (response.getAccessToken() == null) {
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestBody TokenRefreshRequest request,
-                                                    HttpServletRequest httpRequest) {
-        String ipAddress = getClientIpAddress(httpRequest);
-        String userAgent = getUserAgent(httpRequest);
-        
-        AuthResponse response = authService.refreshToken(request, ipAddress, userAgent);
-
-        if (response.getAccessToken() == null) {
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<AuthResponse> logout(HttpServletRequest httpRequest) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-        String sessionId = httpRequest.getSession().getId();
-        String ipAddress = getClientIpAddress(httpRequest);
-        String userAgent = getUserAgent(httpRequest);
-
-        AuthResponse response = authService.logout(email, sessionId, ipAddress, userAgent);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/change-password")
-    public ResponseEntity<AuthResponse> changePassword(@RequestBody ChangePasswordRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-
-        AuthResponse response = authService.changePassword(email, request);
-
-        if (response.getMessage().contains("incorrect")) {
-            return ResponseEntity.badRequest().body(response);
-        }
-
-        return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/delete-account")
-    public ResponseEntity<AuthResponse> deleteAccount() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
-
-        AuthResponse response = authService.deleteAccount(email);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/validate-session/{sessionId}")
-    public ResponseEntity<Boolean> validateSession(@PathVariable String sessionId) {
-        boolean isValid = authService.validateSession(sessionId);
-        return ResponseEntity.ok(isValid);
-    }
-
-    @GetMapping("/health")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok("Auth Service is running");
     }
 }
