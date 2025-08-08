@@ -1,24 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <!-- Service-specific variables -->
-    <!-- Note: spring.application.name might not be available during early logback initialization -->
     <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="unknown-service"/>
     <property name="SERVICE_NAME" value="${SERVICE_NAME:-${APP_NAME}}"/>
     <property name="ENVIRONMENT" value="${ENVIRONMENT:-development}"/>
-    
+
+    <!-- Async appender for non-blocking SPLUNK logging -->
+    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="SPLUNK"/>
+    </appender>
+
     <!-- Development/Local profile -->
     <springProfile name="local,dev">
         <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
-        
-        <!-- Console Appender with default Spring Boot formatting -->
+
+        <!-- Console Appender -->
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
                 <pattern>${CONSOLE_LOG_PATTERN}</pattern>
             </encoder>
         </appender>
 
-        <!-- Splunk HEC Appender for dev testing -->
+        <!-- Splunk HEC Appender -->
         <appender name="SPLUNK" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
             <url>http://localhost:8088</url>
             <token>fintech-hec-token-2024</token>
@@ -27,28 +33,28 @@
             <sourcetype>spring-boot-json</sourcetype>
             <disableCertificateValidation>true</disableCertificateValidation>
         </appender>
-        
+
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="SPLUNK"/>
+            <appender-ref ref="ASYNC"/>
         </root>
-        
+
         <logger name="com.fintech" level="DEBUG"/>
         <logger name="io.github.resilience4j" level="DEBUG"/>
     </springProfile>
 
-    <!-- Production profile with Splunk integration -->
+    <!-- Production profile -->
     <springProfile name="!local,!dev">
         <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-        
-        <!-- Console Appender with default Spring Boot formatting -->
+
+        <!-- Console Appender -->
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
                 <pattern>${CONSOLE_LOG_PATTERN}</pattern>
             </encoder>
         </appender>
 
-        <!-- Splunk HEC Appender -->
+        <!-- Splunk HEC Appender with JSON layout -->
         <appender name="SPLUNK" class="com.splunk.logging.HttpEventCollectorLogbackAppender">
             <url>${SPLUNK_HEC_URL:-http://localhost:8088}</url>
             <token>${SPLUNK_HEC_TOKEN:-fintech-hec-token-2024}</token>
@@ -67,13 +73,13 @@
                     <pattern>
                         <pattern>
                             {
-                                "traceId": "%X{traceId:-}",
-                                "spanId": "%X{spanId:-}",
-                                "service": "${SERVICE_NAME}",
-                                "environment": "${ENVIRONMENT}",
-                                "host": "${HOSTNAME:-unknown}",
-                                "thread": "%thread",
-                                "application": "fintech-microservices"
+                            "traceId": "%X{traceId:-}",
+                            "spanId": "%X{spanId:-}",
+                            "service": "${SERVICE_NAME}",
+                            "environment": "${ENVIRONMENT}",
+                            "host": "${HOSTNAME:-unknown}",
+                            "thread": "%thread",
+                            "application": "fintech-microservices"
                             }
                         </pattern>
                     </pattern>
@@ -81,43 +87,11 @@
             </layout>
         </appender>
 
-        <!-- File Appender for local backup -->
-        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-            <file>logs/${SERVICE_NAME}.log</file>
-            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-                <fileNamePattern>logs/${SERVICE_NAME}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-                <maxFileSize>100MB</maxFileSize>
-                <maxHistory>30</maxHistory>
-                <totalSizeCap>3GB</totalSizeCap>
-            </rollingPolicy>
-            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-                <providers>
-                    <timestamp/>
-                    <logLevel/>
-                    <loggerName/>
-                    <mdc/>
-                    <message/>
-                    <stackTrace/>
-                    <pattern>
-                        <pattern>
-                            {
-                                "traceId": "%X{traceId:-}",
-                                "spanId": "%X{spanId:-}",
-                                "service": "${SERVICE_NAME}",
-                                "environment": "${ENVIRONMENT}"
-                            }
-                        </pattern>
-                    </pattern>
-                </providers>
-            </encoder>
-        </appender>
-
         <root level="INFO">
             <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="SPLUNK"/>
-            <appender-ref ref="FILE"/>
+            <appender-ref ref="ASYNC"/>
         </root>
-        
+
         <!-- Service-specific loggers -->
         <logger name="com.fintech" level="DEBUG"/>
         <logger name="io.github.resilience4j" level="INFO"/>
@@ -126,12 +100,4 @@
         <logger name="org.springframework.data" level="INFO"/>
         <logger name="org.springframework.security" level="DEBUG"/>
     </springProfile>
-
-    <!-- Async appender for performance -->
-    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
-        <queueSize>1024</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <includeCallerData>true</includeCallerData>
-        <appender-ref ref="SPLUNK"/>
-    </appender>
 </configuration>

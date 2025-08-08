@@ -4,11 +4,15 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ResourceUtils;
 
 import java.io.FileInputStream;
+import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.UUID;
 
@@ -118,15 +122,22 @@ public class JwtUtil {
 
     private PublicKey getPublicKey() {
         if (publicKey == null) {
-            try {
+            try (FileInputStream fis = new FileInputStream(keystorePath)) {
                 KeyStore keyStore = KeyStore.getInstance("PKCS12");
-                keyStore.load(getClass().getResourceAsStream(keystorePath),
-                        keystorePassword.toCharArray());
+                keyStore.load(fis, keystorePassword.toCharArray());
                 publicKey = keyStore.getCertificate(keyAlias).getPublicKey();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load public key", e);
             }
         }
         return publicKey;
+    }
+
+    public Claims getClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(getPublicKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

@@ -6,7 +6,7 @@ public class LoginResponse {
     private boolean success;
     private String userId;
     private String email;
-    private String sessionId;
+    private String accessToken;
     private LocalDateTime expiresAt;
     private String message;
     private String code;
@@ -16,12 +16,12 @@ public class LoginResponse {
     private LoginResponse() {}
 
     // Static factory methods
-    public static LoginResponse success(String userId, String email, String sessionId, LocalDateTime expiresAt) {
+    public static LoginResponse success(String userId, String email, String accessToken, LocalDateTime expiresAt) {
         LoginResponse response = new LoginResponse();
         response.success = true;
         response.userId = userId;
         response.email = email;
-        response.sessionId = sessionId;
+        response.accessToken = accessToken;
         response.expiresAt = expiresAt;
         response.message = "Login successful";
         return response;
@@ -49,7 +49,7 @@ public class LoginResponse {
     public boolean isSuccess() { return success; }
     public String getUserId() { return userId; }
     public String getEmail() { return email; }
-    public String getSessionId() { return sessionId; }
+    public String getAccessToken() { return accessToken; }
     public LocalDateTime getExpiresAt() { return expiresAt; }
     public String getMessage() { return message; }
     public String getCode() { return code; }
