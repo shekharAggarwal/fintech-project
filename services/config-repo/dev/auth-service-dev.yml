@@ -41,10 +41,6 @@ spring:
   data:
     redis:
       database: 0
-      host: localhost
-      port: 6379
-      password: 
-      timeout: 2000ms
       lettuce:
         pool:
           max-active: 10
@@ -54,10 +50,6 @@ spring:
   
   # RabbitMQ Configuration
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
     publisher-confirm-type: correlated
     publisher-returns: true
     template:
@@ -95,61 +87,6 @@ security:
   audit:
     enabled: true
     retention-days: 90
-
-# Logging Configuration
-logging:
-  level:
-    com.fintech.auth: DEBUG
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-    org.springframework.boot.autoconfigure.security: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-
-# Actuator Configuration
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always
-      probes:
-        enabled: true
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-
-# Resilience4j Configuration
-resilience4j:
-  circuitbreaker:
-    instances:
-      databaseCall:
-        registerHealthIndicator: true
-        slidingWindowSize: 100
-        permittedNumberOfCallsInHalfOpenState: 10
-        waitDurationInOpenState: 60000
-        failureRateThreshold: 50
-        minimumNumberOfCalls: 20
-  retry:
-    instances:
-      databaseCall:
-        maxAttempts: 3
-        waitDuration: 1000
-        retryExceptions:
-          - java.sql.SQLException
-          - org.springframework.dao.DataAccessException
-  ratelimiter:
-    instances:
-      authEndpoints:
-        limitForPeriod: 10
-        limitRefreshPeriod: 60s
-        timeoutDuration: 0s
 
 # Business Logic Configuration
 business:

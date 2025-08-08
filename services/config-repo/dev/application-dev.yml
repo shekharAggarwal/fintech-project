@@ -5,9 +5,9 @@ spring:
   
   # Common configuration imports
   config:
-    import: 
-      - C:/spring-boot/fintech-project/services/config-repo/dev/common-logging-config-dev.yml
-      - C:/spring-boot/fintech-project/services/config-repo/dev/common-observability-config-dev.yml
+    import:
+      - ./common-logging-config-dev.yml
+      - ./common-observability-config-dev.yml
   jpa:
     hibernate:
       ddl-auto: none
@@ -19,16 +19,18 @@ spring:
         use_sql_comments: true
   
   # Common infrastructure configuration for local development
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password:
+      timeout: 2000ms
   rabbitmq:
     host: localhost
     port: 5672
     username: guest
     password: guest
-  redis:
-    host: localhost
-    port: 6379
-    password:
-    timeout: 2000ms
+
   kafka:
     bootstrap-servers: localhost:9092
   quartz:

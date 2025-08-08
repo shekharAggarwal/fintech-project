@@ -1,13 +1,16 @@
 package com.fintech.authservice.service;
 
+import com.fintech.authservice.dto.RegistrationRequest;
 import com.fintech.authservice.entity.AuthCore;
 import com.fintech.authservice.entity.AuthCredentials;
 import com.fintech.authservice.entity.AuthSecurity;
 import com.fintech.authservice.entity.AuthSession;
+import com.fintech.authservice.entity.UserProfile;
 import com.fintech.authservice.repository.AuthCoreRepository;
 import com.fintech.authservice.repository.AuthCredentialsRepository;
 import com.fintech.authservice.repository.AuthSecurityRepository;
 import com.fintech.authservice.repository.AuthSessionRepository;
+import com.fintech.authservice.repository.UserProfileRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,12 +37,15 @@ public class AuthService {
 
     final private PasswordEncoder passwordEncoder;
 
-    public AuthService(AuthCoreRepository authCoreRepository, AuthCredentialsRepository credentialsRepository, AuthSecurityRepository securityRepository, AuthSessionRepository sessionRepository, PasswordEncoder passwordEncoder) {
+    final private UserProfileRepository userProfileRepository;
+
+    public AuthService(AuthCoreRepository authCoreRepository, AuthCredentialsRepository credentialsRepository, AuthSecurityRepository securityRepository, AuthSessionRepository sessionRepository, PasswordEncoder passwordEncoder, UserProfileRepository userProfileRepository) {
         this.authCoreRepository = authCoreRepository;
         this.credentialsRepository = credentialsRepository;
         this.securityRepository = securityRepository;
         this.sessionRepository = sessionRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userProfileRepository = userProfileRepository;
     }
 
     /**
@@ -162,30 +168,47 @@ public class AuthService {
     /**
      * Create user account with optimized entities
      */
-    public RegistrationResult registerUser(String email, String password, String fullName) {
+    public RegistrationResult registerUser(RegistrationRequest request) {
         try {
             // Check if email already exists
-            if (authCoreRepository.existsByEmail(email)) {
+            if (authCoreRepository.existsByEmail(request.getEmail())) {
                 return RegistrationResult.failed("Email already registered", "EMAIL_EXISTS");
             }
 
             String userId = UUID.randomUUID().toString();
 
             // Create auth core
-            AuthCore authCore = new AuthCore(userId, email);
+            AuthCore authCore = new AuthCore(userId, request.getEmail());
             authCore = authCoreRepository.save(authCore);
 
             // Create credentials
-            String encodedPassword = passwordEncoder.encode(password);
+            String encodedPassword = passwordEncoder.encode(request.getPassword());
             AuthCredentials credentials = new AuthCredentials(authCore.getId(), encodedPassword, generateSalt());
-            credentials.setPasswordStrength(calculatePasswordStrength(password));
+            credentials.setPasswordStrength(calculatePasswordStrength(request.getPassword()));
             credentialsRepository.save(credentials);
 
             // Create security record
             AuthSecurity security = new AuthSecurity(userId);
             securityRepository.save(security);
 
-            return RegistrationResult.success(authCore, "User registered successfully");
+            // Save user profile details
+            UserProfile userProfile = new UserProfile(
+                userId,
+                request.getFullName(),
+                request.getPhoneNumber(),
+                request.getAddress(),
+                request.getDateOfBirth(),
+                request.getOccupation(),
+                request.getInitialDeposit(),
+                request.getRole()
+            );
+            userProfileRepository.save(userProfile);
+
+            // Generate account number (simple random 12-digit for demo)
+            String accountNumber = String.format("%012d", Math.abs(new java.util.Random().nextLong()) % 1000000000000L);
+            // You may want to save this to a new Account entity if needed
+
+            return RegistrationResult.success(authCore, "User registered successfully. Account Number: " + accountNumber);
 
         } catch (Exception e) {
             return RegistrationResult.failed("Registration failed", "SYSTEM_ERROR");
