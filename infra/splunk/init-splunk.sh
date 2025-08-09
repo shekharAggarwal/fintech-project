@@ -21,7 +21,7 @@ echo "Enabling HEC globally..."
 # Create HEC token
 echo "Creating HEC token..."
 /opt/splunk/bin/splunk http-event-collector create fintech-hec \
-  -uri https://localhost:8089 \
+  -uri https://localhost:8889 \
   -token ${SPLUNK_HEC_TOKEN} \
   -indexes fintech,main \
   -sourcetype json \

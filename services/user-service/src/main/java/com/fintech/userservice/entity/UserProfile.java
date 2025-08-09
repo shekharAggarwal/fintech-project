@@ -1,4 +1,4 @@
-package com.fintech.authservice.entity;
+package com.fintech.userservice.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -37,9 +37,16 @@ public class UserProfile {
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column
+    private LocalDateTime updatedAt;
+
+    @Column
+    private String accountNumber;
+
     public UserProfile() {}
 
-    public UserProfile(String userId, String fullName, String phoneNumber, String address, String dateOfBirth, String occupation, Double initialDeposit, String role) {
+    public UserProfile(String userId, String fullName, String phoneNumber, String address, 
+                      String dateOfBirth, String occupation, Double initialDeposit, String role) {
         this.userId = userId;
         this.fullName = fullName;
         this.phoneNumber = phoneNumber;
@@ -50,23 +57,45 @@ public class UserProfile {
         this.role = role;
     }
 
-    // Getters and setters omitted for brevity
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
+    
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
+    
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+    
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+    
     public String getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(String dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+    
     public String getOccupation() { return occupation; }
     public void setOccupation(String occupation) { this.occupation = occupation; }
+    
     public Double getInitialDeposit() { return initialDeposit; }
     public void setInitialDeposit(Double initialDeposit) { this.initialDeposit = initialDeposit; }
+    
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+    
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public String getAccountNumber() { return accountNumber; }
+    public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
 }

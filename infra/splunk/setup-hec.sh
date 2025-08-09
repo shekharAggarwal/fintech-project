@@ -7,7 +7,7 @@ sleep 60
 # Set up the HTTP Event Collector
 curl -k -u admin:splunkpassword123 \
   -X POST \
-  "http://localhost:8089/services/data/inputs/http" \
+  "http://localhost:8889/services/data/inputs/http" \
   -d name="fintech-hec" \
   -d token="fintech-hec-token-2024" \
   -d disabled=0 \
