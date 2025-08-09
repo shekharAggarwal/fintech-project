@@ -1,16 +1,18 @@
 package com.fintech.authservice.service;
 
 import com.fintech.authservice.dto.RegistrationRequest;
+import com.fintech.authservice.dto.UserCreationMessage;
 import com.fintech.authservice.entity.AuthCore;
 import com.fintech.authservice.entity.AuthCredentials;
 import com.fintech.authservice.entity.AuthSecurity;
 import com.fintech.authservice.entity.AuthSession;
-import com.fintech.authservice.entity.UserProfile;
+import com.fintech.authservice.messaging.UserCreationMessagePublisher;
 import com.fintech.authservice.repository.AuthCoreRepository;
 import com.fintech.authservice.repository.AuthCredentialsRepository;
 import com.fintech.authservice.repository.AuthSecurityRepository;
 import com.fintech.authservice.repository.AuthSessionRepository;
-import com.fintech.authservice.repository.UserProfileRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +29,8 @@ import java.util.UUID;
 @Transactional
 public class AuthService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
+
     final private AuthCoreRepository authCoreRepository;
 
     final private AuthCredentialsRepository credentialsRepository;
@@ -37,15 +41,15 @@ public class AuthService {
 
     final private PasswordEncoder passwordEncoder;
 
-    final private UserProfileRepository userProfileRepository;
+    final private UserCreationMessagePublisher messagePublisher;
 
-    public AuthService(AuthCoreRepository authCoreRepository, AuthCredentialsRepository credentialsRepository, AuthSecurityRepository securityRepository, AuthSessionRepository sessionRepository, PasswordEncoder passwordEncoder, UserProfileRepository userProfileRepository) {
+    public AuthService(AuthCoreRepository authCoreRepository, AuthCredentialsRepository credentialsRepository, AuthSecurityRepository securityRepository, AuthSessionRepository sessionRepository, PasswordEncoder passwordEncoder, UserCreationMessagePublisher messagePublisher) {
         this.authCoreRepository = authCoreRepository;
         this.credentialsRepository = credentialsRepository;
         this.securityRepository = securityRepository;
         this.sessionRepository = sessionRepository;
         this.passwordEncoder = passwordEncoder;
-        this.userProfileRepository = userProfileRepository;
+        this.messagePublisher = messagePublisher;
     }
 
     /**
@@ -172,10 +176,18 @@ public class AuthService {
         try {
             // Check if email already exists
             if (authCoreRepository.existsByEmail(request.getEmail())) {
+                logger.warn("Registration failed: Email already exists - {}", request.getEmail());
                 return RegistrationResult.failed("Email already registered", "EMAIL_EXISTS");
             }
 
+            // Validate initial deposit
+            if (request.getInitialDeposit() != null && request.getInitialDeposit() < 0) {
+                logger.warn("Registration failed: Invalid initial deposit - {}", request.getInitialDeposit());
+                return RegistrationResult.failed("Initial deposit cannot be negative", "INVALID_DEPOSIT");
+            }
+
             String userId = UUID.randomUUID().toString();
+            logger.info("Creating new user with ID: {} and email: {}", userId, request.getEmail());
 
             // Create auth core
             AuthCore authCore = new AuthCore(userId, request.getEmail());
@@ -191,26 +203,33 @@ public class AuthService {
             AuthSecurity security = new AuthSecurity(userId);
             securityRepository.save(security);
 
-            // Save user profile details
-            UserProfile userProfile = new UserProfile(
-                userId,
-                request.getFullName(),
-                request.getPhoneNumber(),
-                request.getAddress(),
-                request.getDateOfBirth(),
-                request.getOccupation(),
-                request.getInitialDeposit(),
-                request.getRole()
+            // Publish user creation message to RabbitMQ for user service
+            UserCreationMessage userCreationMessage = new UserCreationMessage(
+                    userId,
+                    request.getFullName(),
+                    request.getEmail(),
+                    request.getPhoneNumber(),
+                    request.getAddress(),
+                    request.getDateOfBirth(),
+                    request.getOccupation(),
+                    request.getInitialDeposit(),
+                    request.getRole()
             );
-            userProfileRepository.save(userProfile);
 
-            // Generate account number (simple random 12-digit for demo)
-            String accountNumber = String.format("%012d", Math.abs(new java.util.Random().nextLong()) % 1000000000000L);
-            // You may want to save this to a new Account entity if needed
+            try {
+                messagePublisher.publishUserCreationMessage(userCreationMessage);
+                logger.info("Published user creation message for user: {}", userId);
+            } catch (Exception e) {
+                logger.error("Failed to publish user creation message for user: {}", userId, e);
+                // Note: We don't fail the registration if RabbitMQ fails
+                // The user profile can be created later through manual process or retry mechanism
+            }
 
-            return RegistrationResult.success(authCore, "User registered successfully. Account Number: " + accountNumber);
+            logger.info("User registration completed successfully for: {}", userId);
+            return RegistrationResult.success(authCore, "User registered successfully. Profile will be created shortly.");
 
         } catch (Exception e) {
+            logger.error("Registration failed for email: {}", request.getEmail(), e);
             return RegistrationResult.failed("Registration failed", "SYSTEM_ERROR");
         }
     }

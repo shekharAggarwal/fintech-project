@@ -38,3 +38,12 @@ spring:
     properties:
       org.quartz.scheduler.instanceName: fintech-scheduler-dev
       org.quartz.threadPool.threadCount: 10
+
+# RabbitMQ Configuration
+rabbitmq:
+  exchange:
+    user: user.exchange
+  queue:
+    user-creation: user.creation.queue
+  routing-key:
+    user-creation: user.creation

@@ -5,9 +5,14 @@ spring:
   application:
     name: user-service
   
+  # Disable Eureka client for local development
+  cloud:
+    discovery:
+      enabled: false
+
   # Database Configuration using ShardingSphere-Proxy
   datasource:
-    url: jdbc:postgresql://localhost:3307/fintech_db
+    url: jdbc:postgresql://localhost:5432/fintech_main
     username: fintech_user
     password: fintech_password
     driver-class-name: org.postgresql.Driver
@@ -18,9 +23,24 @@ spring:
       connection-timeout: 20000
       leak-detection-threshold: 60000
   
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true
+  
   data:
     redis:
       database: 2 # Redis DB for user caching
+  
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
 
 resilience4j:
   circuitbreaker:
