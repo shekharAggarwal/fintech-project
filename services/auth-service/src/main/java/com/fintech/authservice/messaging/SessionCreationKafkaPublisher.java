@@ -13,13 +13,13 @@ public class SessionCreationKafkaPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(SessionCreationKafkaPublisher.class);
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
     @Value("${kafka.topics.session-creation}")
     private String sessionCreationTopic;
 
-    public SessionCreationKafkaPublisher(KafkaTemplate<String, Object> kafkaTemplate, ObjectMapper objectMapper) {
+    public SessionCreationKafkaPublisher(KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
     }
@@ -29,7 +29,10 @@ public class SessionCreationKafkaPublisher {
      */
     public void publishSessionCreationMessage(SessionCreationMessage sessionCreationMessage) {
         try {
-            kafkaTemplate.send(sessionCreationTopic, sessionCreationMessage.getSessionId(), sessionCreationMessage)
+            // Convert object to JSON string
+            String jsonMessage = objectMapper.writeValueAsString(sessionCreationMessage);
+
+            kafkaTemplate.send(sessionCreationTopic, sessionCreationMessage.getSessionId(), jsonMessage)
                 .whenComplete((result, ex) -> {
                     if (ex == null) {
                         logger.info("Published session creation message to topic: {} with offset: {} for sessionId: {}",

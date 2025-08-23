@@ -12,23 +12,27 @@ public class UserCreationKafkaPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(UserCreationKafkaPublisher.class);
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
 
     @Value("${kafka.topics.user-creation}")
     private String userCreationTopic;
 
-    public UserCreationKafkaPublisher(KafkaTemplate<String, Object> kafkaTemplate, ObjectMapper objectMapper) {
+    public UserCreationKafkaPublisher(KafkaTemplate<String, String> kafkaTemplate, ObjectMapper objectMapper) {
         this.kafkaTemplate = kafkaTemplate;
         this.objectMapper = objectMapper;
     }
 
     /**
      * Publish user creation message to Kafka for user service
+     * Serialize to JSON string to avoid package mapping issues between services
      */
     public void publishUserCreationMessage(Object userCreationMessage) {
         try {
-            kafkaTemplate.send(userCreationTopic, userCreationMessage)
+            // Convert object to JSON string
+            String jsonMessage = objectMapper.writeValueAsString(userCreationMessage);
+            
+            kafkaTemplate.send(userCreationTopic, jsonMessage)
                 .whenComplete((result, ex) -> {
                     if (ex == null) {
                         logger.info("Published user creation message to topic: {} with offset: {}",

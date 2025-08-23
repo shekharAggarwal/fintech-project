@@ -24,13 +24,13 @@ public class KafkaConfig {
     private String clientId;
 
     @Bean
-    public ProducerFactory<String, Object> kafkaProducerFactory() {
+    public ProducerFactory<String, String> kafkaProducerFactory() {
         Map<String, Object> configProps = new HashMap<>();
 
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.CLIENT_ID_CONFIG, clientId);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class); // Changed to String serializer
         
         // Producer optimization settings
         configProps.put(ProducerConfig.ACKS_CONFIG, "all");
@@ -48,7 +48,7 @@ public class KafkaConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, Object> kafkaTemplate() {
+    public KafkaTemplate<String, String> kafkaTemplate() {
         return new KafkaTemplate<>(kafkaProducerFactory());
     }
 }

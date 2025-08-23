@@ -1,5 +1,6 @@
 package com.fintech.userservice.messaging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintech.userservice.dto.UserCreationMessage;
 import com.fintech.userservice.service.UserService;
 import org.slf4j.Logger;
@@ -17,25 +18,33 @@ public class UserCreationKafkaListener {
     private static final Logger logger = LoggerFactory.getLogger(UserCreationKafkaListener.class);
 
     private final UserService userService;
+    private final ObjectMapper objectMapper;
 
-    public UserCreationKafkaListener(UserService userService) {
+    public UserCreationKafkaListener(UserService userService, ObjectMapper objectMapper) {
         this.userService = userService;
+        this.objectMapper = objectMapper;
     }
 
     /**
      * Listen for user creation messages from Kafka
+     * Receives JSON strings from auth-service and deserializes to UserCreationMessage
      */
     @KafkaListener(topics = "${kafka.topics.user-creation}", groupId = "${spring.kafka.consumer.group-id}")
     public void handleUserCreationMessage(
-            @Payload UserCreationMessage userCreationMessage,
+            @Payload String jsonMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment acknowledgment) {
         
         try {
-            logger.info("Received user creation message from topic: {}, partition: {}, offset: {} for userId: {}", 
-                topic, partition, offset, userCreationMessage.getUserId());
+            logger.info("Received user creation message from topic: {}, partition: {}, offset: {}", 
+                topic, partition, offset);
+            
+            // Deserialize JSON string to UserCreationMessage object
+            UserCreationMessage userCreationMessage = objectMapper.readValue(jsonMessage, UserCreationMessage.class);
+            
+            logger.info("Successfully parsed user creation message for userId: {}", userCreationMessage.getUserId());
 
             // Process the user creation
             userService.createUserProfile(userCreationMessage);
@@ -46,8 +55,8 @@ public class UserCreationKafkaListener {
             acknowledgment.acknowledge();
 
         } catch (Exception e) {
-            logger.error("Failed to process user creation message for userId: {}, topic: {}, partition: {}, offset: {}", 
-                userCreationMessage.getUserId(), topic, partition, offset, e);
+            logger.error("Failed to process user creation message from topic: {}, partition: {}, offset: {}. Message: {}", 
+                topic, partition, offset, jsonMessage, e);
             
             // Don't acknowledge on error - this will cause the message to be retried
             // In production, you might want to implement a retry mechanism with dead letter topic
