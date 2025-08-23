@@ -1,14 +1,21 @@
 package com.fintech.userservice.service;
 
 import com.fintech.userservice.dto.UserCreationMessage;
+import com.fintech.userservice.dto.UserGreetingNotification;
+import com.fintech.userservice.dto.UserRoleRegistrationMessage;
 import com.fintech.userservice.entity.UserProfile;
+import com.fintech.userservice.messaging.EmailNotificationPublisher;
+import com.fintech.userservice.messaging.AuthorizationKafkaPublisher;
 import com.fintech.userservice.repository.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
@@ -19,13 +26,19 @@ public class UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     
     final private UserProfileRepository userProfileRepository;
+    final private EmailNotificationPublisher emailNotificationPublisher;
+    final private AuthorizationKafkaPublisher authorizationKafkaPublisher;
 
-    public UserService(UserProfileRepository userProfileRepository) {
+    public UserService(UserProfileRepository userProfileRepository, 
+                      EmailNotificationPublisher emailNotificationPublisher,
+                      AuthorizationKafkaPublisher authorizationKafkaPublisher) {
         this.userProfileRepository = userProfileRepository;
+        this.emailNotificationPublisher = emailNotificationPublisher;
+        this.authorizationKafkaPublisher = authorizationKafkaPublisher;
     }
 
     /**
-     * Create user profile from message received via RabbitMQ
+     * Create user profile from message received via Kafka
      */
     public void createUserProfile(UserCreationMessage message) {
         try {
@@ -59,6 +72,44 @@ public class UserService {
             
             logger.info("User profile created successfully for userId: {} with account number: {}", 
                        message.getUserId(), accountNumber);
+            
+            // Send user role registration to authorization service via Kafka
+            try {
+                UserRoleRegistrationMessage roleMessage = new UserRoleRegistrationMessage(
+                    message.getUserId(),
+                    message.getRole(),
+                    System.currentTimeMillis()
+                );
+                
+                authorizationKafkaPublisher.publishUserRoleRegistration(roleMessage);
+                logger.info("Published user role registration to authorization service for userId: {} with role: {}", 
+                           message.getUserId(), message.getRole());
+            } catch (Exception e) {
+                logger.error("Failed to publish user role registration for userId: {} with role: {}", 
+                           message.getUserId(), message.getRole(), e);
+                // Note: We don't fail the user creation if role registration fails
+                // The role can be registered later through manual process or retry mechanism
+            }
+            
+            // Send greeting email notification via RabbitMQ
+            try {
+                UserGreetingNotification greetingNotification = new UserGreetingNotification(
+                    message.getEmail(),
+                    message.getFullName(),
+                    message.getUserId(),
+                    accountNumber,
+                    System.currentTimeMillis()
+                );
+                
+                emailNotificationPublisher.publishUserGreetingEmail(greetingNotification);
+                logger.info("Published user greeting email notification for userId: {} and email: {}", 
+                           message.getUserId(), message.getEmail());
+            } catch (Exception e) {
+                logger.error("Failed to publish user greeting email notification for userId: {}", 
+                           message.getUserId(), e);
+                // Note: We don't fail the user creation if email notification fails
+                // The user profile is already created and email can be sent later
+            }
             
         } catch (Exception e) {
             logger.error("Failed to create user profile for userId: {}", message.getUserId(), e);
@@ -110,5 +161,40 @@ public class UserService {
         } while (userProfileRepository.existsByAccountNumber(accountNumber));
         
         return accountNumber;
+    }
+    
+    /**
+     * Change user role (admin function)
+     */
+    public UserProfile changeUserRole(String userId, String newRole) {
+        Optional<UserProfile> existingProfile = userProfileRepository.findByUserId(userId);
+        
+        if (existingProfile.isPresent()) {
+            UserProfile profile = existingProfile.get();
+            String oldRole = profile.getRole();
+            profile.setRole(newRole);
+            
+            UserProfile updatedProfile = userProfileRepository.save(profile);
+            
+            logger.info("Changed role for user {} from {} to {}", userId, oldRole, newRole);
+            return updatedProfile;
+        } else {
+            throw new RuntimeException("User profile not found for userId: " + userId);
+        }
+    }
+    
+    /**
+     * Get all user profiles with pagination (admin function)
+     */
+    public Page<UserProfile> getAllUserProfiles(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userProfileRepository.findAll(pageable);
+    }
+    
+    /**
+     * Get all user profiles as list (admin function)
+     */
+    public List<UserProfile> getAllUserProfilesList() {
+        return userProfileRepository.findAll();
     }
 }

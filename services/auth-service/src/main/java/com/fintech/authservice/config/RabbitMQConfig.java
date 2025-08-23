@@ -13,19 +13,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String NOTIFICATION_EXCHANGE = "notification.exchange";
-    public static final String EMAIL_QUEUE = "notification.email.queue";
-    public static final String EMAIL_ROUTING_KEY = "notification.email";
+    // notification
+    @Value("${rabbitmq.exchange.notification}")
+    private String NOTIFICATION_EXCHANGE;
 
-    // User service messaging constants
-    @Value("${rabbitmq.exchange.user}")
-    private String USER_EXCHANGE;
+    @Value("${rabbitmq.queue.email}")
+    private String EMAIL_QUEUE;
 
-    @Value("${rabbitmq.queue.user-creation}")
-    private String USER_CREATION_QUEUE;
-
-    @Value("${rabbitmq.routing-key.user-creation}")
-    private String USER_CREATION_ROUTING_KEY;
+    @Value("${rabbitmq.routing-key.email}")
+    private String EMAIL_ROUTING_KEY;
 
     @Bean
     public Exchange notificationExchange() {
@@ -42,25 +38,6 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(emailQueue())
                 .to(notificationExchange())
                 .with(EMAIL_ROUTING_KEY)
-                .noargs();
-    }
-
-    // User service beans
-    @Bean
-    public Exchange userExchange() {
-        return ExchangeBuilder.directExchange(USER_EXCHANGE).durable(true).build();
-    }
-
-    @Bean
-    public Queue userCreationQueue() {
-        return QueueBuilder.durable(USER_CREATION_QUEUE).build();
-    }
-
-    @Bean
-    public Binding userCreationBinding() {
-        return BindingBuilder.bind(userCreationQueue())
-                .to(userExchange())
-                .with(USER_CREATION_ROUTING_KEY)
                 .noargs();
     }
 

@@ -1,0 +1,61 @@
+package com.fintech.gatewayservice.config;
+
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
+import java.security.KeyStore;
+
+@Configuration
+public class TlsWebClientConfig {
+
+    @Value("${gateway.authz.base-url}")
+    private String authzBase;
+
+    @Value("${tls.client.key-store}")
+    private Resource keyStore;
+
+    @Value("${tls.client.key-store-password}")
+    private String keyStorePassword;
+
+    @Value("${tls.client.trust-store}")
+    private Resource trustStore;
+
+    @Value("${tls.client.trust-store-password}")
+    private String trustStorePassword;
+
+    @Bean
+    public WebClient authzWebClient() throws Exception {
+        // load client key material (PKCS12)
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        ks.load(keyStore.getInputStream(), keyStorePassword.toCharArray());
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(ks, keyStorePassword.toCharArray());
+
+        // load truststore (JKS)
+        KeyStore ts = KeyStore.getInstance("JKS");
+        ts.load(trustStore.getInputStream(), trustStorePassword.toCharArray());
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(ts);
+
+        SslContext sslContext = SslContextBuilder.forClient()
+                .keyManager(kmf)
+                .trustManager(tmf)
+                .build();
+
+        HttpClient httpClient = HttpClient.create().secure(spec -> spec.sslContext(sslContext));
+
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .baseUrl(authzBase)
+                .build();
+    }
+}

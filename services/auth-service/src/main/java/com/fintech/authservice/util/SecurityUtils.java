@@ -1,6 +1,7 @@
 package com.fintech.authservice.util;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -13,7 +14,7 @@ import java.util.regex.Pattern;
  */
 public class SecurityUtils {
 
-    private static final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
+    private static final PasswordEncoder passwordEncoder = Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
     private static final SecureRandom secureRandom = new SecureRandom();
 
     // Password strength patterns
@@ -35,7 +36,6 @@ public class SecurityUtils {
      * Hash password with salt using BCrypt
      */
     public static String hashPassword(String password, String salt) {
-        // BCrypt handles salt internally, but we store our own salt for additional security
         String saltedPassword = password + salt;
         return passwordEncoder.encode(saltedPassword);
     }
@@ -55,20 +55,6 @@ public class SecurityUtils {
         byte[] token = new byte[32];
         secureRandom.nextBytes(token);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(token);
-    }
-
-    /**
-     * Hash a token for secure storage
-     */
-    public static String hashToken(String token) {
-        return passwordEncoder.encode(token);
-    }
-
-    /**
-     * Verify a token against its hash
-     */
-    public static boolean verifyToken(String token, String hash) {
-        return passwordEncoder.matches(token, hash);
     }
 
     /**
@@ -106,14 +92,25 @@ public class SecurityUtils {
     public static boolean isPasswordSecure(String password) {
         return calculatePasswordStrength(password) >= 60;
     }
-
+    
     /**
-     * Generate a random session ID
+     * Generate a cryptographically secure session ID for production use
      */
-    public static String generateSessionId() {
-        byte[] sessionId = new byte[24];
+    public static String generateCryptographicallySecureSessionId() {
+        byte[] sessionId = new byte[32]; // 256 bits
         secureRandom.nextBytes(sessionId);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(sessionId);
+    }
+    
+    /**
+     * Constant time delay to prevent timing attacks
+     */
+    public static void constantTimeDelay() {
+        try {
+            Thread.sleep(100 + secureRandom.nextInt(50)); // 100-150ms random delay
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**

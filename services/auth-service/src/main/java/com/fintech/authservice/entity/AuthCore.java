@@ -8,16 +8,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Optimized core authentication entity - LEAN and FAST
- * Contains only essential authentication data for quick lookups
- * 
- * Performance Benefits:
- * - 90% smaller than original AuthUser
- * - Faster queries (5-15ms vs 50-100ms)
- * - Better cache efficiency
- * - Optimized for horizontal sharding
- */
 @Entity
 @Table(name = "auth_core", indexes = {
     @Index(name = "idx_auth_core_email", columnList = "email", unique = true),
