@@ -1,55 +1,54 @@
 package com.fintech.userservice.config;
 
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.DirectExchange;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMQConfig {
-    
-    @Value("${rabbitmq.exchange.user}")
-    private String userExchange;
-    
-    @Value("${rabbitmq.queue.user-creation}")
-    private String userCreationQueue;
-    
-    @Value("${rabbitmq.routing-key.user-creation}")
-    private String userCreationRoutingKey;
-    
+
+    // Notification service messaging constants (RabbitMQ for email notifications)
+    @Value("${rabbitmq.exchange.notification}")
+    private String NOTIFICATION_EXCHANGE;
+
+    @Value("${rabbitmq.queue.email}")
+    private String EMAIL_QUEUE;
+
+    @Value("${rabbitmq.routing-key.email}")
+    private String EMAIL_ROUTING_KEY;
+
     @Bean
-    public DirectExchange userExchange() {
-        return new DirectExchange(userExchange);
+    public Exchange notificationExchange() {
+        return ExchangeBuilder.topicExchange(NOTIFICATION_EXCHANGE).durable(true).build();
     }
-    
+
     @Bean
-    public Queue userCreationQueue() {
-        return new Queue(userCreationQueue, true); // durable queue
+    public Queue emailQueue() {
+        return QueueBuilder.durable(EMAIL_QUEUE).build();
     }
-    
+
     @Bean
-    public Binding userCreationBinding() {
-        return BindingBuilder
-                .bind(userCreationQueue())
-                .to(userExchange())
-                .with(userCreationRoutingKey);
+    public Binding emailBinding() {
+        return BindingBuilder.bind(emailQueue())
+                .to(notificationExchange())
+                .with(EMAIL_ROUTING_KEY)
+                .noargs();
     }
-    
+
     @Bean
-    public Jackson2JsonMessageConverter jsonMessageConverter() {
+    public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
-    
+
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(jsonMessageConverter());
-        return rabbitTemplate;
+        RabbitTemplate template = new RabbitTemplate(connectionFactory);
+        template.setMessageConverter(jsonMessageConverter());
+        return template;
     }
 }

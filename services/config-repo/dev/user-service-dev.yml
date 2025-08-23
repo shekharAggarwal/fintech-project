@@ -23,24 +23,48 @@ spring:
       connection-timeout: 20000
       leak-detection-threshold: 60000
   
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
-    show-sql: true
-  
   data:
     redis:
-      database: 2 # Redis DB for user caching
-  
+      database: 2
+
+  # Kafka Configuration for internal service communications
+  kafka:
+    consumer:
+      group-id: user-service-group
+      client-id: user-service-consumer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.fintech.userservice.dto,com.fintech.authservice.dto.response
+        enable.auto.commit: false
+        auto.offset.reset: earliest
+        max.poll.records: 10
+    producer:
+      client-id: user-service-producer
+      acks: all
+      retries: 3
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+        retry.backoff.ms: 1000
+        batch.size: 16384
+        linger.ms: 5
+        compression.type: snappy
+
+  # RabbitMQ Configuration for email notifications
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+        max-interval: 10000ms
+        multiplier: 2.0
 
 resilience4j:
   circuitbreaker:

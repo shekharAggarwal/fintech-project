@@ -5,9 +5,9 @@ spring:
   application:
     name: authorization-service
   
-  # Database Configuration using ShardingSphere-Proxy
+  # Database Configuration - Authorization service uses dedicated auth database
   datasource:
-    url: jdbc:postgresql://localhost:3307/fintech_db
+    url: jdbc:postgresql://localhost:5432/fintech_main
     username: fintech_user
     password: fintech_password
     driver-class-name: org.postgresql.Driver
@@ -17,7 +17,22 @@ spring:
       idle-timeout: 300000
       connection-timeout: 20000
       leak-detection-threshold: 60000
-  
+
   data:
     redis:
-      database: 1
+      database: 0
+
+  # Kafka Configuration for internal service communications
+  kafka:
+    consumer:
+      group-id: authorization-service-group
+      client-id: authorization-service-consumer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.fintech.userservice.dto,com.fintech.authservice.dto.response
+        enable.auto.commit: false
+        auto.offset.reset: earliest
+        max.poll.records: 10
+

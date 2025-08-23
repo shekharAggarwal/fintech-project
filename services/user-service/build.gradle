@@ -50,10 +50,14 @@ dependencies {
     implementation 'org.postgresql:postgresql'
     runtimeOnly 'org.postgresql:postgresql'
     
-    // RabbitMQ
+    // Kafka for internal service communications
+    implementation 'org.springframework.kafka:spring-kafka'
+    
+    // RabbitMQ for email notifications
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
     
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

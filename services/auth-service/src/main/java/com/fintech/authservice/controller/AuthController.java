@@ -1,14 +1,15 @@
 package com.fintech.authservice.controller;
 
-import com.fintech.authservice.dto.*;
+import com.fintech.authservice.dto.request.LoginRequest;
+import com.fintech.authservice.dto.request.RegistrationRequest;
+import com.fintech.authservice.dto.response.AuthenticationResult;
+import com.fintech.authservice.dto.response.LoginResponse;
+import com.fintech.authservice.dto.response.RegistrationResponse;
+import com.fintech.authservice.dto.response.RegistrationResult;
 import com.fintech.authservice.service.AuthService;
-import com.fintech.authservice.service.AuthService.AuthenticationResult;
-import com.fintech.authservice.service.AuthService.RegistrationResult;
-import com.fintech.authservice.service.AuthService.SessionValidationResult;
 import com.fintech.authservice.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,13 +23,13 @@ import static com.fintech.authservice.util.SecurityUtils.getUserAgent;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    final private AuthService authService;
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final AuthService authService;
+    private final JwtUtil jwtUtil;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, JwtUtil jwtUtil) {
         this.authService = authService;
+        this.jwtUtil = jwtUtil;
     }
 
 
@@ -37,7 +38,6 @@ public class AuthController {
                                                HttpServletRequest httpRequest) {
         String ipAddress = getClientIpAddress(httpRequest);
         String userAgent = getUserAgent(httpRequest);
-
         AuthenticationResult result = authService.authenticate(
                 request.getEmail(),
                 request.getPassword(),
@@ -45,40 +45,23 @@ public class AuthController {
                 userAgent
         );
 
-        if (result.isSuccess()) {
-            String jwt = jwtUtil.generateAccessToken(result.getAuthCore().getEmail(), result.getSession().getSessionId());
+        if (result.success()) {
+            String accessToken = jwtUtil.generateAccessToken(
+                    result.sessionId()
+            );
+
+
+            // Return response
             return ResponseEntity.ok(LoginResponse.success(
-                    result.getAuthCore().getUserId(),
-                    result.getAuthCore().getEmail(),
-                    jwt,
-                    result.getSession().getExpiresAt()
-            ));
-        } else if (result.isPasswordChangeRequired()) {
-            return ResponseEntity.ok(LoginResponse.passwordChangeRequired(
-                    result.getAuthCore().getUserId(),
-                    result.getMessage()
+                    result.authCore().getUserId(),
+                    result.authCore().getEmail(),
+                    accessToken
             ));
         } else {
-            return ResponseEntity.ok(LoginResponse.failed(result.getMessage(), result.getCode()));
+            return ResponseEntity.ok(LoginResponse.failed(result.message(), result.code()));
         }
     }
 
-
-    @PostMapping("/validate")
-    public ResponseEntity<SessionValidationResponse> validateSession(@Valid @RequestBody SessionValidationRequest request) {
-        SessionValidationResult result = authService.validateSession(request.getSessionId());
-
-        if (result.isValid()) {
-            return ResponseEntity.ok(SessionValidationResponse.valid(
-                    result.getAuthCore().getUserId(),
-                    result.getAuthCore().getEmail(),
-                    result.getAuthCore().getStatus().toString(),
-                    result.getSession().getExpiresAt()
-            ));
-        } else {
-            return ResponseEntity.ok(SessionValidationResponse.invalid(result.getMessage()));
-        }
-    }
 
     @PostMapping("/register")
     public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegistrationRequest request) {
@@ -91,17 +74,5 @@ public class AuthController {
         } else {
             return ResponseEntity.ok(RegistrationResponse.failed(result.getMessage(), result.getCode()));
         }
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<LogoutResponse> logout(@Valid @RequestBody LogoutRequest request) {
-        authService.logout(request.getSessionId());
-        return ResponseEntity.ok(LogoutResponse.success("Logged out successfully"));
-    }
-
-    @PostMapping("/logout-all")
-    public ResponseEntity<LogoutResponse> logoutAll(@Valid @RequestBody LogoutAllRequest request) {
-        authService.logoutAllDevices(request.getUserId());
-        return ResponseEntity.ok(LogoutResponse.success("Logged out from all devices"));
     }
 }

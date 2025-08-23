@@ -1,12 +1,6 @@
 server:
   port: 8080
-  ssl:
-    enabled: true
-    # IMPORTANT: Replace with the actual path on your local machine
-    key-store: C:/spring-boot/fintech-project/certs/fintech.p12
-    key-store-password: Shekhar@123
-    key-store-type: PKCS12
-    key-alias: gateway-ssl
+
 jwt:
   public-cert-path: C:/spring-boot/fintech-project/certs/jwt-public.crt
 spring:
@@ -18,38 +12,59 @@ spring:
       # Routes point to other services running on localhost at their respective ports
       routes:
         - id: auth-service
-          uri: http://localhost:8081
+          uri: https://localhost:8081
           predicates:
             - Path=/api/auth/**
-        - id: authorization-service
-          uri: http://localhost:8085
-          predicates:
-            - Path=/api/authorization/**
+#        - id: authorization-service
+#          uri: https://localhost:8085
+#          predicates:
+#            - Path=/api/authorization/**
+#          filters:
+#            - name: JwtAuthGatewayFilter
         - id: user-service
-          uri: http://localhost:8089
+          uri: https://localhost:8089
           predicates:
             - Path=/api/user/**
+          filters:
+            - name: JwtAuthGatewayFilter
         - id: payment-service
-          uri: http://localhost:8084
+          uri: https://localhost:8084
           predicates:
             - Path=/api/payment/**
+          filters:
+            - name: JwtAuthGatewayFilter
         - id: transaction-service
-          uri: http://localhost:8086
+          uri: https://localhost:8086
           predicates:
             - Path=/api/transaction/**
+          filters:
+            - name: JwtAuthGatewayFilter
         - id: notification-service
-          uri: http://localhost:8083
+          uri: https://localhost:8083
           predicates:
             - Path=/api/notification/**
+          filters:
+            - name: JwtAuthGatewayFilter
         - id: reporting-service
-          uri: http://localhost:8088
+          uri: https://localhost:8088
           predicates:
             - Path=/api/reporting/**
+          filters:
+            - name: JwtAuthGatewayFilter
         - id: scheduler-service
-          uri: http://localhost:8090
+          uri: https://localhost:8090
           predicates:
             - Path=/api/scheduler/**
+          filters:
+            - name: JwtAuthGatewayFilter
         - id: retry-service
-          uri: http://localhost:8091
+          uri: https://localhost:8091
           predicates:
             - Path=/api/retry/**
+          filters:
+            - name: JwtAuthGatewayFilter
+gateway:
+  authz:
+    base-url: https://localhost:8085
+    introspect-path: /authz/introspect
+    timeout-ms: 1200

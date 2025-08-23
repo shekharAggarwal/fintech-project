@@ -2,11 +2,11 @@ package com.fintech.gatewayservice.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.ResourceUtils;
 
-import javax.annotation.PostConstruct;
 import java.io.InputStream;
 import java.security.PublicKey;
 import java.security.cert.CertificateFactory;
