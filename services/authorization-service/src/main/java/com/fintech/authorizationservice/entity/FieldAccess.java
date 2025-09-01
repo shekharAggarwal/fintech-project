@@ -1,30 +1,28 @@
 package com.fintech.authorizationservice.entity;
 
 
-import com.fintech.authorizationservice.converter.StringListJsonConverter;
 import jakarta.persistence.*;
-import org.hibernate.annotations.Type;
-
-import java.util.List;
 
 @Entity
-@Table(name = "field_access")
+@Table(
+        name = "field_access",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"role_id", "resource_type"})
+        }
+)
 public class FieldAccess {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id")
-    private Role role;
+    @Column(name = "role_id", nullable = false)
+    private Long role;
 
-    private String resourceType; // e.g., "user", "account"
-
+    @Column(nullable = false)
+    private String resourceType;
 
     @Column(columnDefinition = "jsonb")
-    @Convert(converter = StringListJsonConverter.class)
-    private List<String> allowedFields;
-
+    private String allowedFields;
 
     @Column(columnDefinition = "jsonb")
     private String config;
@@ -32,12 +30,13 @@ public class FieldAccess {
     public FieldAccess() {
     }
 
-    public FieldAccess(Role role, String resourceType, List<String> allowedFields, String config) {
+    public FieldAccess(Long role, String resourceType, String allowedFields, String config) {
         this.role = role;
         this.resourceType = resourceType;
         this.allowedFields = allowedFields;
         this.config = config;
     }
+
 
     public Long getId() {
         return id;
@@ -47,11 +46,11 @@ public class FieldAccess {
         this.id = id;
     }
 
-    public Role getRole() {
+    public Long getRole() {
         return role;
     }
 
-    public void setRole(Role role) {
+    public void setRole(Long role) {
         this.role = role;
     }
 
@@ -63,11 +62,11 @@ public class FieldAccess {
         this.resourceType = resourceType;
     }
 
-    public List<String> getAllowedFields() {
+    public String getAllowedFields() {
         return allowedFields;
     }
 
-    public void setAllowedFields(List<String> allowedFields) {
+    public void setAllowedFields(String allowedFields) {
         this.allowedFields = allowedFields;
     }
 

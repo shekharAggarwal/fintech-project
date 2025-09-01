@@ -3,13 +3,19 @@ package com.fintech.authorizationservice.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "api_methods")
+@Table(
+        name = "api_methods",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"path", "http_method"})
+        }
+)
 public class ApiMethod {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long apiMethodId;
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String path;
+    @Column(name = "http_method", nullable = false)
     private String httpMethod;
     private String description;
 

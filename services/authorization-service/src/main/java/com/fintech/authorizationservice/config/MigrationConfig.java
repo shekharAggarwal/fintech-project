@@ -100,14 +100,57 @@ public class MigrationConfig {
             sql = reader.lines().collect(Collectors.joining("\n"));
         }
         
-        // Execute the SQL - split by semicolon for multiple statements
-        String[] statements = sql.split(";");
+        // Execute the SQL - handle PostgreSQL functions properly
+        String[] statements = splitSqlStatements(sql);
         for (String statement : statements) {
             statement = statement.trim();
             if (!statement.isEmpty() && !statement.startsWith("--")) {
                 jdbcTemplate.execute(statement);
             }
         }
+    }
+    
+    /**
+     * Split SQL statements properly, handling PostgreSQL function definitions
+     * Functions are enclosed in $$ ... $$ blocks and should not be split
+     */
+    private String[] splitSqlStatements(String sql) {
+        java.util.List<String> statements = new java.util.ArrayList<>();
+        StringBuilder currentStatement = new StringBuilder();
+        boolean inFunction = false;
+        String[] lines = sql.split("\n");
+        
+        for (String line : lines) {
+            line = line.trim();
+            
+            // Skip empty lines and comments
+            if (line.isEmpty() || line.startsWith("--")) {
+                continue;
+            }
+            
+            // Check if we're entering or leaving a function definition
+            if (line.contains("$$")) {
+                inFunction = !inFunction;
+            }
+            
+            currentStatement.append(line).append("\n");
+            
+            // If we hit a semicolon and we're not in a function, end the statement
+            if (line.endsWith(";") && !inFunction) {
+                statements.add(currentStatement.toString().trim());
+                currentStatement = new StringBuilder();
+            }
+        }
+        
+        // Add any remaining statement
+        if (currentStatement.length() > 0) {
+            String remaining = currentStatement.toString().trim();
+            if (!remaining.isEmpty()) {
+                statements.add(remaining);
+            }
+        }
+        
+        return statements.toArray(new String[0]);
     }
     
     private void markMigrationAsExecuted(JdbcTemplate jdbcTemplate, String migrationFile) {

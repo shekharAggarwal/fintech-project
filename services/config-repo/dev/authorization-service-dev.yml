@@ -1,6 +1,9 @@
 server:
   port: 8085
 
+jwt:
+  public-cert-path: C:/spring-boot/fintech-project/certs/jwt-public.crt
+
 spring:
   application:
     name: authorization-service
@@ -12,16 +15,18 @@ spring:
     password: fintech_password
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
+      maximum-pool-size: 30
+      minimum-idle: 10
       idle-timeout: 300000
-      connection-timeout: 20000
+      connection-timeout: 10000
       leak-detection-threshold: 60000
+      validation-timeout: 5000
+      max-lifetime: 1800000
+      keepalive-time: 600000
 
   data:
     redis:
       database: 0
-
   # Kafka Configuration for internal service communications
   kafka:
     consumer:

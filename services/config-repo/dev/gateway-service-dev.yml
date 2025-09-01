@@ -67,4 +67,4 @@ gateway:
   authz:
     base-url: https://localhost:8085
     introspect-path: /authz/introspect
-    timeout-ms: 1200
+    timeout-ms: 3000

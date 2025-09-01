@@ -12,28 +12,28 @@ import java.util.Optional;
 
 @Repository
 public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
-    
-    /**
-     * Find all roles for a specific user
-     */
-    @Query("SELECT ur FROM UserRole ur JOIN FETCH ur.role WHERE ur.userId = :userId")
-    List<UserRole> findByUserId(@Param("userId") String userId);
-    
+
     /**
      * Find a specific user-role combination
      */
     @Query("SELECT ur FROM UserRole ur WHERE ur.userId = :userId AND ur.role = :role")
     Optional<UserRole> findByUserIdAndRole(@Param("userId") String userId, @Param("role") Role role);
-    
+
     /**
-     * Check if user has a specific role
+     * Find role ID by user ID
      */
-    @Query("SELECT COUNT(ur) > 0 FROM UserRole ur WHERE ur.userId = :userId AND ur.role.name = :roleName")
+    @Query("SELECT ur.role FROM UserRole ur WHERE ur.userId = :userId")
+    Optional<Long> findRoleIdByUserId(@Param("userId") String userId);
+
+    /**
+     * Check if user has a specific role by role name
+     */
+    @Query("SELECT COUNT(ur) > 0 FROM UserRole ur JOIN Role r ON ur.role = r.roleId WHERE ur.userId = :userId AND r.name = :roleName")
     boolean existsByUserIdAndRoleName(@Param("userId") String userId, @Param("roleName") String roleName);
-    
+
     /**
-     * Get all role names for a user
+     * Find role names by user ID
      */
-    @Query("SELECT ur.role.name FROM UserRole ur WHERE ur.userId = :userId")
+    @Query("SELECT r.name FROM UserRole ur JOIN Role r ON ur.role = r.roleId WHERE ur.userId = :userId")
     List<String> findRoleNamesByUserId(@Param("userId") String userId);
 }

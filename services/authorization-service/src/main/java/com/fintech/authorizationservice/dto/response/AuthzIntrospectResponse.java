@@ -6,27 +6,23 @@ import java.util.Map;
 public class AuthzIntrospectResponse {
     private boolean allowed;
     private String userId;
-    private List<String> roles;
+    private String role;
     private List<String> permissions;
     private Map<String, Object> limits; // perTxnMax, dailyMax etc
     private Map<String, List<String>> fieldAccess; // resource -> fields
-    private String policyVersion;
-    private Integer cacheTtlSeconds;
     private String reason;
 
-    public AuthzIntrospectResponse(boolean allowed, String userId, List<String> roles, List<String> permissions, Map<String, Object> limits, Map<String, List<String>> fieldAccess, String policyVersion, Integer cacheTtlSeconds, String reason) {
+    public AuthzIntrospectResponse() {
+    }
+
+    public AuthzIntrospectResponse(boolean allowed, String userId, String role, List<String> permissions, Map<String, Object> limits, Map<String, List<String>> fieldAccess, String reason) {
         this.allowed = allowed;
         this.userId = userId;
-        this.roles = roles;
+        this.role = role;
         this.permissions = permissions;
         this.limits = limits;
         this.fieldAccess = fieldAccess;
-        this.policyVersion = policyVersion;
-        this.cacheTtlSeconds = cacheTtlSeconds;
         this.reason = reason;
-    }
-
-    public AuthzIntrospectResponse() {
     }
 
     public boolean isAllowed() {
@@ -45,12 +41,12 @@ public class AuthzIntrospectResponse {
         this.userId = userId;
     }
 
-    public List<String> getRoles() {
-        return roles;
+    public String getRole() {
+        return role;
     }
 
-    public void setRoles(List<String> roles) {
-        this.roles = roles;
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public List<String> getPermissions() {
@@ -75,22 +71,6 @@ public class AuthzIntrospectResponse {
 
     public void setFieldAccess(Map<String, List<String>> fieldAccess) {
         this.fieldAccess = fieldAccess;
-    }
-
-    public String getPolicyVersion() {
-        return policyVersion;
-    }
-
-    public void setPolicyVersion(String policyVersion) {
-        this.policyVersion = policyVersion;
-    }
-
-    public Integer getCacheTtlSeconds() {
-        return cacheTtlSeconds;
-    }
-
-    public void setCacheTtlSeconds(Integer cacheTtlSeconds) {
-        this.cacheTtlSeconds = cacheTtlSeconds;
     }
 
     public String getReason() {

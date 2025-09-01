@@ -4,19 +4,22 @@ import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "role_permissions")
+@Table(
+        name = "role_permissions",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"role_id", "method_id"})
+        }
+)
 public class RolePermission {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id")
-    private Role role;
+    @Column(name = "role_id", nullable = false)
+    private Long role;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "method_id")
-    private ApiMethod apiMethodId;
+    @Column(name = "method_id", nullable = false)
+    private Long apiMethodId;
 
     private boolean allowed;
 
@@ -29,7 +32,7 @@ public class RolePermission {
     public RolePermission() {
     }
 
-    public RolePermission(Role role, ApiMethod apiMethodId, boolean allowed, @Nullable String limitType, @Nullable Integer limitValue) {
+    public RolePermission(Long role, Long apiMethodId, boolean allowed, @Nullable String limitType, @Nullable Integer limitValue) {
         this.role = role;
         this.apiMethodId = apiMethodId;
         this.allowed = allowed;
@@ -45,19 +48,19 @@ public class RolePermission {
         this.id = id;
     }
 
-    public Role getRole() {
+    public Long getRole() {
         return role;
     }
 
-    public void setRole(Role role) {
+    public void setRole(Long role) {
         this.role = role;
     }
 
-    public ApiMethod getApiMethodId() {
+    public Long getApiMethodId() {
         return apiMethodId;
     }
 
-    public void setApiMethodId(ApiMethod apiMethodId) {
+    public void setApiMethodId(Long apiMethodId) {
         this.apiMethodId = apiMethodId;
     }
 

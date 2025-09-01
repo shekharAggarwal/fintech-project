@@ -117,7 +117,7 @@ public class JwtAuthGatewayFilter extends AbstractGatewayFilterFactory<JwtAuthGa
                     .request(r -> r
                             .header("X-Authz", base64)
                             .header("X-User-Id", resp.userId == null ? "" : resp.userId)
-                            .header("X-Role", resp.roles == null || resp.roles.isEmpty() ? "" : String.join(",", resp.roles))
+                            .header("X-Role", resp.role == null || resp.role.isEmpty() ? "" : resp.role)
                     ).build();
 
             /*// convenience headers
