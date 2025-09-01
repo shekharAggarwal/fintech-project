@@ -1,31 +1,38 @@
 package com.fintech.authorizationservice.util;
 
 import io.jsonwebtoken.*;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ResourceUtils;
 
+import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.PublicKey;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 
 @Component
 public class JwtUtil {
-    
-    @Value("${JWT_KEYSTORE_PATH:/jwt-keystore.p12}")
-    private String keystorePath;
-    
-    @Value("${JWT_KEYSTORE_PASSWORD:fintech123}")
-    private String keystorePassword;
-    
-    @Value("${JWT_KEY_ALIAS:fintech-jwt}")
-    private String keyAlias;
-    
+
+    @Value("${jwt.public-cert-path}")
+    private String publicCertPath;
+
     private PublicKey publicKey;
-    
-    public String getEmailFromToken(String token) {
-        Claims claims = getClaimsFromToken(token);
-        return claims != null ? claims.getSubject() : null;
+
+    @PostConstruct
+    public void loadPublicKey() {
+        try {
+            InputStream in = ResourceUtils.getURL(publicCertPath).openStream();
+            CertificateFactory factory = CertificateFactory.getInstance("X.509");
+            X509Certificate cert = (X509Certificate) factory.generateCertificate(in);
+            this.publicKey = cert.getPublicKey();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load public key for JWT validation", e);
+        }
     }
     
+
     public String getSessionIdFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims != null ? claims.get("sessionId", String.class) : null;
@@ -34,7 +41,7 @@ public class JwtUtil {
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()
-                    .setSigningKey(getPublicKey())
+                    .setSigningKey(publicKey)
                     .build()
                     .parseClaimsJws(token);
             return true;
@@ -46,7 +53,7 @@ public class JwtUtil {
     private Claims getClaimsFromToken(String token) {
         try {
             return Jwts.parserBuilder()
-                    .setSigningKey(getPublicKey())
+                    .setSigningKey(publicKey)
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
@@ -54,18 +61,5 @@ public class JwtUtil {
             return null;
         }
     }
-    
-    private PublicKey getPublicKey() {
-        if (publicKey == null) {
-            try {
-                KeyStore keyStore = KeyStore.getInstance("PKCS12");
-                keyStore.load(getClass().getResourceAsStream(keystorePath), 
-                             keystorePassword.toCharArray());
-                publicKey = keyStore.getCertificate(keyAlias).getPublicKey();
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to load public key", e);
-            }
-        }
-        return publicKey;
-    }
+
 }

@@ -25,9 +25,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
+//    implementation 'org.springframework.boot:spring-boot-starter-security'
     
     // Tracing dependencies - Use Spring Boot 3 compatible versions
     implementation 'io.micrometer:micrometer-tracing-bridge-otel'
@@ -48,8 +47,7 @@ dependencies {
 
     // Database
     implementation 'org.postgresql:postgresql'
-    runtimeOnly 'org.postgresql:postgresql'
-    
+
     // Kafka for internal service communications
     implementation 'org.springframework.kafka:spring-kafka'
     

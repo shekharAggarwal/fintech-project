@@ -2,6 +2,7 @@ package com.fintech.gatewayservice.config;
 
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.channel.ChannelOption;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,11 +52,15 @@ public class TlsWebClientConfig {
                 .trustManager(tmf)
                 .build();
 
-        HttpClient httpClient = HttpClient.create().secure(spec -> spec.sslContext(sslContext));
+        HttpClient httpClient = HttpClient.create()
+                .secure(spec -> spec.sslContext(sslContext))
+                .responseTimeout(java.time.Duration.ofMillis(5000)) // 5 second response timeout
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000); // 3 second connect timeout
 
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .baseUrl(authzBase)
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024)) // 1MB buffer
                 .build();
     }
 }

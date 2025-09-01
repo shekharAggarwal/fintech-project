@@ -51,4 +51,9 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<UserProfile> test() {
+        return  ResponseEntity.ok(new UserProfile());
+    }
 }
