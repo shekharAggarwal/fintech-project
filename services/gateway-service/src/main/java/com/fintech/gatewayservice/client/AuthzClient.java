@@ -2,6 +2,7 @@ package com.fintech.gatewayservice.client;
 
 import com.fintech.gatewayservice.dto.request.AuthzIntrospectRequest;
 import com.fintech.gatewayservice.dto.response.AuthzIntrospectResponse;
+import io.micrometer.tracing.Tracer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -19,17 +20,32 @@ public class AuthzClient {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthzClient.class);
     private final WebClient webClient;
+    private final Tracer tracer;
 
-    public AuthzClient(WebClient authzWebClient) {
+    public AuthzClient(WebClient authzWebClient, Tracer tracer) {
         this.webClient = authzWebClient;
+        this.tracer = tracer;
     }
 
     public Mono<AuthzIntrospectResponse> introspect(AuthzIntrospectRequest req, int timeoutMs) {
-        return webClient.post()
-                .uri("/api/authz/introspect")
-                .bodyValue(req)
-                .retrieve()
-                .bodyToMono(AuthzIntrospectResponse.class)
+        return Mono.fromCallable(() -> {
+                    // Log current trace context
+                    String traceId = tracer.currentSpan() != null ? 
+                        tracer.currentSpan().context().traceId() : "no-trace";
+                    String spanId = tracer.currentSpan() != null ?
+                        tracer.currentSpan().context().spanId() : "no-span";
+                    
+                    logger.info("Making authz call with trace [{}] span [{}] for path={} method={}", 
+                        traceId, spanId, req.path, req.method);
+                    return req;
+                })
+                .flatMap(request -> 
+                    webClient.post()
+                        .uri("/api/authz/introspect")
+                        .bodyValue(request)
+                        .retrieve()
+                        .bodyToMono(AuthzIntrospectResponse.class)
+                )
                 .timeout(Duration.ofMillis(timeoutMs))
                 .retryWhen(Retry.backoff(2, Duration.ofMillis(100))
                         .filter(throwable -> throwable instanceof WebClientRequestException ||
@@ -51,6 +67,12 @@ public class AuthzClient {
                         logger.error("Authz service unexpected error for path={} method={}",
                                 req.path, req.method, ex);
                     }
+                })
+                .doOnSuccess(response -> {
+                    String traceId = tracer.currentSpan() != null ? 
+                        tracer.currentSpan().context().traceId() : "no-trace";
+                    logger.info("Authz response received with trace [{}] for path={} method={} allowed={}", 
+                        traceId, req.path, req.method, response != null ? response.allowed : "null");
                 })
                 .onErrorReturn(createDeniedResponse("AUTHZ_SERVICE_ERROR"));
     }
