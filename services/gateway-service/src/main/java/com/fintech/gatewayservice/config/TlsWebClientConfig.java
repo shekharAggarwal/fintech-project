@@ -1,5 +1,6 @@
 package com.fintech.gatewayservice.config;
 
+import io.micrometer.observation.ObservationRegistry;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.channel.ChannelOption;
@@ -33,6 +34,12 @@ public class TlsWebClientConfig {
     @Value("${tls.client.trust-store-password}")
     private String trustStorePassword;
 
+    private final ObservationRegistry observationRegistry;
+
+    public TlsWebClientConfig(ObservationRegistry observationRegistry) {
+        this.observationRegistry = observationRegistry;
+    }
+
     @Bean
     public WebClient authzWebClient() throws Exception {
         // load client key material (PKCS12)
@@ -61,6 +68,7 @@ public class TlsWebClientConfig {
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .baseUrl(authzBase)
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024)) // 1MB buffer
+                .observationRegistry(observationRegistry) // Enable tracing/observability
                 .build();
     }
 }
