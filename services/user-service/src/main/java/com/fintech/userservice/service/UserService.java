@@ -57,6 +57,7 @@ public class UserService {
             UserProfile userProfile = new UserProfile(
                 message.getUserId(),
                 message.getFullName(),
+                message.getEmail(),
                 message.getPhoneNumber(),
                 message.getAddress(),
                 message.getDateOfBirth(),
@@ -196,5 +197,17 @@ public class UserService {
      */
     public List<UserProfile> getAllUserProfilesList() {
         return userProfileRepository.findAll();
+    }
+    
+    /**
+     * Search users by name, phone, email, or account number
+     */
+    public List<UserProfile> searchUsers(String searchTerm) {
+        if (searchTerm == null || searchTerm.trim().isEmpty()) {
+            return List.of(); // Return empty list for empty search term
+        }
+        
+        logger.info("Searching users with term: {}", searchTerm);
+        return userProfileRepository.searchUsers(searchTerm.trim());
     }
 }

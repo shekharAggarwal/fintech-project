@@ -173,26 +173,24 @@ public class AuthzService {
             Set<String> permKeys = new HashSet<>();
             permKeys.add(path); // Add the requested path as permitted
 
-            // 9. Get limits using optimized query
-            Map<String, Object> limits = new HashMap<>();
-            // Note: Assuming rpRepo has findLimitsForPath method - commenting out for now
-            // List<Object[]> limitData = rpRepo.findLimitsForPath(List.of(roleId.get()), method, path);
-            // for (Object[] row : limitData) {
-            //     String limitType = (String) row[0];
-            //     Object limitValue = row[1];
-            //     if (limitType != null && limitValue != null) {
-            //         limits.put(limitType, limitValue);
-            //     }
-            // }
-
-            // 10. Field access aggregation using optimized query
-            Map<String, List<String>> fieldAccess = new HashMap<>();
-            List<Object[]> fieldData = faRepo.findFieldAccessByRoleIds(List.of(roleId.get()));
+            // 9. resource access aggregation using optimized query
+            Map<String, Map<String, Object>> resourceAccess = new HashMap<>();
+            List<Object[]> fieldData = faRepo.findFieldAccessByRoleId(roleId.get());
 
             for (Object[] row : fieldData) {
                 String resourceType = Optional.ofNullable((String) row[0])
                         .map(String::toLowerCase)
                         .orElse("");
+
+                // Initialize resource type map if not exists
+                resourceAccess.computeIfAbsent(resourceType, k -> {
+                    Map<String, Object> resourceMap = new HashMap<>();
+                    resourceMap.put("access_field", new ArrayList<String>());
+                    resourceMap.put("config", new HashMap<String, Object>());
+                    return resourceMap;
+                });
+
+                Map<String, Object> resourceMap = resourceAccess.get(resourceType);
 
                 String allowedFieldsJson = (String) row[1];
                 if (allowedFieldsJson != null) {
@@ -200,22 +198,42 @@ public class AuthzService {
                         @SuppressWarnings("unchecked")
                         List<String> fields = mapper.readValue(allowedFieldsJson, List.class);
                         if (fields != null && !fields.isEmpty()) {
-                            fieldAccess.computeIfAbsent(resourceType, k -> new ArrayList<>()).addAll(fields);
+                            @SuppressWarnings("unchecked")
+                            List<String> accessFields = (List<String>) resourceMap.get("access_field");
+                            accessFields.addAll(fields);
                         }
                     } catch (Exception e) {
                         log.warn("Failed to parse allowed fields JSON for resource {}: {}", resourceType, allowedFieldsJson, e);
                     }
                 }
+
+                String configJson = (String) row[2];
+                if (configJson != null) {
+                    try {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> configs = mapper.readValue(configJson, Map.class);
+                        if (configs != null && !configs.isEmpty()) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> resourceConfig = (Map<String, Object>) resourceMap.get("config");
+                            resourceConfig.putAll(configs);
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to parse config JSON for resource {}: {}", resourceType, configJson, e);
+                    }
+                }
             }
 
-            // Deduplicate field access
-            fieldAccess.replaceAll((k, v) -> new ArrayList<>(new LinkedHashSet<>(v)));
+            // Deduplicate access fields for each resource type
+            resourceAccess.forEach((resourceType, resourceMap) -> {
+                @SuppressWarnings("unchecked")
+                List<String> accessFields = (List<String>) resourceMap.get("access_field");
+                resourceMap.put("access_field", new ArrayList<>(new LinkedHashSet<>(accessFields)));
+            });
 
             resp.setPermissions(new ArrayList<>(permKeys));
-            resp.setLimits(limits);
-            resp.setFieldAccess(fieldAccess);
+            resp.setResourceAccess(resourceAccess);
 
-            // 11. Cache result
+            // 10. Cache result
             try {
                 redisTemplate.opsForValue().set(cacheKey, mapper.writeValueAsString(resp),
                         Duration.ofSeconds(CACHE_TTL_SECONDS));
@@ -223,8 +241,8 @@ public class AuthzService {
                 log.warn("Cache write failed for key {}", cacheKey, e);
             }
 
-            log.info("Authorization successful for userId={} path={} method={} roles={}",
-                    userId, path, method, roleName);
+            log.info("Authorization successful for userId={} path={} method={} roles={} response={}",
+                    userId, path, method, roleName, mapper.writeValueAsString(resp));
 
             return resp;
 

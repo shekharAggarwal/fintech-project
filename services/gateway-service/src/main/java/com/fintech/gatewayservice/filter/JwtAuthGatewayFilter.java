@@ -120,19 +120,6 @@ public class JwtAuthGatewayFilter extends AbstractGatewayFilterFactory<JwtAuthGa
                             .header("X-Role", resp.role == null || resp.role.isEmpty() ? "" : resp.role)
                     ).build();
 
-            /*// convenience headers
-            if (resp.fieldAccess != null && resp.fieldAccess.containsKey("user")) {
-                mutated.getRequest().mutate()
-                        .header("X-Allowed-Fields", String.join(",", resp.fieldAccess.get("user")));
-            }
-
-            if (resp.permissions != null) {
-                Object perTxn = resp.permissions.get("perTxnMax");
-                Object daily = resp.permissions.get("dailyMax");
-                if (perTxn != null) mutated.getRequest().mutate().header("X-Txn-Limit-PerTxn", String.valueOf(perTxn));
-                if (daily != null) mutated.getRequest().mutate().header("X-Txn-Limit-Daily", String.valueOf(daily));
-            }*/
-
             return chain.filter(mutated);
         } catch (Exception ex) {
             logger.error("Failed to attach authz envelope: {}", ex.toString());
