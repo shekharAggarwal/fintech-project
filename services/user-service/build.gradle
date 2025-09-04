@@ -47,6 +47,12 @@ dependencies {
 
     // Database
     implementation 'org.postgresql:postgresql'
+    
+    // AOP for authorization aspects
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    
+    // WebClient for authorization service calls
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
     // Kafka for internal service communications
     implementation 'org.springframework.kafka:spring-kafka'

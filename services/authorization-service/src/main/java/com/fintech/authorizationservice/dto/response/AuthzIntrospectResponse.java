@@ -8,20 +8,18 @@ public class AuthzIntrospectResponse {
     private String userId;
     private String role;
     private List<String> permissions;
-    private Map<String, Object> limits; // perTxnMax, dailyMax etc
-    private Map<String, List<String>> fieldAccess; // resource -> fields
+    private Map<String, Map<String, Object>> resourceAccess; // resourceType -> {access_field: [], config: {}}
     private String reason;
 
     public AuthzIntrospectResponse() {
     }
 
-    public AuthzIntrospectResponse(boolean allowed, String userId, String role, List<String> permissions, Map<String, Object> limits, Map<String, List<String>> fieldAccess, String reason) {
+    public AuthzIntrospectResponse(boolean allowed, String userId, String role, List<String> permissions, Map<String, Map<String, Object>> resourceAccess, String reason) {
         this.allowed = allowed;
         this.userId = userId;
         this.role = role;
         this.permissions = permissions;
-        this.limits = limits;
-        this.fieldAccess = fieldAccess;
+        this.resourceAccess = resourceAccess;
         this.reason = reason;
     }
 
@@ -57,20 +55,12 @@ public class AuthzIntrospectResponse {
         this.permissions = permissions;
     }
 
-    public Map<String, Object> getLimits() {
-        return limits;
+    public Map<String, Map<String, Object>> getResourceAccess() {
+        return resourceAccess;
     }
 
-    public void setLimits(Map<String, Object> limits) {
-        this.limits = limits;
-    }
-
-    public Map<String, List<String>> getFieldAccess() {
-        return fieldAccess;
-    }
-
-    public void setFieldAccess(Map<String, List<String>> fieldAccess) {
-        this.fieldAccess = fieldAccess;
+    public void setResourceAccess(Map<String, Map<String, Object>> resourceAccess) {
+        this.resourceAccess = resourceAccess;
     }
 
     public String getReason() {
