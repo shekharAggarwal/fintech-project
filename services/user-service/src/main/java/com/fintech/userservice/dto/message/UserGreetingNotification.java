@@ -1,4 +1,4 @@
-package com.fintech.userservice.dto;
+package com.fintech.userservice.dto.message;
 
 public class UserGreetingNotification {
     private String email;

@@ -32,4 +32,9 @@ public @interface RequireAuthorization {
      * Error message when authorization fails
      */
     String message() default "Access denied";
+
+    /*
+    * Validate the args
+    * */
+    boolean validateArgs() default false;
 }

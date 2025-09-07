@@ -1,8 +1,8 @@
 package com.fintech.userservice.service;
 
-import com.fintech.userservice.dto.UserCreationMessage;
-import com.fintech.userservice.dto.UserGreetingNotification;
-import com.fintech.userservice.dto.UserRoleRegistrationMessage;
+import com.fintech.userservice.dto.message.UserCreationMessage;
+import com.fintech.userservice.dto.message.UserGreetingNotification;
+import com.fintech.userservice.dto.message.UserRoleRegistrationMessage;
 import com.fintech.userservice.entity.UserProfile;
 import com.fintech.userservice.messaging.EmailNotificationPublisher;
 import com.fintech.userservice.messaging.AuthorizationKafkaPublisher;
@@ -149,6 +149,51 @@ public class UserService {
         } else {
             throw new RuntimeException("User profile not found for userId: " + userId);
         }
+    }
+    
+    /**
+     * Update user profile using UpdateUserRequest DTO
+     */
+    public UserProfile updateUserProfile(String userId, com.fintech.userservice.dto.request.UpdateUserRequest updateRequest) {
+        Optional<UserProfile> existingProfile = userProfileRepository.findByUserId(userId);
+        
+        if (existingProfile.isEmpty()) {
+            throw new RuntimeException("User profile not found for userId: " + userId);
+        }
+        
+        UserProfile profile = existingProfile.get();
+        
+        // Update only the fields that are provided in the request
+        if (updateRequest.getFirstName() != null || updateRequest.getLastName() != null) {
+            String fullName = "";
+            if (updateRequest.getFirstName() != null && updateRequest.getLastName() != null) {
+                fullName = updateRequest.getFirstName() + " " + updateRequest.getLastName();
+            } else if (updateRequest.getFirstName() != null) {
+                // Keep existing last name if only first name is provided
+                String[] nameParts = profile.getFullName() != null ? profile.getFullName().split(" ", 2) : new String[]{"", ""};
+                fullName = updateRequest.getFirstName() + (nameParts.length > 1 ? " " + nameParts[1] : "");
+            } else {
+                // Keep existing first name if only last name is provided
+                String[] nameParts = profile.getFullName() != null ? profile.getFullName().split(" ", 2) : new String[]{"", ""};
+                fullName = (nameParts.length > 0 ? nameParts[0] : "") + " " + updateRequest.getLastName();
+            }
+            profile.setFullName(fullName.trim());
+        }
+        
+        if (updateRequest.getEmail() != null) {
+            profile.setEmail(updateRequest.getEmail());
+        }
+        
+        if (updateRequest.getPhoneNumber() != null) {
+            profile.setPhoneNumber(updateRequest.getPhoneNumber());
+        }
+        
+        if (updateRequest.getAddress() != null) {
+            profile.setAddress(updateRequest.getAddress());
+        }
+        
+        logger.info("Updating user profile for userId: {}", userId);
+        return userProfileRepository.save(profile);
     }
     
     /**

@@ -1,5 +1,6 @@
 package com.fintech.userservice.controller;
 
+import com.fintech.userservice.dto.request.UpdateUserRequest;
 import com.fintech.userservice.entity.UserProfile;
 import com.fintech.userservice.security.annotation.FilterResponse;
 import com.fintech.userservice.security.annotation.RequireAuthorization;
@@ -14,10 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Enhanced User Controller with comprehensive authorization
- * Based on Spring Security authorization patterns
- */
+
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
@@ -116,12 +114,10 @@ public class UserController {
         }
     }
 
-    /**
-     * Update user role (admin only)
-     */
+
     @PutMapping("/role/{userId}")
     @RequireAuthorization(
-            expression = "hasFullAccess('user')",
+            expression = "hasFullAccess()",
             message = "Access denied: Full access privileges required to update user roles",
             resourceType = "user"
     )
