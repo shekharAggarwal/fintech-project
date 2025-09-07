@@ -1,5 +1,7 @@
 server:
   port: 8085
+  ssl:
+    client-auth: need
 
 jwt:
   public-cert-path: C:/spring-boot/fintech-project/certs/jwt-public.crt
@@ -40,4 +42,3 @@ spring:
         enable.auto.commit: false
         auto.offset.reset: earliest
         max.poll.records: 10
-
