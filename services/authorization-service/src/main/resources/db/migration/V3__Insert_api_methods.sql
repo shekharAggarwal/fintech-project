@@ -6,6 +6,7 @@ INSERT INTO api_methods (path, http_method, description) VALUES
 ('/api/user/profile', 'GET', 'Get user profile information'),
 ('/api/user/profile', 'PUT', 'Update user profile information'),
 ('/api/user/profile/me', 'GET', 'Get current user own profile'),
+('/api/user/profile/me', 'PUT', 'Update current user own profile'),
 ('/api/user/profile/*/filtered', 'GET', 'Get filtered profile data as map'),
 ('/api/user/search', 'GET', 'Search users by name, phone, email, or account number'),
 ('/api/user/role/*', 'PUT', 'Update user role (admin only)'),

@@ -19,11 +19,11 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.cloud:spring-cloud-config-server'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    implementation libs.spring.boot.starter
+    implementation libs.spring.cloud.config.server
+    implementation libs.spring.boot.starter.actuator
+    testImplementation libs.bundles.test
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 dependencyManagement {

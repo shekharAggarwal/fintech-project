@@ -297,6 +297,42 @@ public class AuthzService {
     }
 
     /**
+     * Update user role - used by internal services
+     */
+    @Transactional
+    public void updateUserRole(String userId, String newRoleName, String updatedBy) {
+        try {
+            log.info("Updating user role: userId={}, newRole={}, updatedBy={}", userId, newRoleName, updatedBy);
+
+            // Find the user's current role
+            Optional<UserRole> existingUserRole = userRoleRepo.findByUserId(userId);
+            if (existingUserRole.isEmpty()) {
+                throw new RuntimeException("User role not found for userId: " + userId);
+            }
+
+            // Find the new role
+            Role newRole = roleRepo.findByName(newRoleName)
+                    .orElseThrow(() -> new RuntimeException("Role not found: " + newRoleName));
+
+            // Update the user's role
+            UserRole userRole = existingUserRole.get();
+            Long oldRoleId = userRole.getRole();
+            userRole.setRole(newRole.getRoleId());
+            userRoleRepo.save(userRole);
+
+            // Clear the authorization cache for this user
+            clearUserAuthzCache(userId);
+
+            log.info("User role updated successfully: userId={}, oldRoleId={}, newRoleId={}, updatedBy={}", 
+                    userId, oldRoleId, newRole.getRoleId(), updatedBy);
+
+        } catch (Exception e) {
+            log.error("Failed to update user role: userId={}, newRole={}, updatedBy={}", userId, newRoleName, updatedBy, e);
+            throw new RuntimeException("Failed to update user role: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Get all roles for a user
      */
     @Transactional(readOnly = true)
