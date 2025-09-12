@@ -61,7 +61,7 @@ public class UserController {
      * Update current user's own profile
      */
     @PutMapping("/profile/me")
-    @RequireAuthorization(message = "Access denied: Authentication required", resourceType = "user")
+    @RequireAuthorization(message = "Access denied: Authentication required", resourceType = "user", validateArgs = true)
     public ResponseEntity<?> updateMyProfile(@RequestBody UpdateUserRequest updateRequest) {
         String currentUserId = authorizationService.getCurrentUserId();
         logger.info("User updating own profile: {}", currentUserId);
@@ -73,9 +73,9 @@ public class UserController {
 
         try {
             UserProfile updatedProfile = userService.updateUserProfileFromRequest(currentUserId, updateRequest);
-            
+
             logger.info("User profile updated successfully for userId: {}", currentUserId);
-            
+
             return ResponseEntity.ok(Map.of(
                     "message", "Profile updated successfully",
                     "userId", currentUserId,
@@ -99,7 +99,7 @@ public class UserController {
     )
     @FilterResponse(resourceType = "user", convertToMap = true)
     public ResponseEntity<?> getUserProfile(@PathVariable String userId) {
-        logger.info("Getting profile for userId: {} by user: {}", 
+        logger.info("Getting profile for userId: {} by user: {}",
                 userId, authorizationService.getCurrentUserId());
 
         Optional<UserProfile> userProfile = userService.getUserProfile(userId);
@@ -121,17 +121,17 @@ public class UserController {
             message = "Access denied: Insufficient privileges to update this profile",
             resourceType = "user"
     )
-    public ResponseEntity<?> updateUserProfile(@PathVariable String userId, 
-                                             @RequestBody UpdateUserRequest updateRequest) {
-        logger.info("Updating profile for userId: {} by user: {}", 
+    public ResponseEntity<?> updateUserProfile(@PathVariable String userId,
+                                               @RequestBody UpdateUserRequest updateRequest) {
+        logger.info("Updating profile for userId: {} by user: {}",
                 userId, authorizationService.getCurrentUserId());
 
         try {
             UserProfile updatedProfile = userService.updateUserProfileFromRequest(userId, updateRequest);
-            
-            logger.info("User profile updated successfully for userId: {} by user: {}", 
-                       userId, authorizationService.getCurrentUserId());
-            
+
+            logger.info("User profile updated successfully for userId: {} by user: {}",
+                    userId, authorizationService.getCurrentUserId());
+
             return ResponseEntity.ok(Map.of(
                     "message", "Profile updated successfully",
                     "userId", userId,
@@ -140,8 +140,8 @@ public class UserController {
             ));
 
         } catch (RuntimeException e) {
-            logger.error("Error updating profile for userId: {} by user: {}", 
-                        userId, authorizationService.getCurrentUserId(), e);
+            logger.error("Error updating profile for userId: {} by user: {}",
+                    userId, authorizationService.getCurrentUserId(), e);
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Profile update failed", "reason", e.getMessage()));
         }

@@ -84,11 +84,10 @@ public class AuthorizationAspect {
 
 
         Object[] filteredArgs = joinPoint.getArgs();
-        if(authAnnotation.validateArgs() && filteredArgs != null && filteredArgs.length > 0)
-        {
+        if (authAnnotation.validateArgs() && filteredArgs != null && filteredArgs.length > 0) {
             filteredArgs = filterMethodArguments(joinPoint.getArgs(), authAnnotation.resourceType());
         }
-        
+
         // Proceed with filtered arguments
         return joinPoint.proceed(filteredArgs);
     }
@@ -158,7 +157,7 @@ public class AuthorizationAspect {
         }
 
         List<Object> filteredArgsList = new ArrayList<>();
-        
+
         for (Object arg : args) {
             if (arg == null) {
                 filteredArgsList.add(null);
@@ -173,7 +172,7 @@ public class AuthorizationAspect {
                 if (hasAnyAllowedFields(filteredArg)) {
                     filteredArgsList.add(filteredArg);
                 } else {
-                    logger.debug("Argument of type {} completely removed - no fields allowed for modification", 
+                    logger.debug("Argument of type {} completely removed - no fields allowed for modification",
                             arg.getClass().getSimpleName());
                     // Don't add this argument - it's completely removed
                 }
@@ -181,11 +180,11 @@ public class AuthorizationAspect {
                 // Simple type (String, Long, etc.) or object without annotations
                 // These are typically path parameters, IDs, etc. - include as-is
                 filteredArgsList.add(arg);
-                logger.debug("Argument of type {} passed through unchanged - no @FieldAccessControl annotations", 
+                logger.debug("Argument of type {} passed through unchanged - no @FieldAccessControl annotations",
                         arg.getClass().getSimpleName());
             }
         }
-        
+
         return filteredArgsList.toArray();
     }
 
@@ -196,23 +195,23 @@ public class AuthorizationAspect {
         if (obj == null) {
             return false;
         }
-        
+
         Class<?> clazz = obj.getClass();
-        
+
         // For primitive types, wrapper types, and common simple types - check if they need filtering
         // These are typically path parameters, IDs, etc. that should pass through unchanged
-        if (clazz.isPrimitive() || 
-            clazz == String.class ||
-            clazz == Long.class ||
-            clazz == Integer.class ||
-            clazz == Boolean.class ||
-            clazz == Double.class ||
-            clazz == Float.class ||
-            Number.class.isAssignableFrom(clazz) ||
-            clazz.isEnum()) {
+        if (clazz.isPrimitive() ||
+                clazz == String.class ||
+                clazz == Long.class ||
+                clazz == Integer.class ||
+                clazz == Boolean.class ||
+                clazz == Double.class ||
+                clazz == Float.class ||
+                Number.class.isAssignableFrom(clazz) ||
+                clazz.isEnum()) {
             return false; // These don't have @FieldAccessControl annotations
         }
-        
+
         // Check if any field has @FieldAccessControl annotation
         Field[] fields = clazz.getDeclaredFields();
         for (Field field : fields) {
@@ -220,7 +219,7 @@ public class AuthorizationAspect {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -236,7 +235,7 @@ public class AuthorizationAspect {
             // Create a new filtered object to avoid modifying original
             Object filteredObj = createFilteredObject(obj, defaultResourceType);
             return filteredObj;
-            
+
         } catch (Exception e) {
             logger.error("Error filtering object fields for argument: {}", obj.getClass().getSimpleName(), e);
             // Return original object if filtering fails (fail-safe approach)
@@ -250,7 +249,7 @@ public class AuthorizationAspect {
     private Object createFilteredObject(Object originalObj, String defaultResourceType) throws Exception {
         Class<?> objClass = originalObj.getClass();
         Object filteredObj;
-        
+
         try {
             // Try to create new instance using default constructor
             filteredObj = objClass.getDeclaredConstructor().newInstance();
@@ -274,21 +273,21 @@ public class AuthorizationAspect {
                 return originalObj;
             }
         }
-        
+
         Field[] fields = objClass.getDeclaredFields();
-        
+
         for (Field field : fields) {
             field.setAccessible(true);
             Object fieldValue = field.get(originalObj);
-            
+
             FieldAccessControl annotation = field.getAnnotation(FieldAccessControl.class);
-            
+
             if (annotation != null) {
-                String resourceType = annotation.resourceType().isEmpty() ? 
-                    defaultResourceType : annotation.resourceType();
-                String fieldName = annotation.fieldName().isEmpty() ? 
-                    field.getName() : annotation.fieldName();
-                
+                String resourceType = annotation.resourceType().isEmpty() ?
+                        defaultResourceType : annotation.resourceType();
+                String fieldName = annotation.fieldName().isEmpty() ?
+                        field.getName() : annotation.fieldName();
+
                 // Check if user can modify this field
                 if (authorizationService.canModifyField(resourceType, fieldName)) {
                     // User can modify - include the field
@@ -323,7 +322,7 @@ public class AuthorizationAspect {
                 }
             }
         }
-        
+
         return filteredObj;
     }
 
@@ -338,23 +337,23 @@ public class AuthorizationAspect {
 
         try {
             Field[] fields = obj.getClass().getDeclaredFields();
-            
+
             for (Field field : fields) {
                 field.setAccessible(true);
                 Object fieldValue = field.get(obj);
-                
+
                 // Check if this field has annotation and was set in the filtered object
                 FieldAccessControl annotation = field.getAnnotation(FieldAccessControl.class);
                 if (annotation != null && fieldValue != null) {
                     return true; // Found at least one allowed field with value
                 }
-                
+
                 // Also check for non-annotated fields that might have been included
                 if (annotation == null && fieldValue != null) {
                     // Non-annotated field with value - consider this as having allowed fields
                     return true;
                 }
-                
+
                 // Also check nested objects recursively
                 if (fieldValue != null && hasFieldAccessControlAnnotations(fieldValue)) {
                     if (hasAnyAllowedFields(fieldValue)) {
@@ -362,9 +361,9 @@ public class AuthorizationAspect {
                     }
                 }
             }
-            
+
             return false; // No allowed fields found
-            
+
         } catch (Exception e) {
             logger.warn("Error checking allowed fields for object: {}", obj.getClass().getSimpleName(), e);
             return true; // Default to true if we can't check (fail-safe)
