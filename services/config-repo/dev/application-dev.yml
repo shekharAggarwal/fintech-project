@@ -90,3 +90,7 @@ tls:
     key-store-password: Shekhar@123
     trust-store: file:///C:/spring-boot/fintech-project/certs/fintech-truststore.jks
     trust-store-password: Shekhar@123
+
+security:
+  session:
+    expiry: 600000  # 10 minutes

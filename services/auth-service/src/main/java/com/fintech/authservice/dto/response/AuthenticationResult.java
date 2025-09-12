@@ -11,8 +11,4 @@ public record AuthenticationResult(boolean success, String message, String code,
     public static AuthenticationResult failed(String message, String code) {
         return new AuthenticationResult(false, message, code, null, null);
     }
-
-    public static AuthenticationResult passwordChangeRequired(AuthCore authCore, String message) {
-        return new AuthenticationResult(false, message, "PASSWORD_CHANGE_REQUIRED", authCore, null);
-    }
 }

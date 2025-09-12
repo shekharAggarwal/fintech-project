@@ -27,44 +27,44 @@ public class AuthzIntrospectResponse {
         return allowed;
     }
 
-    public void setAllowed(boolean allowed) {
-        this.allowed = allowed;
-    }
-
     public String getUserId() {
         return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 
     public String getRole() {
         return role;
     }
 
-    public void setRole(String role) {
-        this.role = role;
-    }
-
     public List<String> getPermissions() {
         return permissions;
-    }
-
-    public void setPermissions(List<String> permissions) {
-        this.permissions = permissions;
     }
 
     public Map<String, Map<String, Object>> getResourceAccess() {
         return resourceAccess;
     }
 
-    public void setResourceAccess(Map<String, Map<String, Object>> resourceAccess) {
-        this.resourceAccess = resourceAccess;
-    }
-
     public String getReason() {
         return reason;
+    }
+
+    public void setAllowed(boolean allowed) {
+        this.allowed = allowed;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public void setPermissions(List<String> permissions) {
+        this.permissions = permissions;
+    }
+
+    public void setResourceAccess(Map<String, Map<String, Object>> resourceAccess) {
+        this.resourceAccess = resourceAccess;
     }
 
     public void setReason(String reason) {

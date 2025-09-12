@@ -97,9 +97,7 @@ public class SecurityUtils {
      * Generate a cryptographically secure session ID for production use
      */
     public static String generateCryptographicallySecureSessionId() {
-        byte[] sessionId = new byte[32]; // 256 bits
-        secureRandom.nextBytes(sessionId);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(sessionId);
+        return generateSecureToken();
     }
     
     /**

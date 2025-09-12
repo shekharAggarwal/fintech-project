@@ -7,8 +7,6 @@ public class UpdateUserRequest {
     private String firstName;
     @FieldAccessControl(resourceType = "user", fieldName = "lastName")
     private String lastName;
-    @FieldAccessControl(resourceType = "user", fieldName = "email")
-    private String email;
     @FieldAccessControl(resourceType = "user", fieldName = "phoneNumber")
     private String phoneNumber;
     @FieldAccessControl(resourceType = "user", fieldName = "address")
@@ -17,10 +15,9 @@ public class UpdateUserRequest {
     public UpdateUserRequest() {
     }
 
-    public UpdateUserRequest(String firstName, String lastName, String email, String phoneNumber, String address) {
+    public UpdateUserRequest(String firstName, String lastName, String phoneNumber, String address) {
         this.firstName = firstName;
         this.lastName = lastName;
-        this.email = email;
         this.phoneNumber = phoneNumber;
         this.address = address;
     }
@@ -31,10 +28,6 @@ public class UpdateUserRequest {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 
     public void setPhoneNumber(String phoneNumber) {
@@ -53,9 +46,6 @@ public class UpdateUserRequest {
         return lastName;
     }
 
-    public String getEmail() {
-        return email;
-    }
 
     public String getPhoneNumber() {
         return phoneNumber;

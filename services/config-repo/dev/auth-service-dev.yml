@@ -63,29 +63,7 @@ jwt:
 
 # Security Configuration
 security:
-  password:
-    min-length: 8
-    require-uppercase: true
-    require-lowercase: true
-    require-digit: true
-    require-special-char: true
   session:
+    redis-expiry: 300000  # 5 minutes
     timeout: 1800000  # 30 minutes
     max-sessions: 1
-  rate-limiting:
-    enabled: true
-    max-requests: 100
-    window-size: 60
-  audit:
-    enabled: true
-    retention-days: 90
-
-# Business Logic Configuration
-business:
-  initial-deposit:
-    minimum: 100.00
-    maximum: 50000.00
-  account:
-    number:
-      length: 12
-      prefix: "ACC"

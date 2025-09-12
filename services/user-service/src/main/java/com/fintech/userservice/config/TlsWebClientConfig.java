@@ -25,6 +25,7 @@ public class TlsWebClientConfig {
 
     @Value("${service.authz.base-url}")
     private String authorizationServiceUrl;
+
     @Value("${tls.client.key-store}")
     private Resource keyStore;
 

@@ -3,20 +3,13 @@
 
 INSERT INTO api_methods (path, http_method, description) VALUES
 -- User Service APIs
-('/api/user/profile', 'GET', 'Get user profile information'),
-('/api/user/profile', 'PUT', 'Update user profile information'),
 ('/api/user/profile/me', 'GET', 'Get current user own profile'),
 ('/api/user/profile/me', 'PUT', 'Update current user own profile'),
-('/api/user/profile/*/filtered', 'GET', 'Get filtered profile data as map'),
+('/api/user/secured/profile/*', 'GET', 'Get filtered profile data as map'),
+('/api/user/secured/profile/*', 'PUT', 'Update filtered profile data as map'),
 ('/api/user/search', 'GET', 'Search users by name, phone, email, or account number'),
 ('/api/user/role/*', 'PUT', 'Update user role (admin only)'),
 ('/api/user/health', 'GET', 'Health check endpoint'),
-('/api/user/register', 'POST', 'Register new user'),
-('/api/user/all', 'GET', 'Get all users (admin only)'),
-('/api/user/*/status', 'PUT', 'Update user status'),
-('/api/user/*/roles', 'GET', 'Get user roles'),
-('/api/user/*/roles', 'POST', 'Assign role to user'),
-('/api/user/*/roles/*', 'DELETE', 'Remove role from user'),
 
 -- Payment Service APIs
 ('/api/payments/transfer', 'POST', 'Transfer money between accounts'),
@@ -33,22 +26,6 @@ INSERT INTO api_methods (path, http_method, description) VALUES
 ('/api/transactions/report', 'GET', 'Generate transaction report'),
 ('/api/transactions/search', 'POST', 'Search transactions'),
 ('/api/transactions/*/dispute', 'POST', 'Raise transaction dispute'),
-
--- Authorization Service APIs
-('/api/auth/login', 'POST', 'User login'),
-('/api/auth/logout', 'POST', 'User logout'),
-('/api/auth/refresh', 'POST', 'Refresh JWT token'),
-('/api/auth/permissions', 'GET', 'Get user permissions'),
-('/api/auth/roles', 'GET', 'Get all roles'),
-('/api/auth/roles', 'POST', 'Create new role'),
-('/api/auth/roles/*/permissions', 'GET', 'Get role permissions'),
-('/api/auth/roles/*/permissions', 'POST', 'Update role permissions'),
-
--- Notification Service APIs
-('/api/notifications/send', 'POST', 'Send notification'),
-('/api/notifications/history', 'GET', 'Get notification history'),
-('/api/notifications/preferences', 'GET', 'Get notification preferences'),
-('/api/notifications/preferences', 'PUT', 'Update notification preferences'),
 
 -- Reporting Service APIs
 ('/api/reports/account-summary', 'GET', 'Get account summary report'),
