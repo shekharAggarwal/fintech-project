@@ -20,67 +20,40 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-aop'
-    implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    implementation 'org.springframework.kafka:spring-kafka'
+    implementation libs.bundles.spring.boot.web
+    implementation libs.bundles.spring.boot.data
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.spring.boot.starter.validation
+    implementation libs.spring.boot.starter.aop
+    implementation libs.bundles.spring.cloud
+    implementation libs.spring.kafka
     
     // JWT
-    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+    implementation libs.bundles.jwt
     
     // Database
-    implementation 'org.postgresql:postgresql'
-    implementation 'org.flywaydb:flyway-core:10.21.0'
-    implementation 'org.flywaydb:flyway-database-postgresql:10.21.0'
+    implementation libs.bundles.flyway
     
     // Circuit Breaker and Resilience
-    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-timelimiter:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-spring6:2.2.0'
+    implementation libs.bundles.resilience4j
+    implementation libs.resilience4j.spring6
     
     // Tracing dependencies - Jaeger via OTLP
-    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
-    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
-    implementation 'io.opentelemetry:opentelemetry-api'
-    implementation 'io.opentelemetry:opentelemetry-sdk'
+    implementation libs.bundles.tracing
+    implementation libs.opentelemetry.api
+    implementation libs.opentelemetry.sdk
     
     // Metrics - Prometheus
-    implementation 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'io.micrometer:micrometer-core'
+    implementation libs.micrometer.core
     
     // Logging - Splunk integration
-    implementation 'ch.qos.logback:logback-classic'
-    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
-    implementation 'com.splunk.logging:splunk-library-javalogging:1.11.8'
+    implementation libs.bundles.logging
     
-    // Circuit Breaker
-    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
-    
-    // Logging dependencies
-    implementation 'ch.qos.logback:logback-classic'
-    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
-    
-    // Database
-    implementation 'org.postgresql:postgresql'
-    
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testImplementation 'io.projectreactor:reactor-test'
-    testImplementation 'com.h2database:h2'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation libs.bundles.test
+    testImplementation libs.spring.kafka.test
+    testImplementation libs.reactor.test
+    testImplementation libs.h2.database
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 dependencyManagement {

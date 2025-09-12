@@ -85,3 +85,6 @@ resilience4j:
     instances:
       user-service:
         timeout-duration: 5s
+service:
+  authz:
+    base-url: https://localhost:8085

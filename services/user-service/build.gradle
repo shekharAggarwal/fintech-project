@@ -20,49 +20,42 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-//    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation libs.bundles.spring.boot.web
+    implementation libs.bundles.spring.boot.data
+    implementation libs.bundles.spring.cloud
+    implementation libs.spring.boot.starter.validation
+//    implementation libs.spring.boot.starter.security
     
     // Tracing dependencies - Use Spring Boot 3 compatible versions
-    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
-    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
-    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation libs.bundles.tracing
     
     // Circuit Breaker
-    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
+    implementation libs.resilience4j.springBoot3
 
     // Rate Limiting
-    implementation 'com.github.vladimir-bukhtoyarov:bucket4j-core:7.6.0'
-    implementation 'com.github.vladimir-bukhtoyarov:bucket4j-redis:7.6.0'
+    implementation libs.bundles.bucket4j
 
     // Logging dependencies
-    implementation 'ch.qos.logback:logback-classic'
-    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
-    implementation 'com.splunk.logging:splunk-library-javalogging:1.11.8'
-
-    // Database
-    implementation 'org.postgresql:postgresql'
+    implementation libs.bundles.logging
     
     // AOP for authorization aspects
-    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation libs.spring.boot.starter.aop
     
     // WebClient for authorization service calls
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation libs.spring.boot.starter.webflux
+    
+    // Apache HttpClient for mTLS support
+//    implementation libs.httpclient5
 
     // Kafka for internal service communications
-    implementation 'org.springframework.kafka:spring-kafka'
+    implementation libs.spring.kafka
     
     // RabbitMQ for email notifications
-    implementation 'org.springframework.boot:spring-boot-starter-amqp'
+    implementation libs.spring.boot.starter.amqp
     
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation libs.bundles.test
+    testImplementation libs.spring.kafka.test
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 dependencyManagement {

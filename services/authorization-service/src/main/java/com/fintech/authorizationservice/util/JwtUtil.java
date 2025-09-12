@@ -1,13 +1,13 @@
 package com.fintech.authorizationservice.util;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ResourceUtils;
 
 import java.io.InputStream;
-import java.security.KeyStore;
 import java.security.PublicKey;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -31,32 +31,32 @@ public class JwtUtil {
             throw new RuntimeException("Failed to load public key for JWT validation", e);
         }
     }
-    
+
 
     public String getSessionIdFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
         return claims != null ? claims.get("sessionId", String.class) : null;
     }
-    
+
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                    .setSigningKey(publicKey)
+            Jwts.parser()
+                    .verifyWith(publicKey)
                     .build()
-                    .parseClaimsJws(token);
+                    .parseSignedClaims(token);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
-    
+
     private Claims getClaimsFromToken(String token) {
         try {
-            return Jwts.parserBuilder()
-                    .setSigningKey(publicKey)
+            return Jwts.parser()
+                    .verifyWith(publicKey)
                     .build()
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .parseSignedClaims(token)
+                    .getPayload();
         } catch (Exception e) {
             return null;
         }

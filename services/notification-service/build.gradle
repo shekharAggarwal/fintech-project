@@ -19,44 +19,32 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter'
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-mail'
-    implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-amqp'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    
-    // Database
-    implementation 'org.postgresql:postgresql'
+    implementation libs.spring.boot.starter
+    implementation libs.spring.boot.starter.web
+    implementation libs.spring.boot.starter.mail
+    implementation libs.bundles.spring.cloud
+    implementation libs.spring.boot.starter.actuator
+    implementation libs.spring.boot.starter.amqp
+    implementation libs.bundles.spring.boot.data
+    implementation libs.spring.boot.starter.validation
     
     // Circuit Breaker and Resilience
-    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-retry:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-timelimiter:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-micrometer:2.2.0'
-    implementation 'io.github.resilience4j:resilience4j-spring6:2.2.0'
+    implementation libs.bundles.resilience4j
+    implementation libs.resilience4j.spring6
     
     // Tracing dependencies - Jaeger via OTLP  
-    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
-    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
-    implementation 'io.opentelemetry:opentelemetry-api'
-    implementation 'io.opentelemetry:opentelemetry-sdk'
+    implementation libs.bundles.tracing
+    implementation libs.opentelemetry.api
+    implementation libs.opentelemetry.sdk
     
     // Metrics - Prometheus
-    implementation 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'io.micrometer:micrometer-core'
+    implementation libs.micrometer.core
     
     // Logging - Splunk integration
-    implementation 'ch.qos.logback:logback-classic'
-    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
-    implementation 'com.splunk.logging:splunk-library-javalogging:1.11.8'
+    implementation libs.bundles.logging
     
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation libs.bundles.test
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 dependencyManagement {

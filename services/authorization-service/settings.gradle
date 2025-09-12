@@ -1,1 +1,9 @@
 rootProject.name = 'authorization-service'
+dependencyResolutionManagement {
+    versionCatalogs {
+        create("libs") {
+            // Pointing Gradle to a custom file location
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
+}

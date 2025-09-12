@@ -58,6 +58,96 @@ public class UserController {
     }
 
     /**
+     * Update current user's own profile
+     */
+    @PutMapping("/profile/me")
+    @RequireAuthorization(message = "Access denied: Authentication required", resourceType = "user")
+    public ResponseEntity<?> updateMyProfile(@RequestBody UpdateUserRequest updateRequest) {
+        String currentUserId = authorizationService.getCurrentUserId();
+        logger.info("User updating own profile: {}", currentUserId);
+
+        if (currentUserId == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "No user context", "reason", "Unable to determine current user"));
+        }
+
+        try {
+            UserProfile updatedProfile = userService.updateUserProfileFromRequest(currentUserId, updateRequest);
+            
+            logger.info("User profile updated successfully for userId: {}", currentUserId);
+            
+            return ResponseEntity.ok(Map.of(
+                    "message", "Profile updated successfully",
+                    "userId", currentUserId,
+                    "updatedAt", updatedProfile.getUpdatedAt()
+            ));
+
+        } catch (RuntimeException e) {
+            logger.error("Error updating profile for userId: {}", currentUserId, e);
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Profile update failed", "reason", e.getMessage()));
+        }
+    }
+
+    /**
+     * Get other user's profile (with authorization checks)
+     */
+    @GetMapping("/profile/{userId}")
+    @RequireAuthorization(
+            message = "Access denied: Insufficient privileges to view this profile",
+            resourceType = "user"
+    )
+    @FilterResponse(resourceType = "user")
+    public ResponseEntity<?> getUserProfile(@PathVariable String userId) {
+        logger.info("Getting profile for userId: {} by user: {}", 
+                userId, authorizationService.getCurrentUserId());
+
+        Optional<UserProfile> userProfile = userService.getUserProfile(userId);
+
+        if (userProfile.isEmpty()) {
+            return ResponseEntity.status(404)
+                    .body(Map.of("error", "Profile not found", "reason", "User profile does not exist"));
+        }
+
+        // Filtering will be applied automatically by @FilterResponse annotation
+        return ResponseEntity.ok(userProfile.get());
+    }
+
+    /**
+     * Update other user's profile (with authorization checks)
+     */
+    @PutMapping("/profile/{userId}")
+    @RequireAuthorization(
+            message = "Access denied: Insufficient privileges to update this profile",
+            resourceType = "user"
+    )
+    public ResponseEntity<?> updateUserProfile(@PathVariable String userId, 
+                                             @RequestBody UpdateUserRequest updateRequest) {
+        logger.info("Updating profile for userId: {} by user: {}", 
+                userId, authorizationService.getCurrentUserId());
+
+        try {
+            UserProfile updatedProfile = userService.updateUserProfileFromRequest(userId, updateRequest);
+            
+            logger.info("User profile updated successfully for userId: {} by user: {}", 
+                       userId, authorizationService.getCurrentUserId());
+            
+            return ResponseEntity.ok(Map.of(
+                    "message", "Profile updated successfully",
+                    "userId", userId,
+                    "updatedAt", updatedProfile.getUpdatedAt(),
+                    "updatedBy", authorizationService.getCurrentUserId()
+            ));
+
+        } catch (RuntimeException e) {
+            logger.error("Error updating profile for userId: {} by user: {}", 
+                        userId, authorizationService.getCurrentUserId(), e);
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Profile update failed", "reason", e.getMessage()));
+        }
+    }
+
+    /**
      * Get filtered profile data as a map (useful for dynamic field access)
      */
     @GetMapping("/profile/{userId}/filtered")
@@ -132,7 +222,7 @@ public class UserController {
         }
 
         try {
-            UserProfile updatedProfile = userService.changeUserRole(userId, newRole);
+            UserProfile updatedProfile = userService.changeUserRole(userId, newRole, authorizationService.getCurrentUserId());
 
             logger.info("User role updated successfully for userId: {} to role: {}", userId, newRole);
 

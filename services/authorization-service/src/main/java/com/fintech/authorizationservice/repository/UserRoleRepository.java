@@ -14,6 +14,12 @@ import java.util.Optional;
 public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
 
     /**
+     * Find UserRole entity by user ID
+     */
+    @Query("SELECT ur FROM UserRole ur WHERE ur.userId = :userId")
+    Optional<UserRole> findByUserId(@Param("userId") String userId);
+
+    /**
      * Find a specific user-role combination
      */
     @Query("SELECT ur FROM UserRole ur WHERE ur.userId = :userId AND ur.role = :role")

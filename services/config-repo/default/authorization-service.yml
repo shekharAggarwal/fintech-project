@@ -1,5 +1,13 @@
 server:
   port: ${AUTHORIZATION_SERVICE_PORT}
+  ssl:
+    enabled: true
+    key-store: ${SSL_KEYSTORE_PATH}
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
+    key-store-type: ${SSL_KEYSTORE_TYPE}
+    key-alias: ${SSL_KEY_ALIAS}
+    # Enable client certificate authentication for internal APIs
+    client-auth: need
 
 spring:
   application:
