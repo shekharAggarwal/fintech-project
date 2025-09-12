@@ -1,7 +1,7 @@
 package com.fintech.authorizationservice.entity;
 
 import jakarta.persistence.*;
-import org.springframework.data.annotation.CreatedDate;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.util.Date;
 
@@ -18,7 +18,7 @@ public class UserRole {
     @Column(name = "role_id", nullable = false)
     private Long role;
 
-    @CreatedDate
+    @CreationTimestamp
     @Column(name = "created_at")
     private Date createdAt;
 

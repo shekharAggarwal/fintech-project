@@ -27,9 +27,11 @@ public class KafkaConfig {
     @Value("${spring.kafka.consumer.group-id}")
     private String groupId;
 
-    @Value("${spring.kafka.consumer.client-id:authorization-service-consumer}")
+    @Value("${spring.kafka.consumer.client-id}")
+
     private String clientId;
     final private Logger logger = LoggerFactory.getLogger(KafkaConfig.class);
+
     @Bean
     public ConsumerFactory<String, String> consumerFactory() {
         Map<String, Object> configProps = new HashMap<>();
@@ -38,7 +40,7 @@ public class KafkaConfig {
         configProps.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
         configProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        
+
         // Consumer optimization settings
         configProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -49,27 +51,27 @@ public class KafkaConfig {
         ///log config prop
         logger.debug("authz kafka logger {}", configProps);
         // JSON deserializer configuration
-        configProps.put(JsonDeserializer.TRUSTED_PACKAGES, 
-            "com.fintech.authorizationservice.dto,com.fintech.authservice.dto.response,com.fintech.userservice.dto");
-        
+        configProps.put(JsonDeserializer.TRUSTED_PACKAGES,
+                "com.fintech.authorizationservice.dto.message");
+
         return new DefaultKafkaConsumerFactory<>(configProps);
     }
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, String> factory =
-            new ConcurrentKafkaListenerContainerFactory<>();
+                new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
-        
+
         // Enable manual acknowledgment for better error handling
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-        
+
         // Set concurrency level (number of consumer threads)
         factory.setConcurrency(2);
-        
+
         // Error handling
         factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler());
-        
+
         return factory;
     }
 }

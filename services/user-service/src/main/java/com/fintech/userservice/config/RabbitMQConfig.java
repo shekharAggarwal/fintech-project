@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    // Notification service messaging constants (RabbitMQ for email notifications)
     @Value("${rabbitmq.exchange.notification}")
     private String NOTIFICATION_EXCHANGE;
 

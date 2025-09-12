@@ -1,7 +1,7 @@
 package com.fintech.authorizationservice.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fintech.authorizationservice.dto.request.UserRoleRegistrationMessage;
+import com.fintech.authorizationservice.dto.message.UserRoleRegistrationMessage;
 import com.fintech.authorizationservice.service.AuthzService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

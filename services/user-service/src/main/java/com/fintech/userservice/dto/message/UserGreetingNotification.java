@@ -2,7 +2,8 @@ package com.fintech.userservice.dto.message;
 
 public class UserGreetingNotification {
     private String email;
-    private String fullName;
+    private String firstName;
+    private String lastName;
     private String userId;
     private String accountNumber;
     private long timestamp;
@@ -12,16 +13,16 @@ public class UserGreetingNotification {
         this.notificationType = "USER_GREETING";
     }
 
-    public UserGreetingNotification(String email, String fullName, String userId, String accountNumber, long timestamp) {
+    public UserGreetingNotification(String email, String firstName, String lastName, String userId, String accountNumber, long timestamp) {
         this.email = email;
-        this.fullName = fullName;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.userId = userId;
         this.accountNumber = accountNumber;
         this.timestamp = timestamp;
         this.notificationType = "USER_GREETING";
     }
 
-    // Getters and setters
     public String getEmail() {
         return email;
     }
@@ -30,12 +31,20 @@ public class UserGreetingNotification {
         this.email = email;
     }
 
-    public String getFullName() {
-        return fullName;
+    public String getFirstName() {
+        return firstName;
     }
 
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getUserId() {
@@ -68,17 +77,5 @@ public class UserGreetingNotification {
 
     public void setNotificationType(String notificationType) {
         this.notificationType = notificationType;
-    }
-
-    @Override
-    public String toString() {
-        return "UserGreetingNotification{" +
-                "email='" + email + '\'' +
-                ", fullName='" + fullName + '\'' +
-                ", userId='" + userId + '\'' +
-                ", accountNumber='" + accountNumber + '\'' +
-                ", timestamp=" + timestamp +
-                ", notificationType='" + notificationType + '\'' +
-                '}';
     }
 }

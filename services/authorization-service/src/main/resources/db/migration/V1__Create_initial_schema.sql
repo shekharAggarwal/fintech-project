@@ -1,12 +1,8 @@
--- Initial schema creation for authorization service (PostgreSQL)
--- Replaces prior V1 to ensure composite uniqueness on api_methods
--- and consistent naming/types.
-
 -- Create roles table
 CREATE TABLE IF NOT EXISTS roles (
-                                     role_id BIGSERIAL PRIMARY KEY,
-                                     name TEXT UNIQUE NOT NULL,
-                                     description TEXT
+                                             role_id BIGSERIAL PRIMARY KEY,
+                                             name TEXT UNIQUE NOT NULL,
+                                             description TEXT
 );
 
 -- Create api_methods table
@@ -20,13 +16,11 @@ CREATE TABLE IF NOT EXISTS api_methods (
 
 -- Create role_permissions table
 CREATE TABLE IF NOT EXISTS role_permissions (
-                                  id BIGSERIAL PRIMARY KEY,
-                                  role_id BIGINT NOT NULL REFERENCES roles(role_id),
-                                  method_id BIGINT NOT NULL REFERENCES api_methods(api_method_id),
-                                  allowed BOOLEAN NOT NULL DEFAULT true,
-                                  limit_type VARCHAR(50),
-                                  limit_value BIGINT,
-                                  CONSTRAINT uq_role_method UNIQUE (role_id, method_id)
+                                          id BIGSERIAL PRIMARY KEY,
+                                          role_id BIGINT NOT NULL REFERENCES roles(role_id),
+                                          method_id BIGINT NOT NULL REFERENCES api_methods(api_method_id),
+                                          allowed BOOLEAN NOT NULL DEFAULT true,
+                                          CONSTRAINT uq_role_method UNIQUE (role_id, method_id)
 );
 
 -- Create user_roles table
@@ -34,18 +28,18 @@ CREATE TABLE IF NOT EXISTS user_roles (
                                           id BIGSERIAL PRIMARY KEY,
                                           user_id TEXT NOT NULL,
                                           role_id BIGINT NOT NULL REFERENCES roles(role_id) ON DELETE CASCADE,
-    created_at BIGINT,
-    CONSTRAINT uq_user_role UNIQUE (user_id, role_id)
+                                          created_at BIGINT,
+                                          CONSTRAINT uq_user_role UNIQUE (user_id, role_id)
     );
 
 -- Create field_access table
 CREATE TABLE IF NOT EXISTS field_access (
                                             id BIGSERIAL PRIMARY KEY,
                                             role_id BIGINT NOT NULL REFERENCES roles(role_id) ON DELETE CASCADE,
-    resource_type TEXT NOT NULL,
-    allowed_fields JSONB,
-    config JSONB,
-    CONSTRAINT uq_field_access UNIQUE (role_id, resource_type)
+                                            resource_type TEXT NOT NULL,
+                                            allowed_fields JSONB,
+                                            config JSONB,
+                                            CONSTRAINT uq_field_access UNIQUE (role_id, resource_type)
     );
 
 -- Create sessions table

@@ -1,4 +1,4 @@
-package com.fintech.authorizationservice.dto.request;
+package com.fintech.authorizationservice.dto.message;
 
 public class UserRoleRegistrationMessage {
     private String userId;

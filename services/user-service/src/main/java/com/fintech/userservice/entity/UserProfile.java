@@ -2,6 +2,10 @@ package com.fintech.userservice.entity;
 
 import com.fintech.userservice.security.annotation.FieldAccessControl;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
 
@@ -18,8 +22,12 @@ public class UserProfile {
     private String userId;
 
     @Column(nullable = false, length = 100)
-    @FieldAccessControl(resourceType = "user", fieldName = "fullName")
-    private String fullName;
+    @FieldAccessControl(resourceType = "user", fieldName = "firstName")
+    private String firstName;
+
+    @Column(nullable = false, length = 100)
+    @FieldAccessControl(resourceType = "user", fieldName = "lastName")
+    private String lastName;
 
     @Column(nullable = false, length = 255)
     @FieldAccessControl(resourceType = "user", fieldName = "email", sensitive = true)
@@ -51,10 +59,12 @@ public class UserProfile {
 
     @Column(nullable = false)
     @FieldAccessControl(resourceType = "user", fieldName = "createdAt")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 
     @Column
     @FieldAccessControl(resourceType = "user", fieldName = "updatedAt")
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
     @Column
@@ -64,10 +74,12 @@ public class UserProfile {
     public UserProfile() {
     }
 
-    public UserProfile(String userId, String fullName, String email, String phoneNumber, String address,
-                       String dateOfBirth, String occupation, Double initialDeposit, String role) {
+    public UserProfile(String userId, String firstName, String lastName, String email, String phoneNumber,
+                       String address, String dateOfBirth, String occupation, Double initialDeposit,
+                       String role, String accountNumber) {
         this.userId = userId;
-        this.fullName = fullName;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.address = address;
@@ -75,115 +87,98 @@ public class UserProfile {
         this.occupation = occupation;
         this.initialDeposit = initialDeposit;
         this.role = role;
+        this.accountNumber = accountNumber;
     }
 
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    // Getters and setters
     public Long getId() {
         return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public String getFirstName() {
+        return firstName;
     }
 
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
+    public String getLastName() {
+        return lastName;
     }
 
     public String getEmail() {
         return email;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
     public String getPhoneNumber() {
         return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
     }
 
     public String getAddress() {
         return address;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
     public String getDateOfBirth() {
         return dateOfBirth;
-    }
-
-    public void setDateOfBirth(String dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
     }
 
     public String getOccupation() {
         return occupation;
     }
 
-    public void setOccupation(String occupation) {
-        this.occupation = occupation;
-    }
-
     public Double getInitialDeposit() {
         return initialDeposit;
-    }
-
-    public void setInitialDeposit(Double initialDeposit) {
-        this.initialDeposit = initialDeposit;
     }
 
     public String getRole() {
         return role;
     }
 
-    public void setRole(String role) {
-        this.role = role;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
     public String getAccountNumber() {
         return accountNumber;
     }
 
-    public void setAccountNumber(String accountNumber) {
-        this.accountNumber = accountNumber;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public void setDateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public void setOccupation(String occupation) {
+        this.occupation = occupation;
+    }
+
+    public void setInitialDeposit(Double initialDeposit) {
+        this.initialDeposit = initialDeposit;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

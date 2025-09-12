@@ -1,16 +1,17 @@
 package com.fintech.authservice.service;
 
+import com.fintech.authservice.dto.message.LoginFailureNotification;
+import com.fintech.authservice.dto.message.SessionCreationMessage;
+import com.fintech.authservice.dto.message.UserCreationMessage;
 import com.fintech.authservice.dto.request.RegistrationRequest;
 import com.fintech.authservice.dto.response.AuthenticationResult;
 import com.fintech.authservice.dto.response.RegistrationResult;
-import com.fintech.authservice.dto.response.SessionCreationMessage;
-import com.fintech.authservice.dto.response.UserCreationMessage;
-import com.fintech.authservice.dto.response.LoginFailureNotification;
 import com.fintech.authservice.entity.AuthCore;
 import com.fintech.authservice.entity.AuthCredentials;
+import com.fintech.authservice.messaging.EmailNotificationPublisher;
 import com.fintech.authservice.messaging.SessionCreationKafkaPublisher;
 import com.fintech.authservice.messaging.UserCreationKafkaPublisher;
-import com.fintech.authservice.messaging.EmailNotificationPublisher;
+import com.fintech.authservice.model.AuthCredDB;
 import com.fintech.authservice.repository.AuthCoreRepository;
 import com.fintech.authservice.repository.AuthCredentialsRepository;
 import com.fintech.authservice.util.SecurityUtils;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,16 +35,21 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     final private AuthCoreRepository authCoreRepository;
+
     final private AuthCredentialsRepository credentialsRepository;
+
     final private UserCreationKafkaPublisher userCreationKafkaPublisher;
+
     final private SessionService sessionService;
+
     final private SessionCreationKafkaPublisher sessionCreationKafkaPublisher;
+
     final private EmailNotificationPublisher emailNotificationPublisher;
 
-    public AuthService(AuthCoreRepository authCoreRepository, AuthCredentialsRepository credentialsRepository, 
-                      UserCreationKafkaPublisher userCreationKafkaPublisher, SessionService sessionService,
-                      SessionCreationKafkaPublisher sessionCreationKafkaPublisher,
-                      EmailNotificationPublisher emailNotificationPublisher) {
+    public AuthService(AuthCoreRepository authCoreRepository, AuthCredentialsRepository credentialsRepository,
+                       UserCreationKafkaPublisher userCreationKafkaPublisher, SessionService sessionService,
+                       SessionCreationKafkaPublisher sessionCreationKafkaPublisher,
+                       EmailNotificationPublisher emailNotificationPublisher) {
         this.authCoreRepository = authCoreRepository;
         this.credentialsRepository = credentialsRepository;
         this.userCreationKafkaPublisher = userCreationKafkaPublisher;
@@ -74,27 +81,27 @@ public class AuthService {
             String userId = authCore.getUserId();
 
             // Step 3: Verify credentials
-            Optional<AuthCredentials> credentialsOpt = credentialsRepository.findByAuthCoreId(authCore.getId());
+            Optional<AuthCredDB> credentialsOpt = credentialsRepository.findByAuthCoreId(authCore.getId());
             if (credentialsOpt.isEmpty()) {
                 return AuthenticationResult.failed("Invalid credentials", "CREDENTIALS_NOT_FOUND");
             }
 
-            AuthCredentials credentials = credentialsOpt.get();
-            if (!SecurityUtils.verifyPassword(password, credentials.getPasswordHash(), credentials.getSalt())) {
+            AuthCredDB credentials = credentialsOpt.get();
+            if (!SecurityUtils.verifyPassword(password, credentials.passwordHash(), credentials.salt())) {
                 // Handle failed authentication - send email notification
                 try {
                     LoginFailureNotification notification = new LoginFailureNotification(
-                        sanitizedEmail, 
-                        ipAddress, 
-                        userAgent,
-                        System.currentTimeMillis()
+                            sanitizedEmail,
+                            ipAddress,
+                            userAgent,
+                            System.currentTimeMillis()
                     );
                     emailNotificationPublisher.publishLoginFailureEmail(notification);
                     logger.info("Published login failure email notification for email: {}", sanitizedEmail);
                 } catch (Exception e) {
                     logger.error("Failed to publish login failure email notification for email: {}", sanitizedEmail, e);
                 }
-                
+
                 return AuthenticationResult.failed("Invalid credentials", "INVALID_PASSWORD");
             }
 
@@ -103,7 +110,7 @@ public class AuthService {
 
             // Store session in Redis
             try {
-                sessionService.storeSession(sessionId, userId, ipAddress, userAgent);
+                sessionService.storeSession(sessionId, userId);
                 logger.info("Session stored in Redis for user: {} with sessionId: {}", userId, sessionId);
             } catch (Exception e) {
                 logger.error("Failed to store session in Redis for user: {}", userId, e);
@@ -112,10 +119,9 @@ public class AuthService {
 
             // Send message to authorization service for session table entry
             try {
-                long expiryTime = sessionService.getSessionExpiryTime();
                 SessionCreationMessage sessionMessage = new SessionCreationMessage(
-                        sessionId, userId, expiryTime, ipAddress, userAgent);
-                
+                        sessionId, userId, LocalDateTime.now());
+
                 sessionCreationKafkaPublisher.publishSessionCreationMessage(sessionMessage);
                 logger.info("Published session creation message to Kafka for user: {} with sessionId: {}", userId, sessionId);
             } catch (Exception e) {
@@ -135,16 +141,16 @@ public class AuthService {
 
     public RegistrationResult registerUser(RegistrationRequest request) {
         try {
-            String sanitizedEmail = SecurityUtils.sanitizeInput(request.getEmail());
+            String sanitizedEmail = SecurityUtils.sanitizeInput(request.email());
             // Check if email already exists
             if (authCoreRepository.existsByEmail(sanitizedEmail)) {
-                logger.warn("Registration failed: Email already exists - {}", request.getEmail());
+                logger.warn("Registration failed: Email already exists - {}", request.email());
                 return RegistrationResult.failed("Email already registered", "EMAIL_EXISTS");
             }
 
             // Validate initial deposit
-            if (request.getInitialDeposit() != null && request.getInitialDeposit() < 0) {
-                logger.warn("Registration failed: Invalid initial deposit - {}", request.getInitialDeposit());
+            if (request.initialDeposit() != null && request.initialDeposit() < 0) {
+                logger.warn("Registration failed: Invalid initial deposit - {}", request.initialDeposit());
                 return RegistrationResult.failed("Initial deposit cannot be negative", "INVALID_DEPOSIT");
             }
 
@@ -157,21 +163,22 @@ public class AuthService {
 
             // Create credentials
             final String passwordSalt = generateSalt();
-            String encodedPassword = hashPassword(request.getPassword(), passwordSalt);
-            AuthCredentials credentials = new AuthCredentials(authCore, encodedPassword, passwordSalt);
+            String encodedPassword = hashPassword(request.password(), passwordSalt);
+            AuthCredentials credentials = new AuthCredentials(authCore.getId(), encodedPassword, passwordSalt);
             credentialsRepository.save(credentials);
 
 
             // Publish user creation message to RabbitMQ for user service
             UserCreationMessage userCreationMessage = new UserCreationMessage(
                     userId,
-                    request.getFullName(),
+                    request.firstName(),
+                    request.lastName(),
                     sanitizedEmail,
-                    request.getPhoneNumber(),
-                    request.getAddress(),
-                    request.getDateOfBirth(),
-                    request.getOccupation(),
-                    request.getInitialDeposit()
+                    request.phoneNumber(),
+                    request.address(),
+                    request.dateOfBirth(),
+                    request.occupation(),
+                    request.initialDeposit()
             );
 
             try {
@@ -187,7 +194,7 @@ public class AuthService {
             return RegistrationResult.success(authCore, "User registered successfully. Profile will be created shortly.");
 
         } catch (Exception e) {
-            logger.error("Registration failed for email: {}", request.getEmail(), e);
+            logger.error("Registration failed for email: {}", request.email(), e);
             return RegistrationResult.failed("Registration failed", "SYSTEM_ERROR");
         }
     }

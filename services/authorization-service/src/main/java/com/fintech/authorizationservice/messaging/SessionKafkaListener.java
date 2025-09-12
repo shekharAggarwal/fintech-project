@@ -1,7 +1,7 @@
 package com.fintech.authorizationservice.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fintech.authorizationservice.dto.request.SessionCreationMessage;
+import com.fintech.authorizationservice.dto.message.SessionCreationMessage;
 import com.fintech.authorizationservice.service.SessionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,17 +37,16 @@ public class SessionKafkaListener {
             SessionCreationMessage sessionCreationMessage = objectMapper.readValue(jsonMessage, SessionCreationMessage.class);
 
             logger.info("Received session creation message from topic: {}, partition: {}, offset: {} for sessionId: {}",
-                    topic, partition, offset, sessionCreationMessage.getSessionId());
+                    topic, partition, offset, sessionCreationMessage.sessionId());
 
             // Create session using the service
             sessionService.createSession(
-                    sessionCreationMessage.getSessionId(),
-                    sessionCreationMessage.getUserId(),
-                    sessionCreationMessage.getExpiryTime()
+                    sessionCreationMessage.sessionId(),
+                    sessionCreationMessage.userId()
             );
 
             logger.info("Session created successfully in database: sessionId={}, userId={}",
-                    sessionCreationMessage.getSessionId(), sessionCreationMessage.getUserId());
+                    sessionCreationMessage.sessionId(), sessionCreationMessage.userId());
 
             // Manually acknowledge the message
             acknowledgment.acknowledge();

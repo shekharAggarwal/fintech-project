@@ -8,6 +8,7 @@ import com.fintech.authservice.dto.response.RegistrationResponse;
 import com.fintech.authservice.dto.response.RegistrationResult;
 import com.fintech.authservice.service.AuthService;
 import com.fintech.authservice.util.JwtUtil;
+import com.fintech.authservice.util.SecurityUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -15,9 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import static com.fintech.authservice.util.SecurityUtils.getClientIpAddress;
-import static com.fintech.authservice.util.SecurityUtils.getUserAgent;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -34,29 +32,19 @@ public class AuthController {
 
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request,
-                                               HttpServletRequest httpRequest) {
-        String ipAddress = getClientIpAddress(httpRequest);
-        String userAgent = getUserAgent(httpRequest);
-        AuthenticationResult result = authService.authenticate(
-                request.getEmail(),
-                request.getPassword(),
-                ipAddress,
-                userAgent
-        );
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+
+        String ipAddress = SecurityUtils.getClientIpAddress(httpRequest);
+        String userAgent = SecurityUtils.getUserAgent(httpRequest);
+
+        AuthenticationResult result = authService.authenticate(request.email(), request.password(), ipAddress, userAgent);
 
         if (result.success()) {
-            String accessToken = jwtUtil.generateAccessToken(
-                    result.sessionId()
-            );
+            String accessToken = jwtUtil.generateAccessToken(result.sessionId());
 
 
             // Return response
-            return ResponseEntity.ok(LoginResponse.success(
-                    result.authCore().getUserId(),
-                    result.authCore().getEmail(),
-                    accessToken
-            ));
+            return ResponseEntity.ok(LoginResponse.success(result.authCore().getUserId(), result.authCore().getEmail(), accessToken));
         } else {
             return ResponseEntity.ok(LoginResponse.failed(result.message(), result.code()));
         }
@@ -67,10 +55,7 @@ public class AuthController {
     public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegistrationRequest request) {
         RegistrationResult result = authService.registerUser(request);
         if (result.isSuccess()) {
-            return ResponseEntity.ok(RegistrationResponse.success(
-                    result.getAuthCore().getUserId(),
-                    result.getMessage()
-            ));
+            return ResponseEntity.ok(RegistrationResponse.success(result.getAuthCore().getUserId(), result.getMessage()));
         } else {
             return ResponseEntity.ok(RegistrationResponse.failed(result.getMessage(), result.getCode()));
         }

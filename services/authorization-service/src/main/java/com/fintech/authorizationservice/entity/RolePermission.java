@@ -1,6 +1,5 @@
 package com.fintech.authorizationservice.entity;
 
-import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 
 @Entity
@@ -23,21 +22,14 @@ public class RolePermission {
 
     private boolean allowed;
 
-    @Nullable
-    private String limitType;
-
-    @Nullable
-    private Integer limitValue;
 
     public RolePermission() {
     }
 
-    public RolePermission(Long role, Long apiMethodId, boolean allowed, @Nullable String limitType, @Nullable Integer limitValue) {
+    public RolePermission(Long role, Long apiMethodId, boolean allowed) {
         this.role = role;
         this.apiMethodId = apiMethodId;
         this.allowed = allowed;
-        this.limitType = limitType;
-        this.limitValue = limitValue;
     }
 
     public Long getId() {
@@ -70,23 +62,5 @@ public class RolePermission {
 
     public void setAllowed(boolean allowed) {
         this.allowed = allowed;
-    }
-
-    @Nullable
-    public String getLimitType() {
-        return limitType;
-    }
-
-    public void setLimitType(@Nullable String limitType) {
-        this.limitType = limitType;
-    }
-
-    @Nullable
-    public Integer getLimitValue() {
-        return limitValue;
-    }
-
-    public void setLimitValue(@Nullable Integer limitValue) {
-        this.limitValue = limitValue;
     }
 }

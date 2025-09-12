@@ -1,4 +1,4 @@
-package com.fintech.authservice.dto.response;
+package com.fintech.authservice.dto.message;
 
 public class LoginFailureNotification {
     private String email;

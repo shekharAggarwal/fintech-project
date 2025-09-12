@@ -1,7 +1,7 @@
 package com.fintech.authservice.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fintech.authservice.dto.response.SessionCreationMessage;
+import com.fintech.authservice.dto.message.SessionCreationMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,21 +32,21 @@ public class SessionCreationKafkaPublisher {
             // Convert object to JSON string
             String jsonMessage = objectMapper.writeValueAsString(sessionCreationMessage);
 
-            kafkaTemplate.send(sessionCreationTopic, sessionCreationMessage.getSessionId(), jsonMessage)
-                .whenComplete((result, ex) -> {
-                    if (ex == null) {
-                        logger.info("Published session creation message to topic: {} with offset: {} for sessionId: {}",
-                            sessionCreationTopic, result.getRecordMetadata().offset(), sessionCreationMessage.getSessionId());
-                    } else {
-                        logger.error("Failed to publish session creation message to topic: {} for sessionId: {}", 
-                            sessionCreationTopic, sessionCreationMessage.getSessionId(), ex);
-                        throw new RuntimeException("Failed to publish session creation message", ex);
-                    }
-                });
+            kafkaTemplate.send(sessionCreationTopic, sessionCreationMessage.sessionId(), jsonMessage)
+                    .whenComplete((result, ex) -> {
+                        if (ex == null) {
+                            logger.info("Published session creation message to topic: {} with offset: {} for sessionId: {}",
+                                    sessionCreationTopic, result.getRecordMetadata().offset(), sessionCreationMessage.sessionId());
+                        } else {
+                            logger.error("Failed to publish session creation message to topic: {} for sessionId: {}",
+                                    sessionCreationTopic, sessionCreationMessage.sessionId(), ex);
+                            throw new RuntimeException("Failed to publish session creation message", ex);
+                        }
+                    });
 
         } catch (Exception e) {
-            logger.error("Failed to publish session creation message to topic: {} for sessionId: {}", 
-                sessionCreationTopic, sessionCreationMessage.getSessionId(), e);
+            logger.error("Failed to publish session creation message to topic: {} for sessionId: {}",
+                    sessionCreationTopic, sessionCreationMessage.sessionId(), e);
             throw new RuntimeException("Failed to publish session creation message", e);
         }
     }

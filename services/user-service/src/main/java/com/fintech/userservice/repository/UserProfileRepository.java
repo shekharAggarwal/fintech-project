@@ -19,7 +19,8 @@ public interface UserProfileRepository extends JpaRepository<UserProfile, Long> 
     boolean existsByAccountNumber(String accountNumber);
     
     @Query("SELECT u FROM UserProfile u WHERE " +
-           "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
            "u.phoneNumber LIKE CONCAT('%', :searchTerm, '%') OR " +
            "u.email LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
            "u.accountNumber LIKE CONCAT('%', :searchTerm, '%')")

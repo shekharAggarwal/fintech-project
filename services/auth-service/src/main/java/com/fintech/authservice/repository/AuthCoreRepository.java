@@ -23,7 +23,8 @@ public interface AuthCoreRepository extends JpaRepository<AuthCore, Long> {
      * Uses unique index for fast lookup
      */
     Optional<AuthCore> findByEmail(String email);
-    
+
+
     /**
      * Find user by userId - for cross-service communication
      * Uses unique index for fast lookup
@@ -64,18 +65,18 @@ public interface AuthCoreRepository extends JpaRepository<AuthCore, Long> {
      */
     @Query("SELECT ac FROM AuthCore ac WHERE ac.createdAt BETWEEN :startDate AND :endDate AND ac.deletedAt IS NULL")
     List<AuthCore> findByCreatedAtBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
-    
+
     /**
      * Count active users by status
      */
     long countByStatusAndDeletedAtIsNull(AuthStatus status);
-    
+
     /**
      * Find users needing email verification
      */
     @Query("SELECT ac FROM AuthCore ac WHERE ac.emailVerified = false AND ac.status = 'PENDING_VERIFICATION' AND ac.deletedAt IS NULL")
     List<AuthCore> findUsersNeedingEmailVerification();
-    
+
     /**
      * Soft delete user by userId
      */

@@ -1,6 +1,7 @@
 package com.fintech.authservice.repository;
 
 import com.fintech.authservice.entity.AuthCredentials;
+import com.fintech.authservice.model.AuthCredDB;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +16,9 @@ import java.util.Optional;
 @Repository
 public interface AuthCredentialsRepository extends JpaRepository<AuthCredentials, Long> {
 
-    @Query("SELECT ac FROM AuthCredentials ac WHERE ac.authCoreId.id = :authCoreId")
-    Optional<AuthCredentials> findByAuthCoreId(@Param("authCoreId") Long authCoreId);
+//    @Query("SELECT AuthCredDB FROM AuthCredentials ac WHERE ac.authCoreId = :authCoreId")
+//    Optional<AuthCredDB> findByAuthCoreId(@Param("authCoreId") Long authCoreId);
+
+    Optional<AuthCredDB> findByAuthCoreId(Long authCoreId);
 
 }

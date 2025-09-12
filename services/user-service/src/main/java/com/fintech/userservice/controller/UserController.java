@@ -92,12 +92,12 @@ public class UserController {
     /**
      * Get other user's profile (with authorization checks)
      */
-    @GetMapping("/profile/{userId}")
+    @GetMapping("/secured/profile/{userId}")
     @RequireAuthorization(
             message = "Access denied: Insufficient privileges to view this profile",
             resourceType = "user"
     )
-    @FilterResponse(resourceType = "user")
+    @FilterResponse(resourceType = "user", convertToMap = true)
     public ResponseEntity<?> getUserProfile(@PathVariable String userId) {
         logger.info("Getting profile for userId: {} by user: {}", 
                 userId, authorizationService.getCurrentUserId());
@@ -116,7 +116,7 @@ public class UserController {
     /**
      * Update other user's profile (with authorization checks)
      */
-    @PutMapping("/profile/{userId}")
+    @PutMapping("/secured/profile/{userId}")
     @RequireAuthorization(
             message = "Access denied: Insufficient privileges to update this profile",
             resourceType = "user"
@@ -145,29 +145,6 @@ public class UserController {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Profile update failed", "reason", e.getMessage()));
         }
-    }
-
-    /**
-     * Get filtered profile data as a map (useful for dynamic field access)
-     */
-    @GetMapping("/profile/{userId}/filtered")
-    @RequireAuthorization(
-            message = "Access denied: You can only view your own profile data",
-            resourceType = "user"
-    )
-    @FilterResponse(resourceType = "user", convertToMap = true)
-    public ResponseEntity<?> getFilteredProfileData(@PathVariable String userId) {
-        logger.info("Getting filtered profile data for userId: {} by user: {}",
-                userId, authorizationService.getCurrentUserId());
-
-        Optional<UserProfile> userProfile = userService.getUserProfile(userId);
-
-        if (userProfile.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        // Filtering will be applied automatically and converted to map
-        return ResponseEntity.ok(userProfile.get());
     }
 
     /**
@@ -203,7 +180,6 @@ public class UserController {
                     .body(Map.of("error", "Search failed", "reason", e.getMessage()));
         }
     }
-
 
     @PutMapping("/role/{userId}")
     @RequireAuthorization(

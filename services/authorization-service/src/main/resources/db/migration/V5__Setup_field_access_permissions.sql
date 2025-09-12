@@ -1,6 +1,3 @@
--- Set up field access permissions for different roles
--- PostgreSQL-safe; simplified approach without helper functions
-
 -- ADMIN field access (full access to all fields)
 INSERT INTO field_access (role_id, resource_type, allowed_fields, config)
 SELECT r.role_id, 'user', '["*"]'::jsonb, '{"access_level": "full", "can_modify": true}'::jsonb

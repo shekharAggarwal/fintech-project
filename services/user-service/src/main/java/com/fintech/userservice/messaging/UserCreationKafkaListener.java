@@ -36,28 +36,28 @@ public class UserCreationKafkaListener {
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment acknowledgment) {
-        
+
         try {
-            logger.info("Received user creation message from topic: {}, partition: {}, offset: {}", 
-                topic, partition, offset);
-            
+            logger.info("Received user creation message from topic: {}, partition: {}, offset: {}",
+                    topic, partition, offset);
+
             // Deserialize JSON string to UserCreationMessage object
             UserCreationMessage userCreationMessage = objectMapper.readValue(jsonMessage, UserCreationMessage.class);
-            
+
             logger.info("Successfully parsed user creation message for userId: {}", userCreationMessage.getUserId());
 
             // Process the user creation
             userService.createUserProfile(userCreationMessage);
 
             logger.info("Successfully processed user creation for userId: {}", userCreationMessage.getUserId());
-            
+
             // Manually acknowledge the message
             acknowledgment.acknowledge();
 
         } catch (Exception e) {
-            logger.error("Failed to process user creation message from topic: {}, partition: {}, offset: {}. Message: {}", 
-                topic, partition, offset, jsonMessage, e);
-            
+            logger.error("Failed to process user creation message from topic: {}, partition: {}, offset: {}. Message: {}",
+                    topic, partition, offset, jsonMessage, e);
+
             // Don't acknowledge on error - this will cause the message to be retried
             // In production, you might want to implement a retry mechanism with dead letter topic
             throw new RuntimeException("Failed to process user creation message", e);

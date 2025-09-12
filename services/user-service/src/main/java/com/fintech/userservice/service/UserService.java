@@ -10,9 +10,6 @@ import com.fintech.userservice.messaging.EmailNotificationPublisher;
 import com.fintech.userservice.repository.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,17 +60,18 @@ public class UserService {
             // Create user profile entity
             UserProfile userProfile = new UserProfile(
                     message.getUserId(),
-                    message.getFullName(),
+                    message.getFirstName(),
+                    message.getLastName(),
                     message.getEmail(),
                     message.getPhoneNumber(),
                     message.getAddress(),
                     message.getDateOfBirth(),
                     message.getOccupation(),
                     message.getInitialDeposit(),
-                    message.getRole()
+                    message.getRole(),
+                    accountNumber
             );
 
-            userProfile.setAccountNumber(accountNumber);
 
             // Save to database
             userProfileRepository.save(userProfile);
@@ -103,7 +101,8 @@ public class UserService {
             try {
                 UserGreetingNotification greetingNotification = new UserGreetingNotification(
                         message.getEmail(),
-                        message.getFullName(),
+                        message.getFirstName(),
+                        message.getLastName(),
                         message.getUserId(),
                         accountNumber,
                         System.currentTimeMillis()
@@ -132,12 +131,6 @@ public class UserService {
         return userProfileRepository.findByUserId(userId);
     }
 
-    /**
-     * Get user profile by account number
-     */
-    public Optional<UserProfile> getUserProfileByAccountNumber(String accountNumber) {
-        return userProfileRepository.findByAccountNumber(accountNumber);
-    }
 
     /**
      * Update user profile using UpdateUserRequest DTO
@@ -151,16 +144,19 @@ public class UserService {
 
         UserProfile profile = existingProfile.get();
 
-        // Update full name if first name or last name is provided
-        if (updateRequest.getFirstName() != null || updateRequest.getLastName() != null) {
-            String fullName = buildFullName(updateRequest, profile.getFullName());
-            profile.setFullName(fullName);
+        if (updateRequest.getFirstName() != null) {
+            profile.setFirstName(updateRequest.getFirstName());
+        }
+
+        if (updateRequest.getLastName() != null) {
+            profile.setLastName(updateRequest.getLastName());
         }
 
         // Update other fields if provided
         if (updateRequest.getPhoneNumber() != null) {
             profile.setPhoneNumber(updateRequest.getPhoneNumber());
         }
+
         if (updateRequest.getAddress() != null) {
             profile.setAddress(updateRequest.getAddress());
         }
@@ -171,41 +167,6 @@ public class UserService {
         return updatedProfile;
     }
 
-    /**
-     * Helper method to build full name from UpdateUserRequest
-     */
-    private String buildFullName(UpdateUserRequest updateRequest, String currentFullName) {
-        if (updateRequest.getFirstName() != null && updateRequest.getLastName() != null) {
-            return updateRequest.getFirstName() + " " + updateRequest.getLastName();
-        } else {
-            // Keep existing name parts if only one is provided
-            String[] currentNameParts = currentFullName.split(" ", 2);
-            String firstName = updateRequest.getFirstName() != null ? updateRequest.getFirstName() :
-                    (currentNameParts.length > 0 ? currentNameParts[0] : "");
-            String lastName = updateRequest.getLastName() != null ? updateRequest.getLastName() :
-                    (currentNameParts.length > 1 ? currentNameParts[1] : "");
-            return (firstName + " " + lastName).trim();
-        }
-    }
-
-    /**
-     * Update user profile
-     */
-    public UserProfile updateUserProfile(String userId, UserProfile updatedProfile) {
-        Optional<UserProfile> existingProfile = userProfileRepository.findByUserId(userId);
-
-        if (existingProfile.isPresent()) {
-            UserProfile profile = existingProfile.get();
-            profile.setFullName(updatedProfile.getFullName());
-            profile.setPhoneNumber(updatedProfile.getPhoneNumber());
-            profile.setAddress(updatedProfile.getAddress());
-            profile.setOccupation(updatedProfile.getOccupation());
-
-            return userProfileRepository.save(profile);
-        } else {
-            throw new RuntimeException("User profile not found for userId: " + userId);
-        }
-    }
 
     /**
      * Generate unique account number
@@ -254,28 +215,6 @@ public class UserService {
                     userId, oldRole, newRole, updatedBy, e.getMessage(), e);
             throw new RuntimeException("Failed to update user role: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Change user role (admin function) - backward compatibility
-     */
-    public UserProfile changeUserRole(String userId, String newRole) {
-        return changeUserRole(userId, newRole, "system");
-    }
-
-    /**
-     * Get all user profiles with pagination (admin function)
-     */
-    public Page<UserProfile> getAllUserProfiles(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return userProfileRepository.findAll(pageable);
-    }
-
-    /**
-     * Get all user profiles as list (admin function)
-     */
-    public List<UserProfile> getAllUserProfilesList() {
-        return userProfileRepository.findAll();
     }
 
     /**
