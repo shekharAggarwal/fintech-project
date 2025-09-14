@@ -1,13 +1,13 @@
-package com.fintech.userservice.security.filter;
+package com.fintech.security.filter;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fintech.userservice.security.model.AuthorizationContext;
-import com.fintech.userservice.security.util.AuthorizationContextHolder;
+import com.fintech.security.model.AuthorizationContext;
+import com.fintech.security.util.AuthorizationContextHolder;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.hc.client5.http.utils.Base64;
+import java.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
@@ -98,7 +98,7 @@ public class AuthorizationFilter implements Filter {
 
             // Parse the base64 encoded authorization data from gateway
             if (authzHeader != null && !authzHeader.isEmpty()) {
-                String decoded = new String(Base64.decodeBase64(authzHeader), StandardCharsets.UTF_8);
+                String decoded = new String(Base64.getDecoder().decode(authzHeader), StandardCharsets.UTF_8);
 
                 // Parse the JSON response from authorization service
                 TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {

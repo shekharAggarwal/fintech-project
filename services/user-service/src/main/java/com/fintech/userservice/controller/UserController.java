@@ -2,9 +2,9 @@ package com.fintech.userservice.controller;
 
 import com.fintech.userservice.dto.request.UpdateUserRequest;
 import com.fintech.userservice.entity.UserProfile;
-import com.fintech.userservice.security.annotation.FilterResponse;
-import com.fintech.userservice.security.annotation.RequireAuthorization;
-import com.fintech.userservice.security.service.AuthorizationService;
+import com.fintech.security.annotation.FilterResponse;
+import com.fintech.security.annotation.RequireAuthorization;
+import com.fintech.security.service.AuthorizationService;
 import com.fintech.userservice.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

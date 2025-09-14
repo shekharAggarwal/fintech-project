@@ -1,4 +1,4 @@
-package com.fintech.userservice.security.model;
+package com.fintech.security.model;
 
 import java.util.List;
 import java.util.Map;

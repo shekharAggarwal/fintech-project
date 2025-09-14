@@ -1,4 +1,4 @@
-package com.fintech.userservice.security.annotation;
+package com.fintech.security.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

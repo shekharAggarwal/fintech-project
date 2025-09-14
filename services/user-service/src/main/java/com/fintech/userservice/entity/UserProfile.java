@@ -1,11 +1,9 @@
 package com.fintech.userservice.entity;
 
-import com.fintech.userservice.security.annotation.FieldAccessControl;
+import com.fintech.security.annotation.FieldAccessControl;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDateTime;
 

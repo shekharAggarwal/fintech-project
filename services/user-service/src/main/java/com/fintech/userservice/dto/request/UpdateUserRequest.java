@@ -1,6 +1,6 @@
 package com.fintech.userservice.dto.request;
 
-import com.fintech.userservice.security.annotation.FieldAccessControl;
+import com.fintech.security.annotation.FieldAccessControl;
 
 public class UpdateUserRequest {
     @FieldAccessControl(resourceType = "user", fieldName = "firstName")

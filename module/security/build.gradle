@@ -1,0 +1,57 @@
+plugins {
+    id 'java-library'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.fintech'
+version = '0.0.1-SNAPSHOT'
+description = 'security'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom("org.springframework.boot:spring-boot-dependencies:3.4.4")
+    }
+}
+
+dependencies {
+    // Spring Boot dependencies - use api for library
+    api 'org.springframework.boot:spring-boot-starter-web'
+    api 'org.springframework.boot:spring-boot-starter-aop'
+
+    // Jackson for JSON processing
+    api 'com.fasterxml.jackson.core:jackson-databind'
+    api 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // Jakarta Servlet API
+    api 'jakarta.servlet:jakarta.servlet-api'
+
+    // Use Spring Boot's Base64 utils instead
+    api 'org.springframework:spring-core'
+
+    // AspectJ
+    api 'org.aspectj:aspectjweaver'
+
+    // Spring Framework
+    api 'org.springframework:spring-context'
+    api 'org.springframework:spring-web'
+
+    // SLF4J Logging
+    api 'org.slf4j:slf4j-api'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

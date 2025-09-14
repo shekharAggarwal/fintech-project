@@ -1,9 +1,9 @@
-package com.fintech.userservice.security.util;
+package com.fintech.security.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fintech.userservice.security.annotation.FieldAccessControl;
-import com.fintech.userservice.security.service.AuthorizationService;
+import com.fintech.security.annotation.FieldAccessControl;
+import com.fintech.security.service.AuthorizationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
