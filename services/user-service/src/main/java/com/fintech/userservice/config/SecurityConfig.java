@@ -1,6 +1,6 @@
 package com.fintech.userservice.config;
 
-import com.fintech.userservice.security.filter.AuthorizationFilter;
+import com.fintech.security.filter.AuthorizationFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

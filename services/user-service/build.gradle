@@ -20,6 +20,9 @@ repositories {
 }
 
 dependencies {
+    // Security module dependency
+    implementation project(":security")
+    
     implementation libs.bundles.spring.boot.web
     implementation libs.bundles.spring.boot.data
     implementation libs.bundles.spring.cloud
@@ -56,6 +59,7 @@ dependencies {
     testImplementation libs.bundles.test
     testImplementation libs.spring.kafka.test
     testRuntimeOnly libs.junit.platform.launcher
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 dependencyManagement {

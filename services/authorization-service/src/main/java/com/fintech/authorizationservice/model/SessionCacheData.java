@@ -1,5 +1,7 @@
 package com.fintech.authorizationservice.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class SessionCacheData {
     private String userId;
     private Long roleId;
@@ -48,7 +50,7 @@ public class SessionCacheData {
     public void setValidationTime(long validationTime) {
         this.validationTime = validationTime;
     }
-
+    @JsonIgnore
     public boolean isValid() {
         return System.currentTimeMillis() < this.validationTime;
     }

@@ -1,10 +1,10 @@
-package com.fintech.userservice.security.aspect;
+package com.fintech.security.aspect;
 
-import com.fintech.userservice.security.annotation.FilterResponse;
-import com.fintech.userservice.security.model.AuthorizationContext;
-import com.fintech.userservice.security.service.AuthorizationService;
-import com.fintech.userservice.security.util.AuthorizationContextHolder;
-import com.fintech.userservice.security.util.FieldFilterUtil;
+import com.fintech.security.annotation.FilterResponse;
+import com.fintech.security.model.AuthorizationContext;
+import com.fintech.security.service.AuthorizationService;
+import com.fintech.security.util.AuthorizationContextHolder;
+import com.fintech.security.util.FieldFilterUtil;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -34,7 +34,7 @@ public class ResponseFilterAspect {
         this.fieldFilterUtil = fieldFilterUtil;
     }
 
-    @Around("@annotation(com.fintech.userservice.security.annotation.FilterResponse)")
+    @Around("@annotation(com.fintech.security.annotation.FilterResponse)")
     public Object filterResponse(ProceedingJoinPoint joinPoint) throws Throwable {
 
         // Get the method and annotation

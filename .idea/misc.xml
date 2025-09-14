@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ExternalStorageConfigurationManager" enabled="true" />
   <component name="FrameworkDetectionExcludesConfiguration">
+    <file type="web" url="file://$PROJECT_DIR$/module/security" />
     <file type="web" url="file://$PROJECT_DIR$/services/auth-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/authorization-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/config-server" />

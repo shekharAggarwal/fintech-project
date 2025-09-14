@@ -1,7 +1,7 @@
-package com.fintech.userservice.security.service;
+package com.fintech.security.service;
 
-import com.fintech.userservice.security.model.AuthorizationContext;
-import com.fintech.userservice.security.util.AuthorizationContextHolder;
+import com.fintech.security.model.AuthorizationContext;
+import com.fintech.security.util.AuthorizationContextHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

@@ -1,8 +1,8 @@
-package com.fintech.userservice.security.aspect;
+package com.fintech.security.aspect;
 
-import com.fintech.userservice.security.annotation.FieldAccessControl;
-import com.fintech.userservice.security.annotation.RequireAuthorization;
-import com.fintech.userservice.security.service.AuthorizationService;
+import com.fintech.security.annotation.FieldAccessControl;
+import com.fintech.security.annotation.RequireAuthorization;
+import com.fintech.security.service.AuthorizationService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -30,7 +30,7 @@ public class AuthorizationAspect {
         this.authorizationService = authorizationService;
     }
 
-    @Around("@annotation(com.fintech.userservice.security.annotation.RequireAuthorization)")
+    @Around("@annotation(com.fintech.security.annotation.RequireAuthorization)")
     public Object checkAuthorization(ProceedingJoinPoint joinPoint) throws Throwable {
 
         // Get the method and annotation
@@ -96,7 +96,6 @@ public class AuthorizationAspect {
      * Evaluate authorization expressions (database-driven permissions)
      */
     private boolean evaluateExpression(String expression, ProceedingJoinPoint joinPoint) {
-
 
         // Get the method and annotation
         Method method = ((org.aspectj.lang.reflect.MethodSignature) joinPoint.getSignature()).getMethod();

@@ -1,6 +1,6 @@
-package com.fintech.userservice.security.util;
+package com.fintech.security.util;
 
-import com.fintech.userservice.security.model.AuthorizationContext;
+import com.fintech.security.model.AuthorizationContext;
 
 /**
  * Holder for authorization context within the current thread
