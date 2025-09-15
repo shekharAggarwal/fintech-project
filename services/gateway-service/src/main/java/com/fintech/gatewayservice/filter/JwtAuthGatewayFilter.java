@@ -1,16 +1,12 @@
 package com.fintech.gatewayservice.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fintech.gatewayservice.client.AuthzClient;
 import com.fintech.gatewayservice.config.JwtConfig;
 import com.fintech.gatewayservice.config.RouteValidator;
-import com.fintech.gatewayservice.dto.request.AuthzIntrospectRequest;
-import com.fintech.gatewayservice.dto.response.AuthzIntrospectResponse;
+import com.fintech.gatewayservice.external.model.response.AuthzIntrospectResponse;
+import com.fintech.gatewayservice.external.service.AuthzService;
 import com.fintech.gatewayservice.ratelimit.IpRateLimiterHandler;
 import org.apache.hc.client5.http.utils.Base64;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -29,21 +25,16 @@ public class JwtAuthGatewayFilter extends AbstractGatewayFilterFactory<JwtAuthGa
 
     private final JwtConfig jwtConfig;
     private final IpRateLimiterHandler ipRateLimiterHandler;
-    private static final Logger logger = LoggerFactory.getLogger(JwtAuthGatewayFilter.class);
-
     private final RouteValidator routeValidator;
-    private final AuthzClient authzClient;
+    private final AuthzService authzService;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${gateway.authz.timeout-ms:1200}")
-    private int timeoutMs;
-
-    public JwtAuthGatewayFilter(JwtConfig jwtConfig, IpRateLimiterHandler ipRateLimiterHandler, RouteValidator routeValidator, AuthzClient authzClient) {
+    public JwtAuthGatewayFilter(JwtConfig jwtConfig, IpRateLimiterHandler ipRateLimiterHandler, RouteValidator routeValidator, AuthzService authzService) {
         super(Config.class);
         this.jwtConfig = jwtConfig;
         this.ipRateLimiterHandler = ipRateLimiterHandler;
         this.routeValidator = routeValidator;
-        this.authzClient = authzClient;
+        this.authzService = authzService;
     }
 
     @Override
@@ -56,56 +47,42 @@ public class JwtAuthGatewayFilter extends AbstractGatewayFilterFactory<JwtAuthGa
 
             // 1️⃣ Per-IP rate limiting
             if (ipRateLimiterHandler.isRateLimited(ip)) {
-                return deny(exchange, org.springframework.http.HttpStatus.TOO_MANY_REQUESTS, "IP rate limit exceeded", ip);
+                return deny(exchange, HttpStatus.TOO_MANY_REQUESTS, "IP rate limit exceeded", ip);
             }
 
             // 2️⃣ JWT validation for secured routes
             if (routeValidator.isSecured.test(request)) {
                 String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
                 if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                    return deny(exchange, org.springframework.http.HttpStatus.UNAUTHORIZED, "Missing or invalid Authorization header", ip);
+                    return deny(exchange, HttpStatus.UNAUTHORIZED, "Missing or invalid Authorization header", ip);
                 }
 
                 String jwt = authHeader.substring(7);
                 if (!jwtConfig.validateJwt(jwt)) {
-                    return deny(exchange, org.springframework.http.HttpStatus.UNAUTHORIZED, "Invalid JWT", ip);
+                    return deny(exchange, HttpStatus.UNAUTHORIZED, "Invalid JWT", ip);
                 }
+
+
                 // 3️⃣ Ask AuthZ service for decision (dynamic)
-                AuthzIntrospectRequest req = new AuthzIntrospectRequest();
-                req.jwtToken = jwt;
-                req.path = exchange.getRequest().getURI().getPath();
-                req.method = exchange.getRequest().getMethod().name();
-                req.context = Map.of("clientIp", ip);
-                return authzClient.introspect(req, timeoutMs)
-                        .flatMap(resp -> handleAuthzResponse(resp, exchange, chain))
-                        .onErrorResume(ex -> {
-                            logger.error("Authz introspect error: {}", ex.toString());
-                            // Fail-closed for transaction endpoints or return 500 for others
-                            exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
-                            return exchange.getResponse().setComplete();
-                        });
+                return authzService.checkAccess(jwt, exchange.getRequest().getURI().getPath(),
+                                exchange.getRequest().getMethod().name(),
+                                Map.of("clientIp", ip))
+                        .flatMap(authzResponse -> handleAuthzResponse(authzResponse, exchange, chain))
+                        .onErrorResume(ex -> deny(exchange, HttpStatus.INTERNAL_SERVER_ERROR,
+                                "Authorization service error", ip));
             }
 
             return chain.filter(exchange);
+
         });
-    }
-
-    static public class Config {
-        private boolean required = true;
-
-        public boolean isRequired() {
-            return required;
-        }
-
-        public void setRequired(boolean r) {
-            this.required = r;
-        }
     }
 
     private Mono<Void> handleAuthzResponse(AuthzIntrospectResponse resp, ServerWebExchange exchange, GatewayFilterChain chain) {
         if (resp == null || !resp.allowed) {
-            exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
-            return exchange.getResponse().setComplete();
+            return deny(exchange, HttpStatus.FORBIDDEN,
+                    "Access denied: " + (resp != null ? resp.reason : "Invalid response"),
+                    exchange.getRequest().getRemoteAddress() != null ?
+                            exchange.getRequest().getRemoteAddress().getAddress().getHostAddress() : "unknown");
         }
 
         try {
@@ -122,13 +99,27 @@ public class JwtAuthGatewayFilter extends AbstractGatewayFilterFactory<JwtAuthGa
 
             return chain.filter(mutated);
         } catch (Exception ex) {
-            logger.error("Failed to attach authz envelope: {}", ex.toString());
-            exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
-            return exchange.getResponse().setComplete();
+            return deny(exchange, HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to process authorization response",
+                    exchange.getRequest().getRemoteAddress() != null ?
+                            exchange.getRequest().getRemoteAddress().getAddress().getHostAddress() : "unknown");
         }
     }
 
-    private Mono<Void> deny(ServerWebExchange exchange, org.springframework.http.HttpStatus status, String reason, String ip) {
+    static public class Config {
+        private boolean required = true;
+
+        public boolean isRequired() {
+            return required;
+        }
+
+        public void setRequired(boolean r) {
+            this.required = r;
+        }
+    }
+
+
+    private Mono<Void> deny(ServerWebExchange exchange, HttpStatus status, String reason, String ip) {
         exchange.getResponse().setStatusCode(status);
         exchange.getResponse().getHeaders().add("X-RateLimit-Reason", reason);
         exchange.getResponse().getHeaders().add("X-Frame-Options", "DENY");

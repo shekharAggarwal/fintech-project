@@ -44,6 +44,7 @@ resilience4j-ratelimiter = { module = "io.github.resilience4j:resilience4j-ratel
 # Resilience4j
 resilience4j-springBoot3 = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
 resilience4j-circuitbreaker = { module = "io.github.resilience4j:resilience4j-circuitbreaker", version.ref = "resilience4j" }
+resilience4j-reactor = { module = "io.github.resilience4j:resilience4j-reactor", version.ref = "resilience4j" }
 resilience4j-retry = { module = "io.github.resilience4j:resilience4j-retry", version.ref = "resilience4j" }
 resilience4j-timelimiter = { module = "io.github.resilience4j:resilience4j-timelimiter", version.ref = "resilience4j" }
 resilience4j-micrometer = { module = "io.github.resilience4j:resilience4j-micrometer", version.ref = "resilience4j" }
@@ -103,7 +104,7 @@ spring-boot-web = ["spring-boot-starter", "spring-boot-starter-web", "spring-boo
 spring-boot-data = ["spring-boot-starter-data-jpa", "postgresql"]
 spring-boot-security = ["spring-boot-starter-security", "spring-security-crypto"]
 spring-cloud = ["spring-cloud-config"]
-resilience4j = ["resilience4j-springBoot3", "resilience4j-circuitbreaker", "resilience4j-retry", "resilience4j-timelimiter", "resilience4j-micrometer"]
+resilience4j = ["resilience4j-springBoot3",  "resilience4j-retry", "resilience4j-timelimiter", "resilience4j-micrometer", "resilience4j-reactor", "spring-boot-starter-aop"]
 tracing = ["micrometer-tracing-bridge-otel", "opentelemetry-exporter-otlp", "micrometer-registry-prometheus"]
 jwt = ["jwt-api", "jwt-impl", "jwt-jackson"]
 flyway = ["flyway-core", "flyway-postgresql"]

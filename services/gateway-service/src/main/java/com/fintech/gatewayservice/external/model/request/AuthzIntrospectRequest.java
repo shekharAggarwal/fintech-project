@@ -1,4 +1,4 @@
-package com.fintech.gatewayservice.dto.request;
+package com.fintech.gatewayservice.external.model.request;
 
 import java.util.Map;
 

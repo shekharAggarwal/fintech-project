@@ -1,9 +1,9 @@
 package com.fintech.gatewayservice.config;
 
 import io.micrometer.observation.ObservationRegistry;
+import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.channel.ChannelOption;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,8 +19,6 @@ import java.security.KeyStore;
 @Configuration
 public class TlsWebClientConfig {
 
-    @Value("${gateway.authz.base-url}")
-    private String authzBase;
 
     @Value("${tls.client.key-store}")
     private Resource keyStore;
@@ -66,7 +64,6 @@ public class TlsWebClientConfig {
 
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .baseUrl(authzBase)
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024)) // 1MB buffer
                 .observationRegistry(observationRegistry) // Enable tracing/observability
                 .build();

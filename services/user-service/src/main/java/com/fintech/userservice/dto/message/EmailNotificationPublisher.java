@@ -1,4 +1,4 @@
-package com.fintech.userservice.messaging;
+package com.fintech.userservice.dto.message;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;

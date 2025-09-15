@@ -23,8 +23,7 @@ import java.security.KeyStore;
 public class TlsWebClientConfig {
 
 
-    @Value("${service.authz.base-url}")
-    private String authorizationServiceUrl;
+
 
     @Value("${tls.client.key-store}")
     private Resource keyStore;
@@ -70,7 +69,6 @@ public class TlsWebClientConfig {
 
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .baseUrl(authorizationServiceUrl)
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024)) // 1MB buffer
                 .observationRegistry(observationRegistry) // Enable tracing/observability
                 .build();

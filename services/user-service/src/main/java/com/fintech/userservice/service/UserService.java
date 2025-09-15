@@ -1,12 +1,12 @@
 package com.fintech.userservice.service;
 
-import com.fintech.userservice.dto.message.UserCreationMessage;
-import com.fintech.userservice.dto.message.UserGreetingNotification;
-import com.fintech.userservice.dto.message.UserRoleRegistrationMessage;
+import com.fintech.userservice.dto.message.*;
+import com.fintech.userservice.dto.message.AuthorizationKafkaPublisher;
+import com.fintech.userservice.dto.message.EmailNotificationPublisher;
 import com.fintech.userservice.dto.request.UpdateUserRequest;
 import com.fintech.userservice.entity.UserProfile;
-import com.fintech.userservice.messaging.AuthorizationKafkaPublisher;
-import com.fintech.userservice.messaging.EmailNotificationPublisher;
+import com.fintech.userservice.external.model.response.UpdateRoleResponse;
+import com.fintech.userservice.external.service.AuthzService;
 import com.fintech.userservice.repository.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,16 +29,16 @@ public class UserService {
 
     final private AuthorizationKafkaPublisher authorizationKafkaPublisher;
 
-    final private AuthorizationServiceClient authorizationServiceClient;
+    final private AuthzService authzService;
 
     public UserService(UserProfileRepository userProfileRepository,
                        EmailNotificationPublisher emailNotificationPublisher,
                        AuthorizationKafkaPublisher authorizationKafkaPublisher,
-                       AuthorizationServiceClient authorizationServiceClient) {
+                       AuthzService authzService) {
         this.userProfileRepository = userProfileRepository;
         this.emailNotificationPublisher = emailNotificationPublisher;
         this.authorizationKafkaPublisher = authorizationKafkaPublisher;
-        this.authorizationServiceClient = authorizationServiceClient;
+        this.authzService = authzService;
     }
 
     /**
@@ -200,7 +200,13 @@ public class UserService {
         try {
             // First, update the authorization service synchronously
             // This ensures authorization service is updated before user profile
-            authorizationServiceClient.updateUserRole(userId, newRole, updatedBy);
+            UpdateRoleResponse authzResponse = authzService.updateRole(userId, newRole, updatedBy)
+                    .block(); // Convert to synchronous call
+
+            // Check if the authorization service update was successful
+            if (authzResponse == null) {
+                throw new RuntimeException("Authorization service update failed - no response received");
+            }
 
             // If authorization service update succeeds, update user profile
             profile.setRole(newRole);
