@@ -1,4 +1,4 @@
-package com.fintech.gatewayservice.dto.response;
+package com.fintech.gatewayservice.external.model.response;
 
 import java.util.List;
 import java.util.Map;
