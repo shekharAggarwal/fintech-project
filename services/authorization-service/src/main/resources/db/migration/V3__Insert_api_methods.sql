@@ -16,7 +16,8 @@ INSERT INTO api_methods (path, http_method, description) VALUES
 ('/api/payments/deposit', 'POST', 'Deposit money to account'),
 ('/api/payments/withdraw', 'POST', 'Withdraw money from account'),
 ('/api/payments/history', 'GET', 'Get payment history'),
-('/api/payments/*/status', 'GET', 'Get payment status'),
+('/api/payments/*', 'GET', 'Get payment status by payment ID'),
+('/api/payments/*/verify-otp', 'POST', 'Verify OTP for payment authorization'),
 ('/api/payments/*/cancel', 'POST', 'Cancel pending payment'),
 ('/api/payments/bulk-transfer', 'POST', 'Bulk transfer operations'),
 

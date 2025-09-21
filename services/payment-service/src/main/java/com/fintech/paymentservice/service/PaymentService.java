@@ -1,112 +1,253 @@
 package com.fintech.paymentservice.service;
 
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
-import io.micrometer.observation.annotation.Observed;
-import io.micrometer.tracing.annotation.NewSpan;
-import io.micrometer.tracing.annotation.SpanTag;
+import com.fintech.paymentservice.dto.message.OtpNotificationEvent;
+import com.fintech.paymentservice.dto.message.TransactionCompletedMessage;
+import com.fintech.paymentservice.dto.request.InitiateRequest;
+import com.fintech.paymentservice.dto.response.PaymentInitiatedResponse;
+import com.fintech.paymentservice.entity.Payment;
+import com.fintech.paymentservice.messaging.OtpEmailPublisher;
+import com.fintech.paymentservice.messaging.TransactionPublisher;
+import com.fintech.paymentservice.model.PaymentStatus;
+import com.fintech.paymentservice.repository.PaymentRepository;
+import com.fintech.paymentservice.util.SnowflakeIdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.Random;
+import java.time.Instant;
+import java.util.Optional;
 
 @Service
-@Observed
 public class PaymentService {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
-    private final Random random = new Random();
-    
-    @CircuitBreaker(name = "payment-service", fallbackMethod = "fallbackProcessPayment")
-    @Retry(name = "payment-service")
-    @NewSpan("payment-processing")
-    public PaymentResponse processPayment(@SpanTag("paymentId") String paymentId, 
-                                        @SpanTag("amount") BigDecimal amount,
-                                        @SpanTag("userId") String userId) {
-        logger.info("Processing payment: {} for user: {} with amount: {}", paymentId, userId, amount);
-        
-        // Simulate processing time
+
+    private final PaymentRepository paymentRepository;
+
+    private final StringRedisTemplate redis;
+
+
+    private final OtpEmailPublisher otpEmailPublisher;
+
+    private final OtpService otpService;
+
+    private final SnowflakeIdGenerator idGenerator;
+
+    public PaymentService(PaymentRepository paymentRepository, StringRedisTemplate redis, TransactionPublisher eventPublisher, OtpEmailPublisher otpEmailPublisher, OtpService otpService, SnowflakeIdGenerator idGenerator) {
+        this.paymentRepository = paymentRepository;
+        this.redis = redis;
+        this.otpEmailPublisher = otpEmailPublisher;
+        this.otpService = otpService;
+        this.idGenerator = idGenerator;
+    }
+
+    /**
+     * Initiate a new payment with auto-generated payment ID
+     */
+    @Transactional
+    public PaymentInitiatedResponse initiate(InitiateRequest request, String currentUserId) {
+        logger.info("Initiating payment for user {} from {} to {} amount {}", currentUserId, request.fromAccount(), request.toAccount(), request.amount());
+
+        // Generate unique payment ID using Snowflake
+        String paymentId = idGenerator.generateStringId();
+
+        // Create payment entity
+        Payment payment = new Payment();
+        payment.setPaymentId(paymentId);
+        payment.setUserId(currentUserId);
+        payment.setFromAccount(request.fromAccount());
+        payment.setToAccount(request.toAccount());
+        payment.setAmount(request.amount());
+        payment.setDescription(request.description());
+        payment.setStatus(PaymentStatus.PENDING_VERIFICATION);
+        payment.setCreatedAt(Instant.now());
+        payment.setRetryCount(0);
+
+        payment = paymentRepository.save(payment);
+
+        // Generate OTP for verification
+        String otp = otpService.generateOtp(paymentId);
+
+        /// send otp to useId with amount
         try {
-            Thread.sleep(random.nextInt(1000) + 500);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            otpEmailPublisher.publishOtpEmail(new OtpNotificationEvent(currentUserId, request.amount().toString(), otp));
+            logger.info("OTP sent to user {} for paymentId: {}", currentUserId, paymentId);
+        } catch (Exception e) {
+            logger.error("Failed to send OTP notification for paymentId:{} to userId:{}", paymentId, currentUserId, e);
         }
-        
-        // Simulate failure for demonstration
-        if (random.nextDouble() < 0.3) {
-            logger.error("Payment processing failed for payment: {}", paymentId);
-            throw new PaymentProcessingException("Payment processing failed");
+
+        logger.info("Payment initiated successfully with ID: {}", paymentId);
+
+        return new PaymentInitiatedResponse(payment.getPaymentId(),
+                payment.getFromAccount(),
+                payment.getToAccount(),
+                payment.getAmount(),
+                payment.getDescription(),
+                payment.getStatus(),
+                payment.getCreatedAt(),
+                "Payment initiated successfully. Please verify with OTP sent to your registered mobile number.");
+    }
+
+
+    /**
+     * Get payment status (only for payment owner)
+     */
+    public Optional<Payment> getPaymentStatus(String paymentId, String currentUserId) {
+        Optional<Payment> paymentOpt = paymentRepository.findById(paymentId);
+
+        if (paymentOpt.isPresent()) {
+            Payment payment = paymentOpt.get();
+
+            // Verify user ownership
+            if (!payment.getUserId().equals(currentUserId)) {
+                logger.warn("User {} trying to access payment {} owned by {}", currentUserId, paymentId, payment.getUserId());
+                return Optional.empty();
+            }
+
+            return paymentOpt;
         }
-        
-        PaymentResponse response = new PaymentResponse(
-            paymentId,
-            "SUCCESS",
-            "Payment processed successfully",
-            LocalDateTime.now()
-        );
-        
-        logger.info("Payment processed successfully: {}", response);
-        return response;
+
+        return Optional.empty();
     }
-    
-    @NewSpan("payment-validation")
-    public boolean validatePayment(@SpanTag("paymentId") String paymentId, 
-                                 @SpanTag("amount") BigDecimal amount) {
-        logger.debug("Validating payment: {} with amount: {}", paymentId, amount);
-        
-        // Simulate validation logic
-        boolean isValid = amount.compareTo(BigDecimal.ZERO) > 0 && 
-                         amount.compareTo(new BigDecimal("10000")) <= 0;
-        
-        logger.debug("Payment validation result for {}: {}", paymentId, isValid);
-        return isValid;
-    }
-    
-    // Fallback method for circuit breaker
-    public PaymentResponse fallbackProcessPayment(String paymentId, BigDecimal amount, String userId, Exception ex) {
-        logger.warn("Circuit breaker activated for payment: {}. Reason: {}", paymentId, ex.getMessage());
-        
-        return new PaymentResponse(
-            paymentId,
-            "FAILED",
-            "Payment service temporarily unavailable. Please try again later.",
-            LocalDateTime.now()
-        );
-    }
-    
-    // DTO Classes
-    public static class PaymentResponse {
-        private final String paymentId;
-        private final String status;
-        private final String message;
-        private final LocalDateTime timestamp;
-        
-        public PaymentResponse(String paymentId, String status, String message, LocalDateTime timestamp) {
-            this.paymentId = paymentId;
-            this.status = status;
-            this.message = message;
-            this.timestamp = timestamp;
+
+    public void updatePayment(TransactionCompletedMessage transactionCompletedMessage) {
+        logger.info("Updating payment status for paymentId: {}", transactionCompletedMessage.getPaymentId());
+
+        Optional<Payment> paymentOpt = paymentRepository.findById(transactionCompletedMessage.getPaymentId());
+        if (paymentOpt.isEmpty()) {
+            logger.warn("Payment not found: {}", transactionCompletedMessage.getPaymentId());
+            return;
         }
-        
-        // Getters
-        public String getPaymentId() { return paymentId; }
-        public String getStatus() { return status; }
-        public String getMessage() { return message; }
-        public LocalDateTime getTimestamp() { return timestamp; }
-        
-        @Override
-        public String toString() {
-            return String.format("PaymentResponse{paymentId='%s', status='%s', message='%s', timestamp=%s}", 
-                paymentId, status, message, timestamp);
-        }
+        Payment payment = paymentOpt.get();
+        payment.setStatus(PaymentStatus.valueOf(transactionCompletedMessage.getStatus()));
+        paymentRepository.save(payment);
+        logger.info("Payment status updated successfully for paymentId: {}", transactionCompletedMessage.getPaymentId());
     }
-    
-    public static class PaymentProcessingException extends RuntimeException {
-        public PaymentProcessingException(String message) {
-            super(message);
+
+    /**
+     * Retry a stuck payment (only for payment owner)
+     */
+  /*  public boolean retry(String paymentId, String currentUserId) {
+        logger.info("Retry requested for payment {} by user {}", paymentId, currentUserId);
+
+        Optional<Payment> paymentOpt = paymentRepository.findById(paymentId);
+        if (paymentOpt.isEmpty()) {
+            logger.warn("Payment not found: {}", paymentId);
+            return false;
         }
-    }
+
+        Payment payment = paymentOpt.get();
+
+        // Verify user ownership
+        if (!payment.getUserId().equals(currentUserId)) {
+            logger.warn("User {} trying to retry payment {} owned by {}", currentUserId, paymentId, payment.getUserId());
+            return false;
+        }
+
+        // Check if payment can be retried
+        if (payment.getStatus() != PaymentStatus.STUCK && payment.getStatus() != PaymentStatus.FAILED) {
+            logger.warn("Payment {} is not in retryable status: {}", paymentId, payment.getStatus());
+            return false;
+        }
+
+        if (payment.getRetryCount() >= 3) {
+            logger.warn("Maximum retry attempts exceeded for payment: {}", paymentId);
+            return false;
+        }
+
+        // Increment retry count and update status
+        payment.setRetryCount(payment.getRetryCount() + 1);
+        payment.setStatus(PaymentStatus.PROCESSING);
+        paymentRepository.save(payment);
+
+        // Publish payment retry event
+        PaymentRetryEvent retryEvent = new PaymentRetryEvent(paymentId, currentUserId, payment.getRetryCount(), "Manual retry requested by user", Instant.now());
+        eventPublisher.publishPaymentRetry(retryEvent);
+
+        // Schedule retry on executor
+        retryExecutor.execute(() -> processAsync(paymentId));
+
+        return true;
+    }*/
+
+
+//    @Async("paymentRetryExecutor")
+//    public void processAsync(String paymentId) {
+//        Optional<Payment> maybe = paymentRepository.findById(paymentId);
+//        if (maybe.isEmpty()) {
+//            logger.warn("Payment not found for processing: {}", paymentId);
+//            return;
+//        }
+//
+//        Payment payment = maybe.get();
+//        logger.info("Processing payment asynchronously: {}", paymentId);
+//
+//        String lockKey = "lock:account:" + payment.getFromAccount();
+//        Boolean locked = redis.opsForValue().setIfAbsent(lockKey, "1");
+//
+//        if (!Boolean.TRUE.equals(locked)) {
+//            logger.warn("Account {} is locked, marking payment as stuck: {}", payment.getFromAccount(), paymentId);
+//            payment.setStatus(PaymentStatus.STUCK);
+//            paymentRepository.save(payment);
+//
+//            // Publish payment processed event with STUCK status
+//            PaymentProcessedEvent stuckEvent = new PaymentProcessedEvent(paymentId, payment.getUserId(), payment.getFromAccount(), payment.getToAccount(), payment.getAmount(), PaymentStatus.STUCK, payment.getDescription(), null, "Account is locked", Instant.now());
+//            eventPublisher.publishPaymentProcessed(stuckEvent);
+//            return;
+//        }
+//
+//        try {
+//            payment.setStatus(PaymentStatus.PROCESSING);
+//            payment.setProcessingStartedAt(Instant.now());
+//            paymentRepository.save(payment);
+//
+//            // Call payment processor adapter
+//            var result = adapter.process(payment);
+//
+//            if (result.success()) {
+//                payment.setStatus(PaymentStatus.COMPLETED);
+//                payment.setCompletedAt(Instant.now());
+//                paymentRepository.save(payment);
+//
+//                logger.info("Payment completed successfully: {}", paymentId);
+//
+//                // Publish payment processed event with COMPLETED status
+//                PaymentProcessedEvent successEvent = new PaymentProcessedEvent(payment.getPaymentId(), payment.getUserId(), payment.getFromAccount(), payment.getToAccount(), payment.getAmount(), PaymentStatus.COMPLETED, payment.getDescription(), result.providerTxnId(), null, Instant.now());
+//                eventPublisher.publishPaymentProcessed(successEvent);
+//
+//                // Send completion notification
+//                notificationPublisher.sendPaymentConfirmationEmail("user@example.com", // Should get from user service
+//                        paymentId, payment.getAmount().toString(), "COMPLETED");
+//
+//            } else {
+//                payment.setStatus(PaymentStatus.FAILED);
+//                payment.setFailureReason(result.code());
+//                payment.setFailedAt(Instant.now());
+//                paymentRepository.save(payment);
+//
+//                logger.error("Payment failed: {} with code: {}", paymentId, result.code());
+//
+//                // Publish payment processed event with FAILED status
+//                PaymentProcessedEvent failedEvent = new PaymentProcessedEvent(paymentId, payment.getUserId(), payment.getFromAccount(), payment.getToAccount(), payment.getAmount(), PaymentStatus.FAILED, payment.getDescription(), result.providerTxnId(), result.code(), Instant.now());
+//                eventPublisher.publishPaymentProcessed(failedEvent);
+//            }
+//
+//        } catch (Exception ex) {
+//            payment.setStatus(PaymentStatus.STUCK);
+//            payment.setRetryCount(payment.getRetryCount() + 1);
+//            payment.setFailureReason(ex.getMessage());
+//            paymentRepository.save(payment);
+//
+//            logger.error("Payment processing failed: {} - {}", paymentId, ex.getMessage(), ex);
+//
+//            // Publish payment processed event with STUCK status
+//            PaymentProcessedEvent stuckEvent = new PaymentProcessedEvent(paymentId, payment.getUserId(), payment.getFromAccount(), payment.getToAccount(), payment.getAmount(), PaymentStatus.STUCK, payment.getDescription(), null, ex.getMessage(), Instant.now());
+//            eventPublisher.publishPaymentProcessed(stuckEvent);
+//
+//        } finally {
+//            redis.delete(lockKey);
+//        }
+//    }
 }

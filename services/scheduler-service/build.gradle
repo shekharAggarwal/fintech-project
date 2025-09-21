@@ -20,22 +20,30 @@ repositories {
 }
 
 dependencies {
-    implementation libs.spring.boot.starter
-    implementation libs.spring.boot.starter.web
+    implementation libs.bundles.spring.boot.web
+    implementation libs.bundles.spring.boot.data
+    implementation libs.bundles.spring.boot.security
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.spring.boot.starter.validation
     implementation libs.spring.boot.starter.quartz
-    implementation libs.spring.boot.starter.actuator
     implementation libs.bundles.spring.cloud
-    
-    // Tracing dependencies - Use Spring Boot 3 compatible versions
+    implementation libs.spring.boot.starter.amqp
+    implementation libs.spring.kafka
+
+    // Security module dependency
+    implementation project(':security')
+
+    // JWT
+    implementation libs.bundles.jwt
+
+    // Tracing dependencies
     implementation libs.bundles.tracing
-    
+
     // Circuit Breaker
     implementation libs.bundles.resilience4j
-    implementation libs.resilience4j.spring6
-    
+
     // Logging dependencies
-    implementation libs.logback.classic
-    implementation libs.logstash.encoder
+    implementation libs.bundles.logging
     
     testImplementation libs.bundles.test
     testRuntimeOnly libs.junit.platform.launcher

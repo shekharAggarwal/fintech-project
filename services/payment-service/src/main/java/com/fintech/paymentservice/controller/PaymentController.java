@@ -1,103 +1,124 @@
 package com.fintech.paymentservice.controller;
 
+import com.fintech.paymentservice.dto.request.InitiateRequest;
+import com.fintech.paymentservice.dto.response.PaymentInitiatedResponse;
+import com.fintech.paymentservice.entity.Payment;
 import com.fintech.paymentservice.service.PaymentService;
-import io.micrometer.observation.annotation.Observed;
+import com.fintech.security.annotation.FilterResponse;
+import com.fintech.security.annotation.RequireAuthorization;
+import com.fintech.security.service.AuthorizationService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/payment")
-@Observed
+@RequestMapping("/api/payments")
 public class PaymentController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
-    
-    @Autowired
-    private PaymentService paymentService;
-    
-    @PostMapping("/process")
-    public ResponseEntity<PaymentService.PaymentResponse> processPayment(@RequestBody PaymentRequest request) {
-        logger.info("Received payment request: {}", request);
-        
+
+    private final PaymentService paymentService;
+    private final AuthorizationService authorizationService;
+
+    public PaymentController(PaymentService paymentService, AuthorizationService authorizationService) {
+        this.paymentService = paymentService;
+        this.authorizationService = authorizationService;
+    }
+
+    /**
+     * Initiate a new payment
+     */
+    @PostMapping("/transfer")
+    @RequireAuthorization(message = "Access denied: Authentication required for payment initiation", resourceType = "payment")
+    @FilterResponse(resourceType = "payment")
+    public ResponseEntity<?> initiate(@Valid @RequestBody InitiateRequest request) {
+        String currentUserId = authorizationService.getCurrentUserId();
+        logger.info("User {} initiating payment from {} to {} for amount {}",
+                currentUserId, request.fromAccount(), request.toAccount(), request.amount());
+
+        if (currentUserId == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "No user context", "reason", "Unable to determine current user"));
+        }
+
         try {
-            // Validate payment first
-            if (!paymentService.validatePayment(request.getPaymentId(), request.getAmount())) {
-                logger.warn("Payment validation failed for: {}", request.getPaymentId());
-                return ResponseEntity.badRequest().body(
-                    new PaymentService.PaymentResponse(
-                        request.getPaymentId(),
-                        "VALIDATION_FAILED",
-                        "Payment validation failed",
-                        java.time.LocalDateTime.now()
-                    )
-                );
-            }
-            
-            PaymentService.PaymentResponse response = paymentService.processPayment(
-                request.getPaymentId(),
-                request.getAmount(),
-                request.getUserId()
-            );
-            
+            PaymentInitiatedResponse response = paymentService.initiate(request, currentUserId);
+            logger.info("Payment initiated successfully: {}", response.paymentId());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Error processing payment: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(
-                new PaymentService.PaymentResponse(
-                    request.getPaymentId(),
-                    "ERROR",
-                    "Internal server error",
-                    java.time.LocalDateTime.now()
-                )
-            );
+            logger.error("Failed to initiate payment for user {}: {}", currentUserId, e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Payment initiation failed", "reason", e.getMessage()));
         }
     }
-    
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, String>> health() {
-        return ResponseEntity.ok(Map.of("status", "UP", "service", "payment-service"));
-    }
-    
-    // DTO for request
-    public static class PaymentRequest {
-        private String paymentId;
-        private BigDecimal amount;
-        private String userId;
-        private String description;
-        
-        // Constructors
-        public PaymentRequest() {}
-        
-        public PaymentRequest(String paymentId, BigDecimal amount, String userId, String description) {
-            this.paymentId = paymentId;
-            this.amount = amount;
-            this.userId = userId;
-            this.description = description;
+
+
+    /**
+     * Get payment status
+     */
+    @GetMapping("/{paymentId}")
+    @RequireAuthorization(message = "Access denied: Authentication required to view payment", resourceType = "payment")
+    @FilterResponse(resourceType = "payment")
+    public ResponseEntity<?> getPaymentStatus(@PathVariable String paymentId) {
+        String currentUserId = authorizationService.getCurrentUserId();
+        logger.info("User {} requesting payment status: {}", currentUserId, paymentId);
+
+        if (currentUserId == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "No user context", "reason", "Unable to determine current user"));
         }
-        
-        // Getters and Setters
-        public String getPaymentId() { return paymentId; }
-        public void setPaymentId(String paymentId) { this.paymentId = paymentId; }
-        
-        public BigDecimal getAmount() { return amount; }
-        public void setAmount(BigDecimal amount) { this.amount = amount; }
-        
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
-        
-        public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
-        
-        @Override
-        public String toString() {
-            return String.format("PaymentRequest{paymentId='%s', amount=%s, userId='%s', description='%s'}", 
-                paymentId, amount, userId, description);
+
+        try {
+            Optional<Payment> payment = paymentService.getPaymentStatus(paymentId, currentUserId);
+
+            if (payment.isPresent()) {
+                return ResponseEntity.ok(payment.get());
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            logger.error("Failed to get payment status for {}: {}", paymentId, e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Failed to get payment status", "reason", e.getMessage()));
         }
     }
+
+    /**
+     * Retry a stuck payment
+     */
+   /* @PostMapping("/{paymentId}/retry")
+    @RequireAuthorization(message = "Access denied: Authentication required for payment retry", resourceType = "payment")
+    public ResponseEntity<?> retry(@PathVariable String paymentId) {
+        String currentUserId = authorizationService.getCurrentUserId();
+        logger.info("User {} retrying payment: {}", currentUserId, paymentId);
+
+        if (currentUserId == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "No user context", "reason", "Unable to determine current user"));
+        }
+
+        try {
+            boolean retryInitiated = paymentService.retry(paymentId, currentUserId);
+
+            if (retryInitiated) {
+                logger.info("Payment retry initiated for: {}", paymentId);
+                return ResponseEntity.ok(Map.of(
+                        "message", "Payment retry initiated",
+                        "paymentId", paymentId
+                ));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Cannot retry payment", "reason", "Payment is not in a retryable state"));
+            }
+        } catch (Exception e) {
+            logger.error("Failed to retry payment {}: {}", paymentId, e.getMessage(), e);
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("error", "Payment retry failed", "reason", e.getMessage()));
+        }
+    }*/
 }

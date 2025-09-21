@@ -53,6 +53,16 @@
         </option>
       </GradleProjectSettings>
       <GradleProjectSettings>
+        <option name="externalProjectPath" value="$PROJECT_DIR$/services/ledger-service" />
+        <option name="gradleJvm" value="corretto-21" />
+        <option name="modules">
+          <set>
+            <option value="$PROJECT_DIR$/module/security" />
+            <option value="$PROJECT_DIR$/services/ledger-service" />
+          </set>
+        </option>
+      </GradleProjectSettings>
+      <GradleProjectSettings>
         <option name="externalProjectPath" value="$PROJECT_DIR$/services/notification-service" />
         <option name="gradleJvm" value="corretto-21" />
         <option name="modules">
@@ -66,6 +76,7 @@
         <option name="gradleJvm" value="corretto-21" />
         <option name="modules">
           <set>
+            <option value="$PROJECT_DIR$/module/security" />
             <option value="$PROJECT_DIR$/services/payment-service" />
           </set>
         </option>
@@ -93,6 +104,7 @@
         <option name="gradleJvm" value="corretto-21" />
         <option name="modules">
           <set>
+            <option value="$PROJECT_DIR$/module/security" />
             <option value="$PROJECT_DIR$/services/scheduler-service" />
           </set>
         </option>
@@ -102,6 +114,7 @@
         <option name="gradleJvm" value="corretto-21" />
         <option name="modules">
           <set>
+            <option value="$PROJECT_DIR$/module/security" />
             <option value="$PROJECT_DIR$/services/transaction-service" />
           </set>
         </option>

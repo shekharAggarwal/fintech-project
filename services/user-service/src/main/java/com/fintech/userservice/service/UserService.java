@@ -1,12 +1,16 @@
 package com.fintech.userservice.service;
 
-import com.fintech.userservice.dto.message.*;
-import com.fintech.userservice.dto.message.AuthorizationKafkaPublisher;
-import com.fintech.userservice.dto.message.EmailNotificationPublisher;
+import com.fintech.userservice.dto.message.AccountCreationMessage;
+import com.fintech.userservice.dto.message.UserCreationMessage;
+import com.fintech.userservice.dto.message.UserGreetingNotification;
+import com.fintech.userservice.dto.message.UserRoleRegistrationMessage;
 import com.fintech.userservice.dto.request.UpdateUserRequest;
 import com.fintech.userservice.entity.UserProfile;
 import com.fintech.userservice.external.model.response.UpdateRoleResponse;
 import com.fintech.userservice.external.service.AuthzService;
+import com.fintech.userservice.messaging.AccountCreationKafkaPublisher;
+import com.fintech.userservice.messaging.AuthorizationKafkaPublisher;
+import com.fintech.userservice.messaging.EmailNotificationPublisher;
 import com.fintech.userservice.repository.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,15 +33,19 @@ public class UserService {
 
     final private AuthorizationKafkaPublisher authorizationKafkaPublisher;
 
+    final private AccountCreationKafkaPublisher accountCreationKafkaPublisher;
+
     final private AuthzService authzService;
 
     public UserService(UserProfileRepository userProfileRepository,
                        EmailNotificationPublisher emailNotificationPublisher,
                        AuthorizationKafkaPublisher authorizationKafkaPublisher,
+                       AccountCreationKafkaPublisher accountCreationKafkaPublisher,
                        AuthzService authzService) {
         this.userProfileRepository = userProfileRepository;
         this.emailNotificationPublisher = emailNotificationPublisher;
         this.authorizationKafkaPublisher = authorizationKafkaPublisher;
+        this.accountCreationKafkaPublisher = accountCreationKafkaPublisher;
         this.authzService = authzService;
     }
 
@@ -79,6 +87,17 @@ public class UserService {
             logger.info("User profile created successfully for userId: {} with account number: {}",
                     message.getUserId(), accountNumber);
 
+            //create the account with initial bal
+            try {
+                AccountCreationMessage accountCreationMessage = new AccountCreationMessage(message.getUserId(), message.getInitialDeposit(), accountNumber);
+                accountCreationKafkaPublisher.publishUserRoleRegistration(accountCreationMessage);
+
+                logger.info("Published user account creation message to Transaction service for user Id:{} with initial balance:{} and account number:{}",
+                        message.getUserId(), message.getInitialDeposit(), accountNumber);
+            } catch (Exception e) {
+                logger.error("Failed to publish user account creation message to Transaction service for user Id:{} with initial balance:{} and account number:{}",
+                        message.getUserId(), message.getInitialDeposit(), accountNumber, e);
+            }
             // Send user role registration to authorization service via Kafka
             try {
                 UserRoleRegistrationMessage roleMessage = new UserRoleRegistrationMessage(

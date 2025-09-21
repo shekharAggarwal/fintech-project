@@ -48,7 +48,7 @@ resilience4j-reactor = { module = "io.github.resilience4j:resilience4j-reactor",
 resilience4j-retry = { module = "io.github.resilience4j:resilience4j-retry", version.ref = "resilience4j" }
 resilience4j-timelimiter = { module = "io.github.resilience4j:resilience4j-timelimiter", version.ref = "resilience4j" }
 resilience4j-micrometer = { module = "io.github.resilience4j:resilience4j-micrometer", version.ref = "resilience4j" }
-resilience4j-spring6 = { module = "io.github.resilience4j:resilience4j-spring6", version.ref = "resilience4j" }
+#resilience4j-spring6 = { module = "io.github.resilience4j:resilience4j-spring6", version.ref = "resilience4j" }
 
 # Database
 postgresql = { module = "org.postgresql:postgresql" }
