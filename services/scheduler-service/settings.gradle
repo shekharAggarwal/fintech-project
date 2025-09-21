@@ -7,3 +7,6 @@ dependencyResolutionManagement {
         }
     }
 }
+
+include(":security")
+project(":security").projectDir = file("../../module/security")

@@ -30,7 +30,7 @@ spring:
         - id: payment-service
           uri: https://localhost:8084
           predicates:
-            - Path=/api/payment/**
+            - Path=/api/payments/**
           filters:
             - name: JwtAuthGatewayFilter
         - id: transaction-service

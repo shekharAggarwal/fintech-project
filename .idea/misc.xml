@@ -7,6 +7,7 @@
     <file type="web" url="file://$PROJECT_DIR$/services/authorization-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/config-server" />
     <file type="web" url="file://$PROJECT_DIR$/services/gateway-service" />
+    <file type="web" url="file://$PROJECT_DIR$/services/ledger-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/notification-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/payment-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/reporting-service" />

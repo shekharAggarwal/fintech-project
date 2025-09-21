@@ -22,19 +22,35 @@ repositories {
 dependencies {
     implementation libs.bundles.spring.boot.web
     implementation libs.bundles.spring.boot.data
+    implementation libs.bundles.spring.boot.security
+    implementation libs.spring.boot.starter.data.redis
+    implementation libs.spring.boot.starter.validation
+    implementation libs.spring.boot.starter.webflux
+    implementation libs.postgresql
     implementation libs.bundles.spring.cloud
-    
+    implementation libs.spring.boot.starter.amqp
+    implementation libs.spring.kafka
+
+    // JWT dependencies
+    implementation libs.bundles.jwt
+
+
+    // Report generation dependencies
+    implementation 'com.itextpdf:itext7-core:7.2.5'
+    implementation 'org.apache.poi:poi:5.2.4'
+    implementation 'org.apache.poi:poi-ooxml:5.2.4'
+    implementation 'com.opencsv:opencsv:5.8'
+
     // Tracing dependencies - Use Spring Boot 3 compatible versions
     implementation libs.bundles.tracing
-    
+
     // Circuit Breaker
     implementation libs.bundles.resilience4j
-    implementation libs.resilience4j.spring6
-    
+
     // Logging dependencies
-    implementation libs.logback.classic
-    implementation libs.logstash.encoder
+    implementation libs.bundles.logging
     
+
     testImplementation libs.bundles.test
     testRuntimeOnly libs.junit.platform.launcher
 }
@@ -42,6 +58,7 @@ dependencies {
 dependencyManagement {
     imports {
         mavenBom("org.springframework.cloud:spring-cloud-dependencies:2024.0.0-M1")
+        mavenBom("io.micrometer:micrometer-tracing-bom:1.2.2")
     }
 }
 

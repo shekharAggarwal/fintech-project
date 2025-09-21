@@ -30,7 +30,6 @@ dependencies {
     
     // Circuit Breaker and Resilience
     implementation libs.bundles.resilience4j
-    implementation libs.resilience4j.spring6
     
     // Tracing dependencies - Jaeger via OTLP  
     implementation libs.bundles.tracing

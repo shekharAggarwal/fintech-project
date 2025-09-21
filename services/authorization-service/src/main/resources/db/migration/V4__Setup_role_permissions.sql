@@ -38,7 +38,8 @@ FROM roles r,
 WHERE r.name = 'ACCOUNT_HOLDER'
   AND am.path IN ('/api/user/profile/me',
                   '/api/payments/history',
-                  '/api/payments/*/status',
+                  '/api/payments/*',
+                  '/api/payments/*/verify-otp',
                   '/api/payments/*/cancel',
                   '/api/transactions/history',
                   '/api/transactions/*/details',
@@ -73,8 +74,8 @@ FROM roles r,
      api_methods am
 WHERE r.name = 'BUSINESS_ACCOUNT_HOLDER'
   AND am.path IN ('/api/user/profile', '/api/user/profile/me', '/api/user/profile/*/filtered', '/api/user/health',
-                  '/api/payments/bulk-transfer', '/api/payments/history', '/api/payments/*/status',
-                  '/api/payments/*/cancel', '/api/transactions/history', '/api/transactions/*/details',
+                  '/api/payments/bulk-transfer', '/api/payments/history', '/api/payments/*',
+                  '/api/payments/*/verify-otp', '/api/payments/*/cancel', '/api/transactions/history', '/api/transactions/*/details',
                   '/api/transactions/report', '/api/transactions/search', '/api/auth/logout', '/api/auth/refresh',
                   '/api/auth/permissions', '/api/notifications/history', '/api/notifications/preferences',
                   '/api/reports/account-summary', '/api/reports/transaction-summary')

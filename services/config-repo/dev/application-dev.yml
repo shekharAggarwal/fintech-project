@@ -71,6 +71,9 @@ kafka:
     user-creation: fintech.user.creation
     session-creation: fintech.authorization.session.creation
     user-role-registration: fintech.authorization.user.role.registration
+    account-creation: fintech.transaction.account.creation
+    transaction-initiate: fintech.transaction.initiate
+    transaction-completed: fintech.transaction.completed
 
 server:
   ssl:

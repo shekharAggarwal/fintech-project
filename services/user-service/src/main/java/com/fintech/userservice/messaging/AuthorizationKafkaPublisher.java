@@ -1,13 +1,14 @@
-package com.fintech.userservice.dto.message;
+package com.fintech.userservice.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fintech.userservice.dto.message.UserRoleRegistrationMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
-@Service
+@Component
 public class AuthorizationKafkaPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizationKafkaPublisher.class);

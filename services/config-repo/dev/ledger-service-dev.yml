@@ -1,0 +1,51 @@
+server:
+  port: 8087
+  ssl:
+    client-auth: need
+
+spring:
+  application:
+    name: ledger-service
+
+  kafka:
+    consumer:
+      group-id: ledger-service-group
+      client-id: ledger-service-consumer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.fintech.ledgerservice.dto
+        enable.auto.commit: false
+        auto.offset.reset: earliest
+        max.poll.records: 10
+    producer:
+      client-id: ledger-service-producer
+      acks: all
+      retries: 3
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+        retry.backoff.ms: 1000
+        batch.size: 16384
+        linger.ms: 5
+        compression.type: snappy
+
+  # Database Configuration using ShardingSphere-Proxy
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fintech_main
+    username: fintech_user
+    password: fintech_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+
+  data:
+    redis:
+      database: 3

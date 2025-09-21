@@ -1,0 +1,12 @@
+rootProject.name = 'ledger-service'
+dependencyResolutionManagement {
+    versionCatalogs {
+        create("libs") {
+            // Pointing Gradle to a custom file location
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
+}
+// include the security module
+include(":security")
+project(":security").projectDir = file("../../module/security")
