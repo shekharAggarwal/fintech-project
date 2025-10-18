@@ -1,16 +1,16 @@
-# Multi-stage Dockerfile for payment-service
+# Multi-stage Dockerfile for ledger-service
 # Stage 1: Build the application
 FROM gradle:8.5.0-jdk17 AS builder
 WORKDIR /app
 
 # Copy the actual source code for ALL modules
-#COPY module/security ./module/security
-COPY services/payment-service ./payment-service
+COPY module/security ./module/security
+COPY services/ledger-service ./ledger-service
 
 COPY services/gradle/libs.versions.toml ./gradle/libs.versions.toml
 
 
-WORKDIR /app/payment-service
+WORKDIR /app/ledger-service
 # Now run the build from the root, letting Gradle handle the modules
 RUN gradle bootJar --no-daemon
 
@@ -18,13 +18,13 @@ RUN gradle bootJar --no-daemon
 
 # Stage 2: Create the final production-ready runtime image
 FROM eclipse-temurin:17-jre
-WORKDIR /app/payment-service
+WORKDIR /app/ledger-service
 
 # Set the environment variable to activate the 'prod' profile
 ENV SPRING_PROFILES_ACTIVE=prod
 
 # Copy the built jar from the builder stage
-COPY --from=builder /app/payment-service/build/libs/*.jar app.jar
+COPY --from=builder /app/ledger-service/build/libs/*.jar app.jar
 
 # Set the entrypoint to run the application
-ENTRYPOINT ["java","-jar","/app/payment-service/app.jar"]
+ENTRYPOINT ["java","-jar","/app/ledger-service/app.jar"]

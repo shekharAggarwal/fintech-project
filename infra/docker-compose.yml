@@ -22,7 +22,7 @@ services:
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -47,7 +47,7 @@ services:
       jaeger:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -64,7 +64,7 @@ services:
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686/"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:16686/" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -88,7 +88,7 @@ services:
       - ./splunk/default.yml:/tmp/defaults/default.yml:ro
       - ./splunk/setup-hec.sh:/sbin/setup-hec.sh:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/en-US/account/login"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/en-US/account/login" ]
       interval: 60s
       timeout: 30s
       retries: 3
@@ -106,7 +106,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      test: [ "CMD", "nc", "-z", "localhost", "2181" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -122,13 +122,16 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9093,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       zookeeper:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -146,7 +149,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -162,7 +165,7 @@ services:
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -183,7 +186,7 @@ services:
     volumes:
       - postgres-main-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_main"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_main" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -205,7 +208,7 @@ services:
       - postgres-auth-data:/var/lib/postgresql/data
       - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_auth"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_auth" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -227,7 +230,7 @@ services:
       - postgres-scheduler-data:/var/lib/postgresql/data
       - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_scheduler"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_scheduler" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -249,7 +252,7 @@ services:
       - postgres-retry-data:/var/lib/postgresql/data
       - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_retry"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d fintech_retry" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -260,19 +263,20 @@ services:
   #-----------------------------------
   config-server:
     build:
-      context: ../services/config-server
+      context: ../services
+      dockerfile: config-server/Dockerfile
     container_name: fintech_config_server
     networks:
       - fintech_net
     ports:
       - "8888:8888"
     volumes:
-      - ../services/config-repo/default:/config
+      - ../services/config-repo/prod:/config
     environment:
       SPRING_PROFILES_ACTIVE: native
       SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: /config
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8888/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8888/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -282,7 +286,9 @@ services:
   # APPLICATION MICROSERVICES
   #-----------------------------------
   gateway-service:
-    build: ../services/gateway-service
+    build:
+      context: ../services
+      dockerfile: gateway-service/Dockerfile
     container_name: fintech_gateway_service
     networks:
       - fintech_net
@@ -290,6 +296,7 @@ services:
       - "${GATEWAY_SERVICE_PORT}:${GATEWAY_SERVICE_PORT}"
     volumes:
       - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     env_file: .env
     depends_on:
       config-server:
@@ -297,20 +304,23 @@ services:
       fintech_redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${GATEWAY_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${GATEWAY_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
   auth-service:
-    build: ../services/auth-service
+    build:
+      context: ../services
+      dockerfile: auth-service/Dockerfile
     container_name: fintech_auth_service
     networks:
       - fintech_net
     env_file: .env
     volumes:
       - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
         condition: service_healthy
@@ -319,153 +329,213 @@ services:
       rabbitmq:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${AUTH_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${AUTH_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
   authorization-service:
-    build: ../services/authorization-service
+    build:
+      context: ../services
+      dockerfile: authorization-service/Dockerfile
     container_name: fintech_authorization_service
     networks:
       - fintech_net
     env_file: .env
     volumes:
       - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
         condition: service_healthy
       postgres-auth:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${AUTHORIZATION_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${AUTHORIZATION_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
   user-service:
-    build: ../services/user-service
+    build:
+      context: ..
+      dockerfile: services/user-service/Dockerfile
     container_name: fintech_user_service
     networks:
       - fintech_net
     env_file: .env
+    volumes:
+      - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${USER_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${USER_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
   payment-service:
-    build: ../services/payment-service
+    build:
+      context: ..
+      dockerfile: services/payment-service/Dockerfile
     container_name: fintech_payment_service
     networks:
       - fintech_net
     env_file: .env
+    volumes:
+      - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
         condition: service_healthy
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${PAYMENT_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${PAYMENT_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
   transaction-service:
-    build: ../services/transaction-service
+    build:
+      context: ..
+      dockerfile: services/transaction-service/Dockerfile
     container_name: fintech_transaction_service
     networks:
       - fintech_net
     env_file: .env
+    volumes:
+      - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
         condition: service_healthy
       kafka:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${TRANSACTION_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${TRANSACTION_SERVICE_PORT}/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  ledger-service:
+    build:
+      context: ..
+      dockerfile: services/ledger-service/Dockerfile
+    container_name: fintech_ledger_service
+    networks:
+      - fintech_net
+    env_file: .env
+    volumes:
+      - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${RETRY_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
   notification-service:
-    build: ../services/notification-service
+    build:
+      context: ..
+      dockerfile: services/notification-service/Dockerfile
     container_name: fintech_notification_service
     networks:
       - fintech_net
     env_file: .env
+    volumes:
+      - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${NOTIFICATION_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${NOTIFICATION_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
   reporting-service:
-    build: ../services/reporting-service
+    build:
+      context: ..
+      dockerfile: services/reporting-service/Dockerfile
     container_name: fintech_reporting_service
     networks:
       - fintech_net
     env_file: .env
+    volumes:
+      - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${REPORTING_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${REPORTING_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
   scheduler-service:
-    build: ../services/scheduler-service
+    build:
+      context: ..
+      dockerfile: services/scheduler-service/Dockerfile
     container_name: fintech_scheduler_service
     networks:
       - fintech_net
     env_file: .env
+    volumes:
+      - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
         condition: service_healthy
       postgres-scheduler:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${SCHEDULER_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${SCHEDULER_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
 
   retry-service:
-    build: ../services/retry-service
+    build:
+      context: ..
+      dockerfile: services/retry-service/Dockerfile
     container_name: fintech_retry_service
     networks:
       - fintech_net
     env_file: .env
+    volumes:
+      - ../certs:/app/certs:ro
+      - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
         condition: service_healthy
       postgres-retry:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:${RETRY_SERVICE_PORT}/actuator/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${RETRY_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
+
 
 networks:
   fintech_net:

@@ -1,0 +1,21 @@
+logging:
+  config: /log-config/logback-spring-template.xml
+  level:
+    root: INFO
+    com.fintech: DEBUG
+# Splunk configuration environment variables
+splunk:
+  host: splunk
+  port: 8088
+  hec:
+    url: http://splunk:8088
+    token: fintech-hec-token-2024
+    index: fintech-prod
+
+# Environment variables for logback configuration
+environment:
+  variables:
+    SPLUNK_HEC_URL: ${splunk.hec.url}
+    SPLUNK_HEC_TOKEN: ${splunk.hec.token}
+    SPLUNK_INDEX: ${splunk.hec.index}
+    LOG_PATH: ./logs

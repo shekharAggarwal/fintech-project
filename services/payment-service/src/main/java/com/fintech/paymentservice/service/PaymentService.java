@@ -16,6 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -250,4 +251,159 @@ public class PaymentService {
 //            redis.delete(lockKey);
 //        }
 //    }
+
+    /**
+     * Deposit money to account
+     */
+    @Transactional
+    public PaymentInitiatedResponse deposit(String account, BigDecimal amount, String description, String currentUserId) {
+        logger.info("Processing deposit for user {} to account {} amount {}", currentUserId, account, amount);
+
+        String paymentId = idGenerator.generateStringId();
+
+        Payment payment = new Payment();
+        payment.setPaymentId(paymentId);
+        payment.setUserId(currentUserId);
+        payment.setFromAccount("SYSTEM_DEPOSIT"); // System account for deposits
+        payment.setToAccount(account);
+        payment.setAmount(amount);
+        payment.setDescription(description != null ? description : "Deposit to account");
+        payment.setStatus(PaymentStatus.PENDING_VERIFICATION);
+        payment.setCreatedAt(Instant.now());
+        payment.setRetryCount(0);
+
+        payment = paymentRepository.save(payment);
+
+        // Generate OTP for verification
+        String otp = otpService.generateOtp(paymentId);
+
+        try {
+            otpEmailPublisher.publishOtpEmail(new OtpNotificationEvent(currentUserId, amount.toString(), otp));
+            logger.info("OTP sent to user {} for deposit paymentId: {}", currentUserId, paymentId);
+        } catch (Exception e) {
+            logger.error("Failed to send OTP notification for deposit paymentId:{} to userId:{}", paymentId, currentUserId, e);
+        }
+
+        logger.info("Deposit initiated successfully with ID: {}", paymentId);
+
+        return new PaymentInitiatedResponse(payment.getPaymentId(),
+                payment.getFromAccount(),
+                payment.getToAccount(),
+                payment.getAmount(),
+                payment.getDescription(),
+                payment.getStatus(),
+                payment.getCreatedAt(),
+                "Deposit initiated successfully. Please verify with OTP sent to your registered mobile number.");
+    }
+
+    /**
+     * Withdraw money from account
+     */
+    @Transactional
+    public PaymentInitiatedResponse withdraw(String account, BigDecimal amount, String description, String currentUserId) {
+        logger.info("Processing withdrawal for user {} from account {} amount {}", currentUserId, account, amount);
+
+        String paymentId = idGenerator.generateStringId();
+
+        Payment payment = new Payment();
+        payment.setPaymentId(paymentId);
+        payment.setUserId(currentUserId);
+        payment.setFromAccount(account);
+        payment.setToAccount("SYSTEM_WITHDRAWAL"); // System account for withdrawals
+        payment.setAmount(amount);
+        payment.setDescription(description != null ? description : "Withdrawal from account");
+        payment.setStatus(PaymentStatus.PENDING_VERIFICATION);
+        payment.setCreatedAt(Instant.now());
+        payment.setRetryCount(0);
+
+        payment = paymentRepository.save(payment);
+
+        // Generate OTP for verification
+        String otp = otpService.generateOtp(paymentId);
+
+        try {
+            otpEmailPublisher.publishOtpEmail(new OtpNotificationEvent(currentUserId, amount.toString(), otp));
+            logger.info("OTP sent to user {} for withdrawal paymentId: {}", currentUserId, paymentId);
+        } catch (Exception e) {
+            logger.error("Failed to send OTP notification for withdrawal paymentId:{} to userId:{}", paymentId, currentUserId, e);
+        }
+
+        logger.info("Withdrawal initiated successfully with ID: {}", paymentId);
+
+        return new PaymentInitiatedResponse(payment.getPaymentId(),
+                payment.getFromAccount(),
+                payment.getToAccount(),
+                payment.getAmount(),
+                payment.getDescription(),
+                payment.getStatus(),
+                payment.getCreatedAt(),
+                "Withdrawal initiated successfully. Please verify with OTP sent to your registered mobile number.");
+    }
+
+    /**
+     * Get payment history for a user
+     */
+    public org.springframework.data.domain.Page<Payment> getPaymentHistory(String currentUserId, int page, int size) {
+        logger.info("Fetching payment history for user {} - page: {}, size: {}", currentUserId, page, size);
+        
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return paymentRepository.findByUserIdOrderByCreatedAtDesc(currentUserId, pageable);
+    }
+
+    /**
+     * Cancel a pending payment
+     */
+    @Transactional
+    public boolean cancelPayment(String paymentId, String currentUserId) {
+        logger.info("Cancel requested for payment {} by user {}", paymentId, currentUserId);
+
+        Optional<Payment> paymentOpt = paymentRepository.findCancellablePayment(paymentId, currentUserId);
+        if (paymentOpt.isEmpty()) {
+            logger.warn("Payment not found or not cancellable: {} for user: {}", paymentId, currentUserId);
+            return false;
+        }
+
+        Payment payment = paymentOpt.get();
+        
+        // Update payment status to failed with cancellation reason
+        payment.setStatus(PaymentStatus.FAILED);
+        payment.setFailureReason("Payment cancelled by user");
+        payment.setFailedAt(Instant.now());
+        paymentRepository.save(payment);
+
+        logger.info("Payment {} successfully cancelled by user {}", paymentId, currentUserId);
+        return true;
+    }
+
+    /**
+     * Process bulk transfers
+     */
+    @Transactional
+    public com.fintech.paymentservice.dto.response.BulkTransferResponse processBulkTransfers(
+            java.util.List<InitiateRequest> transfers, String currentUserId) {
+        
+        logger.info("Processing bulk transfer of {} requests for user {}", transfers.size(), currentUserId);
+        
+        java.util.List<PaymentInitiatedResponse> successful = new java.util.ArrayList<>();
+        java.util.List<com.fintech.paymentservice.dto.response.BulkTransferResponse.BulkTransferError> failed = new java.util.ArrayList<>();
+        
+        for (int i = 0; i < transfers.size(); i++) {
+            try {
+                InitiateRequest request = transfers.get(i);
+                PaymentInitiatedResponse response = initiate(request, currentUserId);
+                successful.add(response);
+                logger.debug("Bulk transfer {} of {} successful: {}", i + 1, transfers.size(), response.paymentId());
+            } catch (Exception e) {
+                logger.error("Bulk transfer {} of {} failed: {}", i + 1, transfers.size(), e.getMessage());
+                failed.add(new com.fintech.paymentservice.dto.response.BulkTransferResponse.BulkTransferError(
+                    i, "Transfer failed", e.getMessage()));
+            }
+        }
+        
+        logger.info("Bulk transfer completed for user {}: {} successful, {} failed", 
+                   currentUserId, successful.size(), failed.size());
+        
+        return new com.fintech.paymentservice.dto.response.BulkTransferResponse(
+            successful, failed, transfers.size(), successful.size(), failed.size());
+    }
 }

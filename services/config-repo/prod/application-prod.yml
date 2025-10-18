@@ -1,0 +1,97 @@
+spring:
+  cloud:
+    config:
+      fail-fast: true
+
+  # Common configuration imports
+  config:
+    import:
+      - ./common-logging-config.yml
+      - ./common-observability-config.yml
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update  # Creates tables automatically if they don't exist
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        batch_size: 20
+        order_inserts: true
+        order_updates: true
+        jdbc:
+          batch_size: 20
+          batch_versioned_data: true
+    open-in-view: false
+
+    # Common infrastructure configuration for prod development
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 10
+          min-idle: 1
+          max-wait: -1ms
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_DEFAULT_USER}
+    password: ${RABBITMQ_DEFAULT_PASS}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}:${KAFKA_PORT}
+
+# RabbitMQ Configuration
+rabbitmq:
+  exchange:
+    user: fintech.user.exchange
+    authorization: fintech.authorization.exchange
+    notification: fintech.notification.exchange
+  queue:
+    user-creation: fintech.user.creation.queue
+    session-creation: fintech.authorization.session.creation.queue
+    email: fintech.notification.email.queue
+  routing-key:
+    user-creation: user.creation
+    session-creation: session.creation
+    email: fintech.notification.email
+
+kafka:
+  topics:
+    user-creation: fintech.user.creation
+    session-creation: fintech.authorization.session.creation
+    user-role-registration: fintech.authorization.user.role.registration
+    account-creation: fintech.transaction.account.creation
+    transaction-initiate: fintech.transaction.initiate
+    transaction-completed: fintech.transaction.completed
+
+server:
+  ssl:
+    enabled: true
+    # IMPORTANT: Replace with the actual path on your local machine
+    key-store: ${SSL_KEYSTORE_PATH}
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
+    key-store-type: ${SSL_KEYSTORE_TYPE}
+    key-alias: ${SSL_KEY_ALIAS}
+    trust-store: ${TRUST_STORE}
+    trust-store-password: ${TRUST_STORE_PASSWORD}
+
+# TLS Client Configuration for Gateway Service
+tls:
+  client:
+    key-store: ${SSL_KEYSTORE_PATH}
+    key-store-password: ${SSL_KEYSTORE_PASSWORD}
+    trust-store: ${TRUST_STORE}
+    trust-store-password: ${TRUST_STORE_PASSWORD}
+
+security:
+  session:
+    expiry: 600000  # 10 minutes

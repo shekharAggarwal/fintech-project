@@ -1,0 +1,68 @@
+server:
+  port: ${AUTH_SERVICE_PORT}
+
+spring:
+  application:
+    name: auth-service
+  
+  # Database Configuration - using direct connection for simplicity
+  datasource:
+    url: ${AUTH_DB_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+
+
+  # Redis Configuration
+  data:
+    redis:
+      database: 0
+
+  # RabbitMQ Configuration
+  rabbitmq:
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+        max-interval: 10000ms
+        multiplier: 2.0
+
+  # Kafka Configuration for internal service communications
+  kafka:
+    producer:
+      client-id: auth-service-producer
+#      acks: all
+#      retries: 3
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+#      properties:
+#        enable.idempotence: true
+#        max.in.flight.requests.per.connection: 1
+#        retry.backoff.ms: 1000
+#        batch.size: 16384
+#        linger.ms: 5
+#        compression.type: snappy
+
+# JWT Configuration
+jwt:
+  keystore-path: ${JWT_KEYSTORE_PATH}
+  keystore-password: ${JWT_KEYSTORE_PASSWORD}
+  key-alias: ${JWT_KEY_ALIAS}
+  access-token-expiration: 900000  # 15 minutes
+  refresh-token-expiration: 86400000  # 24 hours
+
+# Security Configuration
+security:
+  session:
+    redis-expiry: 300000  # 5 minutes
+    timeout: 1800000  # 30 minutes
+    max-sessions:

@@ -22,16 +22,17 @@ repositories {
 dependencies {
     // Security module dependency
     implementation project(":security")
-    
+
     implementation libs.bundles.spring.boot.web
     implementation libs.bundles.spring.boot.data
     implementation libs.bundles.spring.cloud
     implementation libs.spring.boot.starter.validation
+    implementation libs.spring.boot.starter.actuator
 //    implementation libs.spring.boot.starter.security
-    
+
     // Tracing dependencies - Use Spring Boot 3 compatible versions
     implementation libs.bundles.tracing
-    
+
     // Circuit Breaker
     implementation libs.resilience4j.springBoot3
 
@@ -40,22 +41,22 @@ dependencies {
 
     // Logging dependencies
     implementation libs.bundles.logging
-    
+
     // AOP for authorization aspects
     implementation libs.spring.boot.starter.aop
-    
+
     // WebClient for authorization service calls
     implementation libs.spring.boot.starter.webflux
-    
+
     // Apache HttpClient for mTLS support
 //    implementation libs.httpclient5
 
     // Kafka for internal service communications
     implementation libs.spring.kafka
-    
+
     // RabbitMQ for email notifications
     implementation libs.spring.boot.starter.amqp
-    
+
     testImplementation libs.bundles.test
     testImplementation libs.spring.kafka.test
     testRuntimeOnly libs.junit.platform.launcher

@@ -1,6 +1,6 @@
 # Common Observability Configuration Template for Production Environment
 # This file contains observability, monitoring, and resilience configurations
-# Import this file in your service's application.yml using spring.config.import
+# Import this file in your service's application-prod.yml using spring.config.import
 
 # Management endpoints for monitoring and observability (production-safe)
 management:

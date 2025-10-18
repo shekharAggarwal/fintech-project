@@ -1,0 +1,6 @@
+server:
+  port: ${RETRY_SERVICE_PORT}
+
+spring:
+  application:
+    name: retry-service

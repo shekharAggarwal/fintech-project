@@ -1,10 +1,29 @@
-# Multi-stage Dockerfile for gateway-service
+# Multi-stage Dockerfile for authorization-service
+# Stage 1: Build the application
 FROM gradle:8.5.0-jdk17 AS builder
 WORKDIR /app
-COPY . .
+
+# Copy the authorization-service project
+COPY authorization-service ./
+
+# Copy the shared gradle folder
+COPY gradle/libs.versions.toml ./gradle/libs.versions.toml
+
+# Build the Spring Boot jar
+# The build process itself is typically the same for all environments
 RUN gradle bootJar --no-daemon
 
-FROM eclipse-temurin:17-jre-alpine
+# ----------------------------------------------------------------
+
+# Stage 2: Create the final production-ready runtime image
+FROM eclipse-temurin:17-jre
 WORKDIR /app
+
+# Set the environment variable to activate the 'prod' profile
+ENV SPRING_PROFILES_ACTIVE=prod
+
+# Copy the built jar from the builder stage
 COPY --from=builder /app/build/libs/*.jar app.jar
+
+# Set the entrypoint to run the application
 ENTRYPOINT ["java","-jar","/app/app.jar"]

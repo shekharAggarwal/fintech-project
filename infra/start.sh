@@ -9,8 +9,8 @@ DB_SERVICES="postgres-main postgres-auth postgres-scheduler postgres-retry"
 
 # Define application services for ordered startup
 CONFIG_SERVICE="config-server"
-CORE_SERVICES="auth-service user-service payment-service transaction-service"
-SUPPORT_SERVICES="notification-service authorization-service reporting-service scheduler-service retry-service"
+CORE_SERVICES="auth-service user-service authorization-service payment-service transaction-service ledger-service"
+SUPPORT_SERVICES="notification-service reporting-service scheduler-service retry-service"
 GATEWAY_SERVICE="gateway-service"
 
 echo "🐳 Building and starting FinTech microservices with ShardingSphere-Proxy..."
@@ -49,7 +49,7 @@ else
   
   echo "🛠️  Step 7: Starting support services..."
   docker compose --env-file .env -f docker-compose.yml up --build -d $SUPPORT_SERVICES
-  
+
   echo "⏳ Waiting for support services to be ready..."
   sleep 15
   

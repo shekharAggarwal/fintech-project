@@ -1,0 +1,34 @@
+
+server:
+  port: ${TRANSACTION_SERVICE_PORT}
+  ssl:
+    client-auth: need
+
+spring:
+  application:
+    name: transaction-service
+    
+  kafka:
+    consumer:
+      group-id: transaction-service-group
+      client-id: transaction-service-consumer
+    producer:
+      client-id: transaction-service-producer
+
+
+  # Database Configuration using ShardingSphere-Proxy
+  datasource:
+    url: ${AUTH_DB_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+
+  data:
+    redis:
+      database: 3

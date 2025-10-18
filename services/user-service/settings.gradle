@@ -1,13 +1,17 @@
 rootProject.name = 'user-service'
-dependencyResolutionManagement {
-    versionCatalogs {
-        create("libs") {
-            // Pointing Gradle to a custom file location
-            from(files("../gradle/libs.versions.toml"))
+def localCatalogPath = file("../gradle/libs.versions.toml")
+
+if (localCatalogPath.exists()) {
+    println("✅ Applying local version catalog from: ${localCatalogPath}")
+    dependencyResolutionManagement {
+        versionCatalogs {
+            create("libs") {
+                from(files(localCatalogPath))
+            }
         }
     }
 }
 
 // include the security module
 include(":security")
-project(":security").projectDir = file("../../module/security")
+project(":security").projectDir = file("../../module/security").exists() ? file("../../module/security") : file("../module/security")

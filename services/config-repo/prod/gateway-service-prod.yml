@@ -1,0 +1,72 @@
+server:
+  port: ${GATEWAY_SERVICE_PORT}
+
+jwt:
+  public-cert-path: ${JWT_PUBLIC_CERT_PATH}
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      preserveHostHeader: true
+      routes:
+        - id: auth-service
+          uri: https://auth-service:${AUTH_SERVICE_PORT}
+          predicates:
+            - Path=/api/auth/**
+
+        - id: user-service
+          uri: https://user-service:${USER_SERVICE_PORT}
+          predicates:
+            - Path=/api/user/**
+          filters:
+            - name: JwtAuthGatewayFilter
+
+        - id: payment-service
+          uri: https://payment-service:${PAYMENT_SERVICE_PORT}
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - name: JwtAuthGatewayFilter
+
+        - id: transaction-service
+          uri: https://transaction-service:${TRANSACTION_SERVICE_PORT}
+          predicates:
+            - Path=/api/transaction/**
+          filters:
+            - name: JwtAuthGatewayFilter
+
+        - id: notification-service
+          uri: https://notification-service:${NOTIFICATION_SERVICE_PORT}
+          predicates:
+            - Path=/api/notification/**
+          filters:
+            - name: JwtAuthGatewayFilter
+
+        - id: reporting-service
+          uri: https://reporting-service:${REPORTING_SERVICE_PORT}
+          predicates:
+            - Path=/api/reporting/**
+          filters:
+            - name: JwtAuthGatewayFilter
+
+        - id: scheduler-service
+          uri: https://scheduler-service:${SCHEDULER_SERVICE_PORT}
+          predicates:
+            - Path=/api/scheduler/**
+          filters:
+            - name: JwtAuthGatewayFilter
+
+        - id: retry-service
+          uri: https://retry-service:${RETRY_SERVICE_PORT}
+          predicates:
+            - Path=/api/retry/**
+          filters:
+            - name: JwtAuthGatewayFilter
+
+
+gateway:
+  authz:
+    base-url: https://authorization-service:${AUTHORIZATION_SERVICE_PORT}
+    introspect-path: /authz/introspect
+    timeout-ms: 3000

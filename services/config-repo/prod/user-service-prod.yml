@@ -1,0 +1,48 @@
+server:
+  port: ${USER_SERVICE_PORT}
+  ssl:
+    client-auth: need
+
+spring:
+  application:
+    name: user-service
+
+  datasource:
+    url: ${AUTH_DB_URL}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+
+  data:
+    redis:
+      database: 2 # Redis DB for user caching
+    # Kafka Configuration for internal service communications
+
+  kafka:
+    consumer:
+      group-id: user-service-group
+      client-id: user-service-consumer
+    producer:
+      client-id: user-service-producer
+  # RabbitMQ Configuration for email notifications
+  rabbitmq:
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      retry:
+        enabled: true
+        initial-interval: 1000ms
+        max-attempts: 3
+        max-interval: 10000ms
+        multiplier: 2.0
+
+# Internal service communication settings
+service:
+  authz:
+    base-url: https://authorization-service:${AUTHORIZATION_SERVICE_PORT}

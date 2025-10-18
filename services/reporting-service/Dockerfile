@@ -1,10 +1,30 @@
 # Multi-stage Dockerfile for reporting-service
+# Stage 1: Build the application
 FROM gradle:8.5.0-jdk17 AS builder
 WORKDIR /app
-COPY . .
+
+# Copy the actual source code for ALL modules
+#COPY module/security ./module/security
+COPY services/reporting-service ./reporting-service
+
+COPY services/gradle/libs.versions.toml ./gradle/libs.versions.toml
+
+
+WORKDIR /app/reporting-service
+# Now run the build from the root, letting Gradle handle the modules
 RUN gradle bootJar --no-daemon
 
-FROM eclipse-temurin:17-jre-alpine
-WORKDIR /app
-COPY --from=builder /app/build/libs/*.jar app.jar
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+# ----------------------------------------------------------------
+
+# Stage 2: Create the final production-ready runtime image
+FROM eclipse-temurin:17-jre
+WORKDIR /app/reporting-service
+
+# Set the environment variable to activate the 'prod' profile
+ENV SPRING_PROFILES_ACTIVE=prod
+
+# Copy the built jar from the builder stage
+COPY --from=builder /app/reporting-service/build/libs/*.jar app.jar
+
+# Set the entrypoint to run the application
+ENTRYPOINT ["java","-jar","/app/reporting-service/app.jar"]
