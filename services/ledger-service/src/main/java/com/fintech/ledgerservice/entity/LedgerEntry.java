@@ -10,7 +10,6 @@ import java.time.Instant;
 @Entity
 @Table(name = "ledger_entries", indexes = {
         @Index(name = "idx_ledger_txn_id", columnList = "txn_id"),
-        @Index(name = "idx_ledger_account_id", columnList = "account_id"),
         @Index(name = "idx_ledger_created_at", columnList = "created_at"),
         @Index(name = "idx_ledger_entry_type", columnList = "entry_type")
 })

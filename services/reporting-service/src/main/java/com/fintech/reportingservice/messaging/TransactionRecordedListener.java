@@ -20,9 +20,9 @@ public class TransactionRecordedListener {
 
     @KafkaListener(topics = "transaction-recorded", groupId = "reporting")
     public void onRecord(Map<String, Object> payload) {
-        TransactionRecord r = new TransactionRecord();
+        /*TransactionRecord r = new TransactionRecord();
         r.setPaymentId((String) payload.get("paymentId"));
         r.setStatus((String) payload.get("status"));
-        repo.save(r);
+        repo.save(r);*/
     }
 }

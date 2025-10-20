@@ -4,10 +4,6 @@ import com.fintech.reportingservice.model.ReportFormat;
 import com.fintech.reportingservice.model.ReportStatus;
 import com.fintech.reportingservice.model.ReportType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -25,10 +21,6 @@ import java.util.Map;
     @Index(name = "idx_created_at", columnList = "created_at"),
     @Index(name = "idx_status_created", columnList = "report_status, created_at")
 })
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class Report {
 
     @Id

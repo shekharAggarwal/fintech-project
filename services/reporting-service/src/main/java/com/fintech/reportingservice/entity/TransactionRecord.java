@@ -1,10 +1,6 @@
 package com.fintech.reportingservice.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -25,10 +21,6 @@ import java.util.Map;
     @Index(name = "idx_transaction_date", columnList = "transaction_date"),
     @Index(name = "idx_status_date", columnList = "status, transaction_date")
 })
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class TransactionRecord {
 
     @Id

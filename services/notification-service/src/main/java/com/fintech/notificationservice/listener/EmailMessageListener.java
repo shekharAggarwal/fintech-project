@@ -1,5 +1,6 @@
 package com.fintech.notificationservice.listener;
 
+import com.fintech.notificationservice.config.RabbitMQConfig;
 import com.fintech.notificationservice.dto.EmailMessage;
 import com.fintech.notificationservice.service.EmailService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -13,10 +14,13 @@ public class EmailMessageListener {
     
     private static final Logger logger = LoggerFactory.getLogger(EmailMessageListener.class);
     
-    @Autowired
-    private EmailService emailService;
-    
-    @RabbitListener(queues = "notification.email.queue")
+    private final EmailService emailService;
+
+    public EmailMessageListener(EmailService emailService) {
+        this.emailService = emailService;
+    }
+
+    @RabbitListener(queues = RabbitMQConfig.EMAIL_QUEUE)
     public void handleEmailMessage(EmailMessage emailMessage) {
         try {
             logger.info("Received email message for: {}", emailMessage.getTo());

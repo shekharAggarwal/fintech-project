@@ -22,6 +22,7 @@ dependencies {
     implementation libs.spring.boot.starter
     implementation libs.spring.boot.starter.web
     implementation libs.spring.boot.starter.mail
+    implementation libs.spring.boot.starter.thymeleaf
     implementation libs.bundles.spring.cloud
     implementation libs.spring.boot.starter.actuator
     implementation libs.spring.boot.starter.amqp
@@ -29,7 +30,7 @@ dependencies {
     implementation libs.spring.boot.starter.validation
     
     // Circuit Breaker and Resilience
-    implementation libs.bundles.resilience4j
+//    implementation libs.bundles.resilience4j
     
     // Tracing dependencies - Jaeger via OTLP  
     implementation libs.bundles.tracing

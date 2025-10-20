@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import java.util.TimeZone;
 
 @SpringBootApplication
-@EnableDiscoveryClient
 @EnableJpaRepositories
 public class NotificationServiceApplication {
 

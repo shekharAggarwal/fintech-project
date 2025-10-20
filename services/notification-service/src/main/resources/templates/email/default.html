@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${subject}">FinTech Notification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FinTech</h1>
+            <p>Secure Financial Services</p>
+        </div>
+        
+        <div class="content">
+            <h2 th:text="${subject}">Notification</h2>
+            <p th:utext="${body}">This is the email content body.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This email was sent by FinTech Notification Service</p>
+            <p>© 2025 FinTech. All rights reserved.</p>
+            <p>
+                <small>
+                    If you have any questions, please contact our support team.
+                    <br>
+                    This is an automated message, please do not reply to this email.
+                </small>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

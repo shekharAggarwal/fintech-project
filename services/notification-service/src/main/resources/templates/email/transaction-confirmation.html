@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Confirmation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background-color: #28a745;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+        }
+        .transaction-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .status-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✓ Transaction Successful</h1>
+            <p>Your transaction has been processed</p>
+        </div>
+        
+        <div class="content">
+            <h2>Transaction Confirmation</h2>
+            <p>Dear <span th:text="${userName}">Customer</span>,</p>
+            <p>Your transaction has been successfully processed. Here are the details:</p>
+            
+            <div class="transaction-details">
+                <div class="detail-row">
+                    <span>Transaction ID:</span>
+                    <span th:text="${transactionId}">TXN123456789</span>
+                </div>
+                <div class="detail-row">
+                    <span>Date & Time:</span>
+                    <span th:text="${transactionDate}">2025-10-20 10:30:00</span>
+                </div>
+                <div class="detail-row">
+                    <span>Transaction Type:</span>
+                    <span th:text="${transactionType}">Transfer</span>
+                </div>
+                <div class="detail-row">
+                    <span>From Account:</span>
+                    <span th:text="${fromAccount}">****1234</span>
+                </div>
+                <div class="detail-row">
+                    <span>To Account:</span>
+                    <span th:text="${toAccount}">****5678</span>
+                </div>
+                <div class="detail-row">
+                    <span>Description:</span>
+                    <span th:text="${description}">Payment transfer</span>
+                </div>
+                <div class="detail-row">
+                    <span>Status:</span>
+                    <span class="status-success" th:text="${status}">Completed</span>
+                </div>
+                <div class="detail-row">
+                    <span>Amount:</span>
+                    <span th:text="${amount}">$100.00</span>
+                </div>
+            </div>
+            
+            <p><strong>Important:</strong> Please keep this confirmation for your records. If you have any questions about this transaction, please contact our support team.</p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated confirmation email for your FinTech transaction.</p>
+            <p>© 2025 FinTech. All rights reserved.</p>
+            <p>
+                <small>
+                    If you did not authorize this transaction, please contact us immediately.
+                    <br>
+                    Support: support@fintech.com | Phone: 1-800-FINTECH
+                </small>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

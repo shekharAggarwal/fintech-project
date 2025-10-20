@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to FinTech</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .welcome-message {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .features {
+            margin: 30px 0;
+        }
+        .feature {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to FinTech!</h1>
+            <p>Your secure financial services platform</p>
+        </div>
+        
+        <div class="welcome-message">
+            <h2>Welcome <span th:text="${userName}">User</span>!</h2>
+            <p>Thank you for joining FinTech. Your account has been successfully created.</p>
+        </div>
+        
+        <div class="features">
+            <h3>What you can do with FinTech:</h3>
+            <div class="feature">
+                <strong>Secure Payments</strong> - Transfer money safely with end-to-end encryption
+            </div>
+            <div class="feature">
+                <strong>Transaction History</strong> - View and manage all your financial transactions
+            </div>
+            <div class="feature">
+                <strong>Real-time Notifications</strong> - Get instant updates on your account activity
+            </div>
+            <div class="feature">
+                <strong>Advanced Security</strong> - Multi-factor authentication and fraud protection
+            </div>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="#" class="button" th:href="${loginUrl}">Get Started</a>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Important Security Information:</strong></p>
+            <p>
+                • Never share your login credentials with anyone<br>
+                • Always log in through our official website<br>
+                • Contact support if you notice any suspicious activity
+            </p>
+            <p>© 2025 FinTech. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

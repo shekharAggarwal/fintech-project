@@ -1,6 +1,5 @@
 package com.fintech.reportingservice.config;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -19,7 +18,6 @@ import java.util.Map;
 /**
  * Kafka configuration for reporting service
  */
-@Slf4j
 @Configuration
 public class KafkaConfig {
 
@@ -38,7 +36,7 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.ACKS_CONFIG, "all");
         configProps.put(ProducerConfig.RETRIES_CONFIG, 3);
         configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        
+
         return new DefaultKafkaProducerFactory<>(configProps);
     }
 
@@ -57,11 +55,11 @@ public class KafkaConfig {
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 50);
-        
+
         // Configure JsonDeserializer
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-        
+
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
@@ -70,10 +68,10 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
         factory.setConcurrency(5);
-        
+
         // Enable manual acknowledgment
         factory.getContainerProperties().setAckMode(org.springframework.kafka.listener.ContainerProperties.AckMode.MANUAL);
-        
+
         return factory;
     }
 }

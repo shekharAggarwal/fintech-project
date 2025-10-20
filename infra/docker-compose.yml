@@ -145,9 +145,12 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+      - "15692:15692"  # Prometheus metrics port
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
     healthcheck:
       test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
       interval: 30s
@@ -258,6 +261,73 @@ services:
       retries: 5
       start_period: 30s
 
+  # PostgreSQL Exporters for Prometheus
+  postgres-exporter-main:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: fintech_postgres_exporter_main
+    networks:
+      - fintech_net
+    ports:
+      - "9187:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-main:5432/fintech_main?sslmode=disable"
+    depends_on:
+      postgres-main:
+        condition: service_healthy
+
+  postgres-exporter-auth:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: fintech_postgres_exporter_auth
+    networks:
+      - fintech_net
+    ports:
+      - "9188:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-auth:5432/fintech_auth?sslmode=disable"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+
+  postgres-exporter-scheduler:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: fintech_postgres_exporter_scheduler
+    networks:
+      - fintech_net
+    ports:
+      - "9189:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-scheduler:5432/fintech_scheduler?sslmode=disable"
+    depends_on:
+      postgres-scheduler:
+        condition: service_healthy
+
+  postgres-exporter-retry:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: fintech_postgres_exporter_retry
+    networks:
+      - fintech_net
+    ports:
+      - "9190:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-retry:5432/fintech_retry?sslmode=disable"
+    depends_on:
+      postgres-retry:
+        condition: service_healthy
+
+  # Redis Exporter for Prometheus
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: fintech_redis_exporter
+    networks:
+      - fintech_net
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: "redis://fintech_redis:6379"
+    depends_on:
+      fintech_redis:
+        condition: service_healthy
+
   #-----------------------------------
   # INFRASTRUCTURE & PLATFORM SERVICES
   #-----------------------------------
@@ -301,8 +371,6 @@ services:
     depends_on:
       config-server:
         condition: service_healthy
-      fintech_redis:
-        condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${GATEWAY_SERVICE_PORT}/actuator/health" ]
       interval: 30s
@@ -324,10 +392,6 @@ services:
     depends_on:
       config-server:
         condition: service_healthy
-      fintech_redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${AUTH_SERVICE_PORT}/actuator/health" ]
       interval: 30s
@@ -348,8 +412,6 @@ services:
       - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
-        condition: service_healthy
-      postgres-auth:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${AUTHORIZATION_SERVICE_PORT}/actuator/health" ]
@@ -393,8 +455,6 @@ services:
     depends_on:
       config-server:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${PAYMENT_SERVICE_PORT}/actuator/health" ]
       interval: 30s
@@ -415,8 +475,6 @@ services:
       - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
-        condition: service_healthy
-      kafka:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${TRANSACTION_SERVICE_PORT}/actuator/health" ]
@@ -440,7 +498,7 @@ services:
       config-server:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${RETRY_SERVICE_PORT}/actuator/health" ]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${LEDGER_SERVICE_PORT}/actuator/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -459,8 +517,6 @@ services:
       - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
-        condition: service_healthy
-      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${NOTIFICATION_SERVICE_PORT}/actuator/health" ]
@@ -504,8 +560,6 @@ services:
     depends_on:
       config-server:
         condition: service_healthy
-      postgres-scheduler:
-        condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${SCHEDULER_SERVICE_PORT}/actuator/health" ]
       interval: 30s
@@ -526,8 +580,6 @@ services:
       - ../services/common-logging-config:/log-config
     depends_on:
       config-server:
-        condition: service_healthy
-      postgres-retry:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:${RETRY_SERVICE_PORT}/actuator/health" ]

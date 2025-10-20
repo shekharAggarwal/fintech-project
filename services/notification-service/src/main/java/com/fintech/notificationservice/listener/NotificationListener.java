@@ -12,11 +12,14 @@ import java.util.Map;
 @Component
 public class NotificationListener {
     
-    @Autowired
-    private NotificationService notificationService;
+    private final NotificationService notificationService;
     
     private final ObjectMapper objectMapper = new ObjectMapper();
-    
+
+    public NotificationListener(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+
     @RabbitListener(queues = "notification.email")
     public void handleEmailNotification(Map<String, Object> message) {
         try {

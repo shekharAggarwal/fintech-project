@@ -24,44 +24,98 @@ scrape_configs:
   - job_name: 'authorization-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['authorization-service:8083']
+      - targets: ['host.docker.internal:8085']
 
   - job_name: 'payment-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['payment-service:8084']
+      - targets: ['host.docker.internal:8084']
 
   - job_name: 'transaction-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['transaction-service:8085']
+      - targets: ['host.docker.internal:8086']
 
   - job_name: 'notification-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['notification-service:8086']
+      - targets: ['host.docker.internal:8083']
+
+  - job_name: 'ledger-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8087']
 
   - job_name: 'scheduler-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['scheduler-service:8087']
+      - targets: ['host.docker.internal:8089']
 
   - job_name: 'reporting-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['reporting-service:8088']
+      - targets: ['host.docker.internal:8092']
 
   - job_name: 'user-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['user-service:8089']
+      - targets: ['host.docker.internal:8093']
 
   - job_name: 'retry-service'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['retry-service:8090']
+      - targets: ['host.docker.internal:8090']
 
   - job_name: 'config-server'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['config-server:8888']
+      - targets: ['host.docker.internal:8888']
+
+  # Database Health Checks
+  - job_name: 'postgres-main'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:9187']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'postgres-auth'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:9188']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'postgres-scheduler'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:9189']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'postgres-retry'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:9190']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Infrastructure Services Health Checks
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['host.docker.internal:9121']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['host.docker.internal:9092']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'rabbitmq'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:15692']  # RabbitMQ Prometheus plugin port
+    scrape_interval: 30s
+    scrape_timeout: 10s

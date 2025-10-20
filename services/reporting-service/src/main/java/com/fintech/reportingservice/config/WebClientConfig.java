@@ -2,7 +2,6 @@ package com.fintech.reportingservice.config;
 
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +17,6 @@ import java.security.KeyStore;
 /**
  * WebClient configuration with mTLS for external service calls
  */
-@Slf4j
 @Configuration
 public class WebClientConfig {
 
@@ -67,7 +65,7 @@ public class WebClientConfig {
                     .build();
 
         } catch (Exception e) {
-            log.error("Failed to configure mTLS WebClient, falling back to default", e);
+//            log.error("Failed to configure mTLS WebClient, falling back to default", e);
             return WebClient.builder().build();
         }
     }

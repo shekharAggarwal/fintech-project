@@ -1,60 +1,42 @@
 #!/bin/bash
 set -e
 
-# Define infrastructure services
-INFRA_SERVICES="fintech_redis grafana prometheus jaeger splunk zookeeper kafka rabbitmq"
-
-# Define database services with read replicas and ShardingSphere-Proxy
-DB_SERVICES="postgres-main postgres-auth postgres-scheduler postgres-retry"
-
-# Define application services for ordered startup
-CONFIG_SERVICE="config-server"
-CORE_SERVICES="auth-service user-service authorization-service payment-service transaction-service ledger-service"
-SUPPORT_SERVICES="notification-service reporting-service scheduler-service retry-service"
-GATEWAY_SERVICE="gateway-service"
-
-echo "🐳 Building and starting FinTech microservices with ShardingSphere-Proxy..."
+echo "🐳 Starting FinTech microservices platform..."
 
 if [ "$1" == "infra" ]; then
-  echo "🔧 Starting only infrastructure containers..."
-  docker compose --env-file .env -f docker-compose.yml up -d $INFRA_SERVICES $DB_SERVICES
-  echo "✅ Infrastructure services started."
-
+  echo "🔧 Starting only infrastructure services..."
+  docker compose --env-file .env up -d \
+    prometheus grafana jaeger splunk \
+    zookeeper kafka rabbitmq fintech_redis \
+    postgres-main postgres-auth postgres-scheduler postgres-retry \
+    postgres-exporter-main postgres-exporter-auth postgres-exporter-scheduler postgres-exporter-retry \
+    redis-exporter
+  echo "✅ Infrastructure services started successfully."
+  
+elif [ "$1" == "build" ]; then
+  echo "� Building and starting all services..."
+  docker compose --env-file .env up --build -d
+  echo "✅ All services built and started successfully."
+  
 else
-  # Full startup sequence
-  echo "🗄️  Step 1: Starting PostgreSQL databases..."
-  docker compose --env-file .env -f docker-compose.yml up -d $DB_SERVICES
-  
-  echo "⏳ Waiting for master databases to initialize..."
-  sleep 30
-
-  
-  echo "🔧 Step 4: Starting infrastructure services..."
-  docker compose --env-file .env -f docker-compose.yml up -d $INFRA_SERVICES
-  
-  echo "⏳ Waiting for infrastructure to be ready..."
-  sleep 20
-  
-  echo "⚙️  Step 5: Starting config server..."
-  docker compose --env-file .env -f docker-compose.yml up -d $CONFIG_SERVICE
-  
-  echo "⏳ Waiting for config server to be ready..."
-  sleep 30
-  
-  echo "🚀 Step 6: Starting core microservices..."
-  docker compose --env-file .env -f docker-compose.yml up --build -d $CORE_SERVICES
-  
-  echo "⏳ Waiting for core services to be ready..."
-  sleep 20
-  
-  echo "🛠️  Step 7: Starting support services..."
-  docker compose --env-file .env -f docker-compose.yml up --build -d $SUPPORT_SERVICES
-
-  echo "⏳ Waiting for support services to be ready..."
-  sleep 15
-  
-  echo "🌐 Step 8: Starting gateway service..."
-  docker compose --env-file .env -f docker-compose.yml up --build -d $GATEWAY_SERVICE
-  
-  echo "✅ All services are starting up."
+  echo "� Starting all services (using existing images)..."
+  docker compose --env-file .env up -d
+  echo "✅ All services started successfully."
 fi
+
+echo ""
+echo "� Service Status:"
+echo "🌐 Gateway Service: http://localhost:8080"
+echo "📈 Prometheus: http://localhost:9090"
+echo "📊 Grafana: http://localhost:3000"
+echo "🔍 Jaeger: http://localhost:16686"
+echo "📋 Splunk: http://localhost:8000"
+echo "🐰 RabbitMQ Management: http://localhost:15672"
+echo ""
+echo "💡 Usage:"
+echo "  ./start.sh          - Start all services"
+echo "  ./start.sh build    - Build and start all services"
+echo "  ./start.sh infra    - Start only infrastructure services"
+echo ""
+echo "🔍 To check service status: docker compose ps"
+echo "📋 To view logs: docker compose logs [service-name]"
