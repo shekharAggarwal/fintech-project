@@ -1,10 +1,6 @@
 package com.fintech.retryservice.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,17 +12,13 @@ import java.util.Map;
  */
 @Entity
 @Table(name = "retry_attempts", indexes = {
-    @Index(name = "idx_retry_status", columnList = "retry_status"),
-    @Index(name = "idx_retry_type", columnList = "retry_type"),
-    @Index(name = "idx_original_id", columnList = "original_id"),
-    @Index(name = "idx_next_retry_time", columnList = "next_retry_time"),
-    @Index(name = "idx_created_at", columnList = "created_at"),
-    @Index(name = "idx_status_retry_time", columnList = "retry_status, next_retry_time")
+        @Index(name = "idx_retry_status", columnList = "retry_status"),
+        @Index(name = "idx_retry_type", columnList = "retry_type"),
+        @Index(name = "idx_original_id", columnList = "original_id"),
+        @Index(name = "idx_next_retry_time", columnList = "next_retry_time"),
+        @Index(name = "idx_created_at", columnList = "created_at"),
+        @Index(name = "idx_status_retry_time", columnList = "retry_status, next_retry_time")
 })
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class RetryAttempt {
 
     @Id
@@ -108,9 +100,9 @@ public class RetryAttempt {
      * Check if retry is ready for execution
      */
     public boolean isReadyForRetry() {
-        return retryStatus == RetryStatus.PENDING && 
-               LocalDateTime.now().isAfter(nextRetryTime) &&
-               !isMaxRetriesExceeded();
+        return retryStatus == RetryStatus.PENDING &&
+                LocalDateTime.now().isAfter(nextRetryTime) &&
+                !isMaxRetriesExceeded();
     }
 
     /**
@@ -119,7 +111,7 @@ public class RetryAttempt {
     public void incrementRetryCount() {
         this.retryCount++;
         this.lastRetryTime = LocalDateTime.now();
-        
+
         if (isMaxRetriesExceeded()) {
             this.retryStatus = RetryStatus.MAX_RETRIES_EXCEEDED;
         } else {

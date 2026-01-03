@@ -1,16 +1,16 @@
 package com.fintech.schedulerservice.service;
 
 import com.fintech.schedulerservice.dto.JobRequest;
+import com.fintech.schedulerservice.entity.JobStatus;
 import com.fintech.schedulerservice.dto.JobResponse;
 import com.fintech.schedulerservice.dto.JobStatusUpdate;
-import com.fintech.schedulerservice.model.JobStatus;
-import com.fintech.schedulerservice.model.JobType;
-import com.fintech.schedulerservice.model.ScheduledJob;
+import com.fintech.schedulerservice.entity.JobType;
+import com.fintech.schedulerservice.entity.ScheduledJob;
 import com.fintech.schedulerservice.repository.ScheduledJobRepository;
 import com.fintech.schedulerservice.util.SnowflakeIdGenerator;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.quartz.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +18,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
@@ -28,40 +29,49 @@ import java.util.stream.Collectors;
 /**
  * Service for managing scheduled jobs
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class SchedulerService {
+
+    private static final Logger log = LoggerFactory.getLogger(SchedulerService.class);
 
     private final ScheduledJobRepository scheduledJobRepository;
     private final SnowflakeIdGenerator snowflakeIdGenerator;
     private final Scheduler quartzScheduler;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
+    public SchedulerService(ScheduledJobRepository scheduledJobRepository, SnowflakeIdGenerator snowflakeIdGenerator, Scheduler quartzScheduler, KafkaTemplate<String, Object> kafkaTemplate) {
+        this.scheduledJobRepository = scheduledJobRepository;
+        this.snowflakeIdGenerator = snowflakeIdGenerator;
+        this.quartzScheduler = quartzScheduler;
+        this.kafkaTemplate = kafkaTemplate;
+    }
+
     /**
      * Create a new scheduled job
      */
     @Transactional
     public JobResponse createJob(JobRequest jobRequest) {
-        log.info("Creating new job: {}", jobRequest.getJobName());
+//        log.info("Creating new job: {}", jobRequest.getJobName());
 
         String jobId = snowflakeIdGenerator.nextId();
+
+        Instant scheduledInstant = jobRequest.scheduledTime() != null ? 
+            jobRequest.scheduledTime().atZone(ZoneId.systemDefault()).toInstant() : null;
         
-        ScheduledJob scheduledJob = ScheduledJob.builder()
-                .jobId(jobId)
-                .jobName(jobRequest.getJobName())
-                .jobType(jobRequest.getJobType())
-                .jobStatus(JobStatus.SCHEDULED)
-                .scheduledTime(jobRequest.getScheduledTime())
-                .description(jobRequest.getDescription())
-                .createdBy(jobRequest.getCreatedBy())
-                .lastUpdatedBy(jobRequest.getCreatedBy())
-                .jobData(jobRequest.getJobData())
-                .retryCount(0)
-                .maxRetries(jobRequest.getMaxRetries() != null ? jobRequest.getMaxRetries() : 3)
-                .retryDelaySeconds(jobRequest.getRetryDelaySeconds() != null ? jobRequest.getRetryDelaySeconds() : 60)
-                .priority(jobRequest.getPriority() != null ? jobRequest.getPriority() : "NORMAL")
-                .build();
+        ScheduledJob scheduledJob = new ScheduledJob(
+                jobId,
+                jobRequest.jobName(),
+                jobRequest.jobType(),
+                JobStatus.SCHEDULED,
+                scheduledInstant,
+                jobRequest.description(),
+                jobRequest.createdBy(),
+                jobRequest.createdBy(),
+                jobRequest.jobData() != null ? jobRequest.jobData().toString() : null,
+                0, // retryCount
+                jobRequest.maxRetries() != null ? jobRequest.maxRetries() : 3,
+                jobRequest.retryDelaySeconds() != null ? jobRequest.retryDelaySeconds() : 60,
+                jobRequest.priority() != null ? jobRequest.priority() : "NORMAL");
 
         scheduledJob = scheduledJobRepository.save(scheduledJob);
 
@@ -117,7 +127,7 @@ public class SchedulerService {
         job.setExecutionResult(statusUpdate.getExecutionResult());
         job.setErrorMessage(statusUpdate.getErrorMessage());
         job.setLastUpdatedBy(statusUpdate.getUpdatedBy());
-        job.setUpdatedAt(LocalDateTime.now());
+        job.setUpdatedAt(Instant.now());
 
         if (statusUpdate.getExecutionTime() != null) {
             job.setActualExecutionTime(statusUpdate.getExecutionTime());
@@ -128,15 +138,15 @@ public class SchedulerService {
             job.setActualExecutionTime(LocalDateTime.now());
         } else if (statusUpdate.getJobStatus() == JobStatus.FAILED) {
             job.setRetryCount(job.getRetryCount() + 1);
-            
+
             // Schedule retry if within retry limits
             if (job.getRetryCount() < job.getMaxRetries()) {
                 LocalDateTime nextRetryTime = LocalDateTime.now().plusSeconds(job.getRetryDelaySeconds());
                 job.setScheduledTime(nextRetryTime);
                 job.setJobStatus(JobStatus.SCHEDULED);
                 scheduleWithQuartz(job);
-                log.info("Job scheduled for retry {} of {}: {}", 
-                    job.getRetryCount(), job.getMaxRetries(), job.getJobId());
+                log.info("Job scheduled for retry {} of {}: {}",
+                        job.getRetryCount(), job.getMaxRetries(), job.getJobId());
             }
         }
 
@@ -165,7 +175,7 @@ public class SchedulerService {
 
         job.setJobStatus(JobStatus.CANCELLED);
         job.setLastUpdatedBy(updatedBy);
-        job.setUpdatedAt(LocalDateTime.now());
+        job.setUpdatedAt(Instant.now());
 
         job = scheduledJobRepository.save(job);
 

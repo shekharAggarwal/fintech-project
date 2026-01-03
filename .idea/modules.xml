@@ -3,7 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/auth-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/auth-service.main.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/authorization-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/authorization-service.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.fintech.gateway-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/com.fintech.gateway-service.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/com.fintech.gateway-service.test.iml" filepath="$PROJECT_DIR$/.idea/modules/com.fintech.gateway-service.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/fintech-project.iml" filepath="$PROJECT_DIR$/.idea/fintech-project.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/gateway-service.main.iml" filepath="$PROJECT_DIR$/.idea/modules/gateway-service.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/gateway-service.test.iml" filepath="$PROJECT_DIR$/.idea/modules/gateway-service.test.iml" />

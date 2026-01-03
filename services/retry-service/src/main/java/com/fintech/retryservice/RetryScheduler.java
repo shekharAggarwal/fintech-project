@@ -7,7 +7,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Component
 public class RetryScheduler {
-    private final RestTemplate rest;
+   /* private final RestTemplate rest;
 
     public RetryScheduler(RestTemplate rest) {
         this.rest = rest;
@@ -28,5 +28,5 @@ public class RetryScheduler {
         } catch (Exception ex) {
             // log and continue
         }
-    }
+    }*/
 }

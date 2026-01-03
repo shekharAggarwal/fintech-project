@@ -69,6 +69,14 @@ public class ScheduledJob {
     @FieldAccessControl(resourceType = "job", fieldName = "lastRunTime")
     private Instant lastRunTime;
 
+    @Column(name = "scheduled_time")
+    @FieldAccessControl(resourceType = "job", fieldName = "scheduledTime")
+    private Instant scheduledTime;
+
+    @Column(name = "actual_execution_time")
+    @FieldAccessControl(resourceType = "job", fieldName = "actualExecutionTime")
+    private Instant actualExecutionTime;
+
     @Column(name = "execution_count", nullable = false)
     @FieldAccessControl(resourceType = "job", fieldName = "executionCount")
     private Long executionCount = 0L;
@@ -76,6 +84,30 @@ public class ScheduledJob {
     @Column(name = "failure_count", nullable = false)
     @FieldAccessControl(resourceType = "job", fieldName = "failureCount")
     private Integer failureCount = 0;
+
+    @Column(name = "retry_count", nullable = false)
+    @FieldAccessControl(resourceType = "job", fieldName = "retryCount")
+    private Integer retryCount = 0;
+
+    @Column(name = "retry_delay_seconds", nullable = false)
+    @FieldAccessControl(resourceType = "job", fieldName = "retryDelaySeconds")
+    private Integer retryDelaySeconds = 60;
+
+    @Column(name = "execution_result", length = 2000)
+    @FieldAccessControl(resourceType = "job", fieldName = "executionResult")
+    private String executionResult;
+
+    @Column(name = "error_message", length = 2000)
+    @FieldAccessControl(resourceType = "job", fieldName = "errorMessage")
+    private String errorMessage;
+
+    @Column(name = "priority", length = 50)
+    @FieldAccessControl(resourceType = "job", fieldName = "priority")
+    private String priority = "NORMAL";
+
+    @Column(name = "last_updated_by", length = 50)
+    @FieldAccessControl(resourceType = "job", fieldName = "lastUpdatedBy")
+    private String lastUpdatedBy;
 
     @Column(name = "max_retries", nullable = false)
     @FieldAccessControl(resourceType = "job", fieldName = "maxRetries")
@@ -115,6 +147,31 @@ public class ScheduledJob {
         this.quartzJobGroup = quartzJobGroup;
         this.jobClass = jobClass;
         this.createdBy = createdBy;
+    }
+
+    // Constructor that matches service usage
+    public ScheduledJob(String jobId, String jobName, JobType jobType, JobStatus status, 
+                       Instant scheduledTime, String description, String createdBy, 
+                       String lastUpdatedBy, String jobData, Integer retryCount, 
+                       Integer maxRetries, Integer retryDelaySeconds, String priority) {
+        this.jobId = jobId;
+        this.jobName = jobName;
+        this.jobType = jobType;
+        this.status = status;
+        this.scheduledTime = scheduledTime;
+        this.jobDescription = description;
+        this.createdBy = createdBy;
+        this.lastUpdatedBy = lastUpdatedBy;
+        this.jobData = jobData;
+        this.retryCount = retryCount;
+        this.maxRetries = maxRetries;
+        this.retryDelaySeconds = retryDelaySeconds;
+        this.priority = priority;
+        
+        // Set default values for Quartz fields
+        this.quartzJobName = jobId + "_job";
+        this.quartzJobGroup = "DEFAULT";
+        this.jobClass = "com.fintech.schedulerservice.job.DefaultJob";
     }
 
     // Getters and Setters
@@ -177,6 +234,45 @@ public class ScheduledJob {
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    // Additional getters and setters for new fields
+    public Instant getScheduledTime() { return scheduledTime; }
+    public void setScheduledTime(Instant scheduledTime) { this.scheduledTime = scheduledTime; }
+
+    public Instant getActualExecutionTime() { return actualExecutionTime; }
+    public void setActualExecutionTime(Instant actualExecutionTime) { this.actualExecutionTime = actualExecutionTime; }
+
+    public Integer getRetryCount() { return retryCount; }
+    public void setRetryCount(Integer retryCount) { this.retryCount = retryCount; }
+
+    public Integer getRetryDelaySeconds() { return retryDelaySeconds; }
+    public void setRetryDelaySeconds(Integer retryDelaySeconds) { this.retryDelaySeconds = retryDelaySeconds; }
+
+    public String getExecutionResult() { return executionResult; }
+    public void setExecutionResult(String executionResult) { this.executionResult = executionResult; }
+
+    public String getErrorMessage() { return errorMessage; }
+    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
+
+    public String getLastUpdatedBy() { return lastUpdatedBy; }
+    public void setLastUpdatedBy(String lastUpdatedBy) { this.lastUpdatedBy = lastUpdatedBy; }
+
+    // Convenience methods for LocalDateTime conversion
+    public void setScheduledTime(java.time.LocalDateTime scheduledTime) {
+        this.scheduledTime = scheduledTime != null ? scheduledTime.atZone(java.time.ZoneId.systemDefault()).toInstant() : null;
+    }
+
+    public void setActualExecutionTime(java.time.LocalDateTime actualExecutionTime) {
+        this.actualExecutionTime = actualExecutionTime != null ? actualExecutionTime.atZone(java.time.ZoneId.systemDefault()).toInstant() : null;
+    }
+
+    public JobStatus getJobStatus() { return status; }
+    public void setJobStatus(JobStatus jobStatus) { this.status = jobStatus; }
+
+    public String getDescription() { return jobDescription; }
 
     // Helper methods
     public boolean canRetry() {

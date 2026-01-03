@@ -45,11 +45,11 @@ public class Report {
     @Column(name = "description", length = 1000)
     private String description;
 
-    @ElementCollection
+ /*   @ElementCollection
     @CollectionTable(name = "report_parameters", joinColumns = @JoinColumn(name = "report_id"))
     @MapKeyColumn(name = "param_key")
     @Column(name = "param_value", length = 1000)
-    private Map<String, String> parameters;
+    private Map<String, String> parameters;*/
 
     @Column(name = "file_path", length = 500)
     private String filePath;

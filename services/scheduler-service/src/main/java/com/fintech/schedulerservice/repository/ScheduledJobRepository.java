@@ -1,8 +1,8 @@
 package com.fintech.schedulerservice.repository;
 
-import com.fintech.schedulerservice.model.JobStatus;
-import com.fintech.schedulerservice.model.JobType;
-import com.fintech.schedulerservice.model.ScheduledJob;
+import com.fintech.schedulerservice.entity.JobStatus;
+import com.fintech.schedulerservice.entity.JobType;
+import com.fintech.schedulerservice.entity.ScheduledJob;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

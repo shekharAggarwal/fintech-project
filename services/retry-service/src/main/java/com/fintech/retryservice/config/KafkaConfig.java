@@ -1,6 +1,5 @@
 package com.fintech.retryservice.config;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -19,7 +18,6 @@ import java.util.Map;
 /**
  * Kafka configuration for retry service
  */
-@Slf4j
 @Configuration
 public class KafkaConfig {
 

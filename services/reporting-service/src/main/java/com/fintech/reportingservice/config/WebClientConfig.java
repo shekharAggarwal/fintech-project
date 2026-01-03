@@ -1,17 +1,21 @@
 package com.fintech.reportingservice.config;
 
+import io.micrometer.observation.ObservationRegistry;
+import io.netty.channel.ChannelOption;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
-import java.io.FileInputStream;
 import java.security.KeyStore;
 
 /**
@@ -20,58 +24,55 @@ import java.security.KeyStore;
 @Configuration
 public class WebClientConfig {
 
-    @Value("${fintech.ssl.keystore.path:classpath:certs/fintech.p12}")
-    private String keystorePath;
+    private static final Logger logger = LoggerFactory.getLogger(WebClientConfig.class);
 
-    @Value("${fintech.ssl.keystore.password:changeit}")
-    private String keystorePassword;
 
-    @Value("${fintech.ssl.truststore.path:classpath:certs/fintech-truststore.jks}")
-    private String truststorePath;
+    @Value("${tls.client.key-store}")
+    private Resource keyStore;
 
-    @Value("${fintech.ssl.truststore.password:changeit}")
-    private String truststorePassword;
+    @Value("${tls.client.key-store-password}")
+    private String keyStorePassword;
 
-    @Bean
-    public WebClient webClient() {
-        try {
-            // Load keystore for client certificate
-            KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            keyStore.load(new FileInputStream(keystorePath.replace("classpath:", "certs/")), 
-                keystorePassword.toCharArray());
+    @Value("${tls.client.trust-store}")
+    private Resource trustStore;
 
-            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(keyStore, keystorePassword.toCharArray());
+    @Value("${tls.client.trust-store-password}")
+    private String trustStorePassword;
 
-            // Load truststore for server certificate validation
-            KeyStore trustStore = KeyStore.getInstance("JKS");
-            trustStore.load(new FileInputStream(truststorePath.replace("classpath:", "certs/")), 
-                truststorePassword.toCharArray());
+    private final ObservationRegistry observationRegistry;
 
-            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            trustManagerFactory.init(trustStore);
-
-            // Create SSL context with mTLS
-            SslContext sslContext = SslContextBuilder.forClient()
-                    .keyManager(keyManagerFactory)
-                    .trustManager(trustManagerFactory)
-                    .build();
-
-            HttpClient httpClient = HttpClient.create()
-                    .secure(sslContextSpec -> sslContextSpec.sslContext(sslContext));
-
-            return WebClient.builder()
-                    .clientConnector(new ReactorClientHttpConnector(httpClient))
-                    .build();
-
-        } catch (Exception e) {
-//            log.error("Failed to configure mTLS WebClient, falling back to default", e);
-            return WebClient.builder().build();
-        }
+    public WebClientConfig(ObservationRegistry observationRegistry) {
+        this.observationRegistry = observationRegistry;
     }
 
     @Bean
-    public WebClient defaultWebClient() {
-        return WebClient.builder().build();
+    public WebClient authzWebClient() throws Exception {
+        // load client key material (PKCS12)
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        ks.load(keyStore.getInputStream(), keyStorePassword.toCharArray());
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(ks, keyStorePassword.toCharArray());
+
+        // load truststore (JKS)
+        KeyStore ts = KeyStore.getInstance("JKS");
+        ts.load(trustStore.getInputStream(), trustStorePassword.toCharArray());
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(ts);
+
+        SslContext sslContext = SslContextBuilder.forClient()
+                .keyManager(kmf)
+                .trustManager(tmf)
+                .build();
+
+        HttpClient httpClient = HttpClient.create()
+                .secure(spec -> spec.sslContext(sslContext))
+                .responseTimeout(java.time.Duration.ofMillis(5000)) // 5 second response timeout
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000); // 3 second connect timeout
+
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024)) // 1MB buffer
+                .observationRegistry(observationRegistry) // Enable tracing/observability
+                .build();
     }
 }

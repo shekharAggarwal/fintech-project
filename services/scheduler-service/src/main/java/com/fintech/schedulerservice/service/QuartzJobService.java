@@ -1,30 +1,36 @@
 package com.fintech.schedulerservice.service;
 
-import com.fintech.schedulerservice.model.JobStatus;
-import com.fintech.schedulerservice.model.ScheduledJob;
+import com.fintech.schedulerservice.entity.JobStatus;
+import com.fintech.schedulerservice.entity.ScheduledJob;
 import com.fintech.schedulerservice.repository.ScheduledJobRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
  * Quartz job service for executing scheduled jobs
  */
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class QuartzJobService implements Job {
+
+    private static final Logger log = LoggerFactory.getLogger(QuartzJobService.class);
 
     private final ScheduledJobRepository scheduledJobRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    public QuartzJobService(ScheduledJobRepository scheduledJobRepository, KafkaTemplate<String, Object> kafkaTemplate) {
+        this.scheduledJobRepository = scheduledJobRepository;
+        this.kafkaTemplate = kafkaTemplate;
+    }
 
     @Override
     @Transactional
@@ -44,7 +50,7 @@ public class QuartzJobService implements Job {
             // Update job status to IN_PROGRESS
             scheduledJob.setJobStatus(JobStatus.IN_PROGRESS);
             scheduledJob.setActualExecutionTime(LocalDateTime.now());
-            scheduledJob.setUpdatedAt(LocalDateTime.now());
+            scheduledJob.setUpdatedAt(Instant.now());
             scheduledJobRepository.save(scheduledJob);
 
             // Publish job started event
@@ -56,7 +62,7 @@ public class QuartzJobService implements Job {
             // Update job status to COMPLETED
             scheduledJob.setJobStatus(JobStatus.COMPLETED);
             scheduledJob.setExecutionResult("Job completed successfully");
-            scheduledJob.setUpdatedAt(LocalDateTime.now());
+            scheduledJob.setUpdatedAt(Instant.now());
             scheduledJobRepository.save(scheduledJob);
 
             // Publish job completed event
@@ -71,7 +77,7 @@ public class QuartzJobService implements Job {
             scheduledJob.setJobStatus(JobStatus.FAILED);
             scheduledJob.setErrorMessage(e.getMessage());
             scheduledJob.setRetryCount(scheduledJob.getRetryCount() + 1);
-            scheduledJob.setUpdatedAt(LocalDateTime.now());
+            scheduledJob.setUpdatedAt(Instant.now());
             scheduledJobRepository.save(scheduledJob);
 
             // Publish job failed event
@@ -122,13 +128,13 @@ public class QuartzJobService implements Job {
         log.info("Executing payment retry job: {}", job.getJobId());
         
         // Extract payment data from job data
-        String paymentId = (String) job.getJobData().get("paymentId");
+        String jobDataStr = job.getJobData();
+        log.info("Job data for payment retry: {}", jobDataStr);
         
         // Publish payment retry event
-        kafkaTemplate.send("payment-events", "payment.retry.requested", 
-            job.getJobData());
+        kafkaTemplate.send("payment-events", "payment.retry.requested", jobDataStr);
         
-        log.info("Payment retry event published for payment: {}", paymentId);
+        log.info("Payment retry event published");
     }
 
     /**
@@ -138,13 +144,13 @@ public class QuartzJobService implements Job {
         log.info("Executing transaction retry job: {}", job.getJobId());
         
         // Extract transaction data from job data
-        String transactionId = (String) job.getJobData().get("transactionId");
+        String jobDataStr = job.getJobData();
+        log.info("Job data for transaction retry: {}", jobDataStr);
         
         // Publish transaction retry event
-        kafkaTemplate.send("transaction-events", "transaction.retry.requested", 
-            job.getJobData());
+        kafkaTemplate.send("transaction-events", "transaction.retry.requested", jobDataStr);
         
-        log.info("Transaction retry event published for transaction: {}", transactionId);
+        log.info("Transaction retry event published");
     }
 
     /**
@@ -154,14 +160,13 @@ public class QuartzJobService implements Job {
         log.info("Executing notification reminder job: {}", job.getJobId());
         
         // Extract notification data from job data
-        String userId = (String) job.getJobData().get("userId");
-        String notificationType = (String) job.getJobData().get("notificationType");
+        String jobDataStr = job.getJobData();
+        log.info("Job data for notification reminder: {}", jobDataStr);
         
         // Publish notification reminder event
-        kafkaTemplate.send("notification-events", "notification.reminder.requested", 
-            job.getJobData());
+        kafkaTemplate.send("notification-events", "notification.reminder.requested", jobDataStr);
         
-        log.info("Notification reminder event published for user: {} type: {}", userId, notificationType);
+        log.info("Notification reminder event published");
     }
 
     /**
@@ -171,8 +176,7 @@ public class QuartzJobService implements Job {
         log.info("Executing account cleanup job: {}", job.getJobId());
         
         // Publish account cleanup event
-        kafkaTemplate.send("user-events", "account.cleanup.requested", 
-            job.getJobData());
+        kafkaTemplate.send("user-events", "account.cleanup.requested", job.getJobData());
         
         log.info("Account cleanup event published");
     }
@@ -184,13 +188,13 @@ public class QuartzJobService implements Job {
         log.info("Executing report generation job: {}", job.getJobId());
         
         // Extract report data from job data
-        String reportType = (String) job.getJobData().get("reportType");
+        String jobDataStr = job.getJobData();
+        log.info("Job data for report generation: {}", jobDataStr);
         
         // Publish report generation event
-        kafkaTemplate.send("reporting-events", "report.generation.requested", 
-            job.getJobData());
+        kafkaTemplate.send("reporting-events", "report.generation.requested", jobDataStr);
         
-        log.info("Report generation event published for type: {}", reportType);
+        log.info("Report generation event published");
     }
 
     /**
@@ -200,13 +204,13 @@ public class QuartzJobService implements Job {
         log.info("Executing data sync job: {}", job.getJobId());
         
         // Extract sync data from job data
-        String syncType = (String) job.getJobData().get("syncType");
+        String jobDataStr = job.getJobData();
+        log.info("Job data for data sync: {}", jobDataStr);
         
         // Publish data sync event
-        kafkaTemplate.send("ledger-events", "data.sync.requested", 
-            job.getJobData());
+        kafkaTemplate.send("ledger-events", "data.sync.requested", jobDataStr);
         
-        log.info("Data sync event published for type: {}", syncType);
+        log.info("Data sync event published");
     }
 
     /**
@@ -216,13 +220,13 @@ public class QuartzJobService implements Job {
         log.info("Executing batch processing job: {}", job.getJobId());
         
         // Extract batch data from job data
-        String batchType = (String) job.getJobData().get("batchType");
+        String jobDataStr = job.getJobData();
+        log.info("Job data for batch processing: {}", jobDataStr);
         
         // Publish batch processing event
-        kafkaTemplate.send("batch-events", "batch.processing.requested", 
-            job.getJobData());
+        kafkaTemplate.send("batch-events", "batch.processing.requested", jobDataStr);
         
-        log.info("Batch processing event published for type: {}", batchType);
+        log.info("Batch processing event published");
     }
 
     /**
