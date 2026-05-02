@@ -82,12 +82,17 @@ public class RefreshTokenService {
             return RefreshTokenResponse.failed("Refresh token expired. Please login again.", "TOKEN_EXPIRED");
         }
 
-        // Rotate: revoke old token, issue new one
-        storedToken.setRevoked(true);
-        refreshTokenRepository.save(storedToken);
+        // Atomic CAS revocation: prevents race condition in token rotation
+        int updated = refreshTokenRepository.revokeIfNotRevoked(storedToken.getId());
+        if (updated == 0) {
+            // Token already revoked — potential theft! Revoke ALL tokens for this user
+            logger.warn("Refresh token rotation race detected for userId={}. Revoking all tokens.", storedToken.getUserId());
+            refreshTokenRepository.revokeAllByUserId(storedToken.getUserId());
+            throw new SecurityException("Refresh token reuse detected — all sessions revoked");
+        }
 
-        // Generate new access token using the session
-        String newAccessToken = jwtUtil.generateAccessToken(storedToken.getSessionId());
+        // Generate new access token using the session — subject is now email (userId)
+        String newAccessToken = jwtUtil.generateAccessToken(storedToken.getUserId(), storedToken.getSessionId());
 
         // Generate new refresh token (rotation)
         String newRefreshToken = generateRefreshToken(storedToken.getUserId(), storedToken.getSessionId());
@@ -117,7 +122,12 @@ public class RefreshTokenService {
 
         // Blacklist the access token for its remaining lifetime
         if (accessToken != null) {
-            blacklistAccessToken(accessToken);
+            try {
+                blacklistAccessToken(accessToken);
+            } catch (Exception e) {
+                logger.error("Failed to blacklist access token during logout", e);
+                throw new RuntimeException("Logout failed — access token could not be invalidated", e);
+            }
         }
     }
 
@@ -175,17 +185,14 @@ public class RefreshTokenService {
 
     /**
      * Blacklist an access token in Redis so it cannot be used until it expires naturally.
+     * Throws on failure so callers (e.g., logout) can handle it appropriately.
      */
     private void blacklistAccessToken(String accessToken) {
-        try {
-            long remainingMillis = jwtUtil.getTokenRemainingLifeMillis(accessToken);
-            if (remainingMillis > 0) {
-                String blacklistKey = BLACKLIST_PREFIX + accessToken;
-                redisTemplate.opsForValue().set(blacklistKey, "revoked", Duration.ofMillis(remainingMillis));
-                logger.debug("Access token blacklisted for {}ms", remainingMillis);
-            }
-        } catch (Exception e) {
-            logger.error("Failed to blacklist access token", e);
+        long remainingMillis = jwtUtil.getTokenRemainingLifeMillis(accessToken);
+        if (remainingMillis > 0) {
+            String blacklistKey = BLACKLIST_PREFIX + accessToken;
+            redisTemplate.opsForValue().set(blacklistKey, "revoked", Duration.ofMillis(remainingMillis));
+            logger.debug("Access token blacklisted for {}ms", remainingMillis);
         }
     }
 
@@ -200,6 +207,18 @@ public class RefreshTokenService {
             logger.error("Failed to check token blacklist", e);
             // Fail secure: if Redis is down, reject the token
             return true;
+        }
+    }
+
+    /**
+     * Check if a session has been blacklisted (all tokens for session revoked).
+     */
+    public boolean isSessionBlacklisted(String sessionId) {
+        try {
+            return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + "session:" + sessionId));
+        } catch (Exception e) {
+            logger.error("Redis check failed, failing secure", e);
+            return true; // fail-secure
         }
     }
 }

@@ -32,15 +32,15 @@ public class JwtUtil {
     private PrivateKey privateKey;
     private PublicKey publicKey;
 
-    public String generateAccessToken(String sessionId) {
-        return generateToken(sessionId, accessTokenExpiration);
+    public String generateAccessToken(String email, String sessionId) {
+        return generateToken(email, sessionId, accessTokenExpiration);
     }
 
-    private String generateToken(String sessionId, long expiration) {
+    private String generateToken(String email, String sessionId, long expiration) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
-        return Jwts.builder().subject(sessionId).issuedAt(now).expiration(expiryDate)
+        return Jwts.builder().subject(email).issuedAt(now).expiration(expiryDate)
                 .claim("sessionId", sessionId)
                 .signWith(getPrivateKey())
                 .compact();

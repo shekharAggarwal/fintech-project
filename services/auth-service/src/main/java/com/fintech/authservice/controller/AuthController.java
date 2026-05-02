@@ -48,7 +48,7 @@ public class AuthController {
         AuthenticationResult result = authService.authenticate(request.email(), request.password(), ipAddress, userAgent);
 
         if (result.success()) {
-            String accessToken = jwtUtil.generateAccessToken(result.sessionId());
+            String accessToken = jwtUtil.generateAccessToken(result.authCore().getEmail(), result.sessionId());
 
 
             // Return response with refresh token

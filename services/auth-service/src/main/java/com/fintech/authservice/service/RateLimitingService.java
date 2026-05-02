@@ -59,7 +59,7 @@ public class RateLimitingService {
      */
     public void clearLoginAttempts(String email, String ipAddress) {
         redisTemplate.delete("login_attempts:email:" + email);
-        // Don't clear IP attempts to prevent abuse
+        redisTemplate.delete("login_attempts:ip:" + ipAddress);
     }
 
     /**
@@ -77,8 +77,8 @@ public class RateLimitingService {
             return attempts < maxAttempts;
 
         } catch (Exception e) {
-            // If Redis is down, allow the request (fail open)
-            return true;
+            // If Redis is down, BLOCK the request (fail closed for security)
+            return false;
         }
     }
 

@@ -41,6 +41,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             Claims claims = jwtUtil.getClaims(jwt);
+
+            // Check session-level blacklist (e.g., logout-all-devices)
+            String sessionId = claims.get("sessionId", String.class);
+            if (sessionId != null && refreshTokenService.isSessionBlacklisted(sessionId)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Session has been invalidated\"}");
+                return;
+            }
+
             String email = claims.getSubject();
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(email, null, null);
