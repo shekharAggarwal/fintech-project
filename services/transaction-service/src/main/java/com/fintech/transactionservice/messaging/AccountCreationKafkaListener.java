@@ -31,7 +31,8 @@ public class AccountCreationKafkaListener {
      * Listen for user creation messages from Kafka
      * Receives JSON strings from auth-service and deserializes to UserCreationMessage
      */
-    @KafkaListener(topics = "${kafka.topics.account-creation}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${kafka.topics.account-creation}", groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "kafkaListenerContainerFactory")
     public void handleAccountCreationMessage(
             @Payload String jsonMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,

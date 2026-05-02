@@ -7,6 +7,7 @@ import com.fintech.transactionservice.dto.message.TransactionCompletedEvent;
 import com.fintech.transactionservice.dto.request.TransactionRequest;
 import com.fintech.transactionservice.entity.Transaction;
 import com.fintech.transactionservice.entity.TransactionStatus;
+import com.fintech.transactionservice.exception.InvalidTransactionException;
 import com.fintech.transactionservice.exception.TransactionProcessingException;
 import com.fintech.transactionservice.messaging.TransactionCompletedEventPublisher;
 import com.fintech.transactionservice.model.TransactionResult;
@@ -18,6 +19,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,6 +57,15 @@ public class TransactionService {
      */
     @Transactional
     public Transaction initiateTransaction(TransactionRequest request, String idempotencyKey) {
+        // Amount validation — prevent zero/negative transfers
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidTransactionException("Amount must be positive");
+        }
+        // Self-transfer guard
+        if (request.getFromAccount().equals(request.getToAccount())) {
+            throw new InvalidTransactionException("Self-transfers not allowed");
+        }
+
         logger.info("Initiating transaction for user: {}, from: {}, to: {}, amount: {}, idempotencyKey: {}",
                 request.getUserId(), request.getFromAccount(), request.getToAccount(), request.getAmount(), idempotencyKey);
 
@@ -118,17 +132,17 @@ public class TransactionService {
     }
 
     /**
-     * Find transactions filtered by accountId and/or status.
+     * Find transactions filtered by accountId and/or status (paginated).
      */
-    public List<Transaction> findTransactions(String accountId, TransactionStatus status) {
+    public Page<Transaction> findTransactions(String accountId, TransactionStatus status, Pageable pageable) {
         if (accountId != null && status != null) {
-            return transactionRepository.findByAccountIdAndStatus(accountId, status);
+            return transactionRepository.findByAccountIdAndStatus(accountId, status, pageable);
         } else if (accountId != null) {
-            return transactionRepository.findByAccountId(accountId);
+            return transactionRepository.findByAccountId(accountId, pageable);
         } else if (status != null) {
-            return transactionRepository.findByStatus(status);
+            return transactionRepository.findByStatus(status, pageable);
         }
-        return transactionRepository.findAll();
+        return transactionRepository.findAll(pageable);
     }
 
     @Transactional
@@ -182,19 +196,24 @@ public class TransactionService {
             transactionRepository.save(transaction);
         }
 
-        // 4. Publish TransactionCompletedEvent for ledger and payment services to acknowledge
-        TransactionCompletedEvent completedEvent = new TransactionCompletedEvent(
-                transaction.getTxnId(),
-                transaction.getPaymentId(),
-                transaction.getUserId(),
-                transaction.getFromAccount(),
-                transaction.getToAccount(),
-                transaction.getAmount(),
-                transaction.getDescription(),
-                transaction.getStatus().name()
-        );
-        transactionCompletedEventPublisher.publishTransactionCompleted(completedEvent);
-        logger.info("TransactionCompletedEvent published for txnId: {}", transaction.getTxnId());
+        // 4. Publish TransactionCompletedEvent AFTER DB save — Kafka failure must not rollback DB
+        try {
+            TransactionCompletedEvent completedEvent = new TransactionCompletedEvent(
+                    transaction.getTxnId(),
+                    transaction.getPaymentId(),
+                    transaction.getUserId(),
+                    transaction.getFromAccount(),
+                    transaction.getToAccount(),
+                    transaction.getAmount(),
+                    transaction.getDescription(),
+                    transaction.getStatus().name()
+            );
+            transactionCompletedEventPublisher.publishTransactionCompleted(completedEvent);
+            logger.info("TransactionCompletedEvent published for txnId: {}", transaction.getTxnId());
+        } catch (Exception e) {
+            logger.error("Failed to publish TransactionCompletedEvent for txnId: {} — DB commit preserved, event lost",
+                    transaction.getTxnId(), e);
+        }
 
 
         return transaction;

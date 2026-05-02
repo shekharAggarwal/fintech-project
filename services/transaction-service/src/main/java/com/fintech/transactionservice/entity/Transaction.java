@@ -79,6 +79,9 @@ public class Transaction {
     @Column(name = "idempotency_key", unique = true, length = 128)
     private String idempotencyKey;
 
+    @Version
+    private Long version;
+
 
     public Transaction() {
     }

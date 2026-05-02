@@ -137,9 +137,16 @@ public class DisputeService {
 
     @Transactional
     public Reversal initiateReversal(ReversalRequest request) {
+        String txnId = request.getOriginalTransactionId();
+
+        // Duplicate reversal guard — prevent double-refund / money loss
+        if (reversalRepository.existsByOriginalTransactionIdAndStatusNot(txnId, ReversalStatus.FAILED)) {
+            throw new InvalidTransactionException("Reversal already exists for this transaction");
+        }
+
         // Verify original transaction exists and is completed
-        Transaction originalTxn = transactionRepository.findById(request.getOriginalTransactionId())
-                .orElseThrow(() -> new TransactionNotFoundException(request.getOriginalTransactionId()));
+        Transaction originalTxn = transactionRepository.findById(txnId)
+                .orElseThrow(() -> new TransactionNotFoundException(txnId));
 
         if (originalTxn.getStatus() != TransactionStatus.COMPLETED) {
             throw new InvalidTransactionException("Can only reverse COMPLETED transactions, current status: " + originalTxn.getStatus());

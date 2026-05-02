@@ -30,7 +30,8 @@ public class TransactionListener {
         this.idempotencyService = idempotencyService;
     }
 
-    @KafkaListener(topics = "${kafka.topics.transaction-initiate}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${kafka.topics.transaction-initiate}", groupId = "${spring.kafka.consumer.group-id}",
+            containerFactory = "kafkaListenerContainerFactory")
     public void onPaymentAuthorized(@Payload String message,
                                     @Header(KafkaHeaders.RECEIVED_KEY) String key,
                                     Acknowledgment acknowledgment) {

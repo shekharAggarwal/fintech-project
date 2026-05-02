@@ -46,6 +46,9 @@ public class Reversal {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    @Version
+    private Long version;
+
     public Reversal() {}
 
     public Reversal(String id, String originalTransactionId, ReversalType reversalType, BigDecimal amount, String reason) {

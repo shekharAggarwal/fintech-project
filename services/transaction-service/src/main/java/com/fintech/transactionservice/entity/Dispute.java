@@ -49,6 +49,9 @@ public class Dispute {
     @Column(name = "resolved_at")
     private Instant resolvedAt;
 
+    @Version
+    private Long version;
+
     public Dispute() {}
 
     public Dispute(String id, String transactionId, DisputeType disputeType, String reason) {

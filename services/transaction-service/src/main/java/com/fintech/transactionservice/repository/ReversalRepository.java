@@ -13,4 +13,6 @@ public interface ReversalRepository extends JpaRepository<Reversal, String> {
     List<Reversal> findByOriginalTransactionId(String originalTransactionId);
 
     List<Reversal> findByStatus(ReversalStatus status);
+
+    boolean existsByOriginalTransactionIdAndStatusNot(String originalTransactionId, ReversalStatus status);
 }

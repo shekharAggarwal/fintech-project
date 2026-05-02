@@ -11,6 +11,9 @@ import com.fintech.transactionservice.service.TransactionService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -77,7 +80,9 @@ public class TransactionController {
     @GetMapping
     public ResponseEntity<List<TransactionResponse>> getTransactions(
             @RequestParam(required = false) String accountId,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
 
         TransactionStatus statusEnum = null;
         if (status != null && !status.isBlank()) {
@@ -88,8 +93,12 @@ public class TransactionController {
             }
         }
 
-        List<Transaction> transactions = transactionService.findTransactions(accountId, statusEnum);
-        List<TransactionResponse> responses = transactions.stream()
+        // Cap page size to prevent unbounded queries
+        int cappedSize = Math.min(size, 200);
+        Pageable pageable = PageRequest.of(page, cappedSize);
+
+        Page<Transaction> transactions = transactionService.findTransactions(accountId, statusEnum, pageable);
+        List<TransactionResponse> responses = transactions.getContent().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
 
