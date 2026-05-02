@@ -57,7 +57,7 @@ public class KafkaConfig {
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 10);
         
         // Configure JsonDeserializer
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.fintech.*");
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         
         return new DefaultKafkaConsumerFactory<>(props);

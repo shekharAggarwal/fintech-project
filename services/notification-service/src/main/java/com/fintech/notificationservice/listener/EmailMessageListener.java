@@ -22,15 +22,8 @@ public class EmailMessageListener {
 
     @RabbitListener(queues = RabbitMQConfig.EMAIL_QUEUE)
     public void handleEmailMessage(EmailMessage emailMessage) {
-        try {
-            logger.info("Received email message for: {}", emailMessage.getTo());
-            emailService.sendEmail(emailMessage);
-            logger.info("Email processed successfully for: {}", emailMessage.getTo());
-        } catch (Exception e) {
-            logger.error("Failed to process email message for: {} - Error: {}", 
-                        emailMessage.getTo(), e.getMessage());
-            // In a production environment, you might want to send this to a dead letter queue
-            // or implement retry logic
-        }
+        logger.info("Received email message for: {}", emailMessage.getTo());
+        emailService.sendEmail(emailMessage);
+        logger.info("Email processed successfully for: {}", emailMessage.getTo());
     }
 }

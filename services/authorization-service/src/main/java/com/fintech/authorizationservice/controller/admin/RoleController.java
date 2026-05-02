@@ -11,11 +11,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.fintech.security.annotation.RequireAuthorization;
+
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/roles")
+@RequireAuthorization(roles = {"ADMIN"})
 public class RoleController {
 
     private static final Logger log = LoggerFactory.getLogger(RoleController.class);
@@ -54,9 +57,9 @@ public class RoleController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteRole(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteRole(@PathVariable Long id) {
         log.info("DELETE /api/admin/roles/{} - Deleting role", id);
         adminService.deleteRole(id);
-        return ResponseEntity.ok(Map.of("message", "Role deleted successfully", "roleId", id.toString()));
+        return ResponseEntity.noContent().build();
     }
 }

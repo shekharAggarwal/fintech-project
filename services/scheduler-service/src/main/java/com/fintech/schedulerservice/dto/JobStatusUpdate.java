@@ -2,6 +2,7 @@ package com.fintech.schedulerservice.dto;
 
 
 import com.fintech.schedulerservice.entity.JobStatus;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 public class JobStatusUpdate {
 
     private String jobId;
+    @NotNull
     private JobStatus jobStatus;
     private String executionResult;
     private String errorMessage;

@@ -5,6 +5,7 @@ import com.fintech.authorizationservice.dto.request.UpdateUserRoleRequest;
 import com.fintech.authorizationservice.dto.response.AuthzIntrospectResponse;
 import com.fintech.authorizationservice.service.AuthzService;
 import io.micrometer.tracing.Tracer;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -27,12 +28,12 @@ public class AuthorizationController {
     }
 
     @PostMapping("/introspect")
-    public Mono<ResponseEntity<AuthzIntrospectResponse>> introspect(@RequestBody AuthzIntrospectRequest req) {
+    public Mono<ResponseEntity<AuthzIntrospectResponse>> introspect(@Valid @RequestBody AuthzIntrospectRequest req) {
         return authzService.introspect(req).map(ResponseEntity::ok);
     }
 
     @PutMapping("/internal/user-role")
-    public ResponseEntity<?> updateUserRole(@RequestBody UpdateUserRoleRequest request) {
+    public ResponseEntity<?> updateUserRole(@Valid @RequestBody UpdateUserRoleRequest request) {
         // Log current trace context when receiving request
         String traceId = tracer.currentSpan() != null ? tracer.currentSpan().context().traceId() : "no-trace";
         String spanId = tracer.currentSpan() != null ? tracer.currentSpan().context().spanId() : "no-span";

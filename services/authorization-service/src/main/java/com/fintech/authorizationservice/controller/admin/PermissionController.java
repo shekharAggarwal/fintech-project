@@ -11,11 +11,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.fintech.security.annotation.RequireAuthorization;
+
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/permissions")
+@RequireAuthorization(roles = {"ADMIN"})
 public class PermissionController {
 
     private static final Logger log = LoggerFactory.getLogger(PermissionController.class);
@@ -40,16 +43,16 @@ public class PermissionController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PermissionResponse> updatePermission(@PathVariable Long id, @RequestBody UpdatePermissionRequest request) {
+    public ResponseEntity<PermissionResponse> updatePermission(@PathVariable Long id, @Valid @RequestBody UpdatePermissionRequest request) {
         log.info("PUT /api/admin/permissions/{} - Updating permission", id);
         PermissionResponse response = adminService.updatePermission(id, request);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deletePermission(@PathVariable Long id) {
+    public ResponseEntity<Void> deletePermission(@PathVariable Long id) {
         log.info("DELETE /api/admin/permissions/{} - Deleting permission", id);
         adminService.deletePermission(id);
-        return ResponseEntity.ok(Map.of("message", "Permission deleted successfully", "permissionId", id.toString()));
+        return ResponseEntity.noContent().build();
     }
 }

@@ -71,8 +71,7 @@ public class RetryKafkaListener {
 
         } catch (Exception e) {
             logger.error("Error processing retry request from Kafka: {}", e.getMessage(), e);
-            // Acknowledge to avoid reprocessing poison messages; error is logged
-            ack.acknowledge();
+            // Do not acknowledge — let DLQ/retry handle the failed message
         }
     }
 
@@ -101,7 +100,7 @@ public class RetryKafkaListener {
 
         } catch (Exception e) {
             logger.error("Error processing retry callback from Kafka: {}", e.getMessage(), e);
-            ack.acknowledge();
+            // Do not acknowledge — let DLQ/retry handle the failed message
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.fintech.retryservice.dto;
 
 import com.fintech.retryservice.model.RetryStatus;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 
@@ -10,10 +11,12 @@ import java.time.LocalDateTime;
 public class RetryStatusUpdate {
 
     private String retryId;
+    @NotNull
     private RetryStatus retryStatus;
     private String errorMessage;
     private String lastErrorCode;
     private LocalDateTime completedAt;
+    @NotNull
     private String updatedBy;
 
     // --- Getters and Setters ---

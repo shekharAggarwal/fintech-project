@@ -183,16 +183,17 @@ public class RecurringPaymentService {
             throw new InvalidJobStateException(paymentId, null, "pause");
         }
 
-        payment.setStatus(RecurringPaymentStatus.PAUSED);
-        payment = recurringPaymentRepository.save(payment);
-
-        // Pause in Quartz
+        // Pause in Quartz FIRST to prevent execution during state transition
         try {
             JobKey jobKey = new JobKey(paymentId, RECURRING_PAYMENT_GROUP);
             quartzScheduler.pauseJob(jobKey);
         } catch (SchedulerException e) {
             log.warn("Failed to pause Quartz job for payment: {}", paymentId, e);
         }
+
+        // Then update DB status
+        payment.setStatus(RecurringPaymentStatus.PAUSED);
+        payment = recurringPaymentRepository.save(payment);
 
         publishPaymentEvent("recurring-payment.paused", payment);
 

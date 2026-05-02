@@ -11,3 +11,6 @@ if (localCatalogPath.exists()) {
         }
     }
 }
+// include the security module
+include(":security")
+project(":security").projectDir = file("../../module/security").exists() ? file("../../module/security") : file("../module/security")

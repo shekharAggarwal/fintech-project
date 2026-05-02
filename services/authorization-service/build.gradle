@@ -20,6 +20,7 @@ repositories {
 }
 
 dependencies {
+    implementation project(":security")
     implementation libs.bundles.spring.boot.web
     implementation libs.springdoc.openapi.starter.webmvc.ui
     implementation libs.bundles.spring.boot.data

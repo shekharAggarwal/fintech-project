@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -123,6 +124,7 @@ public class RetryService {
                     .bodyValue(attempt.getRetryData() != null ? attempt.getRetryData() : Map.of())
                     .retrieve()
                     .toBodilessEntity()
+                    .timeout(Duration.ofSeconds(30))
                     .subscribe(
                             response -> {
                                 logger.info("HTTP retry succeeded for id={}", attempt.getRetryId());
@@ -172,6 +174,11 @@ public class RetryService {
         }
 
         RetryAttempt attempt = optAttempt.get();
+
+        // Terminal state guard — don't modify already-finished attempts
+        if (attempt.getRetryStatus().name().equals("COMPLETED") || attempt.getRetryStatus().name().equals("CANCELLED")) {
+            return;
+        }
 
         if (success) {
             attempt.setRetryStatus(RetryStatus.COMPLETED);

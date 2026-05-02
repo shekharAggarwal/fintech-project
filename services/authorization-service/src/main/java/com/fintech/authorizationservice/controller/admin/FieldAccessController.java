@@ -11,11 +11,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.fintech.security.annotation.RequireAuthorization;
+
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/field-access")
+@RequireAuthorization(roles = {"ADMIN"})
 public class FieldAccessController {
 
     private static final Logger log = LoggerFactory.getLogger(FieldAccessController.class);
@@ -40,16 +43,16 @@ public class FieldAccessController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FieldAccessResponse> updateFieldAccess(@PathVariable Long id, @RequestBody UpdateFieldAccessRequest request) {
+    public ResponseEntity<FieldAccessResponse> updateFieldAccess(@PathVariable Long id, @Valid @RequestBody UpdateFieldAccessRequest request) {
         log.info("PUT /api/admin/field-access/{} - Updating field access", id);
         FieldAccessResponse response = adminService.updateFieldAccess(id, request);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteFieldAccess(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteFieldAccess(@PathVariable Long id) {
         log.info("DELETE /api/admin/field-access/{} - Deleting field access", id);
         adminService.deleteFieldAccess(id);
-        return ResponseEntity.ok(Map.of("message", "Field access deleted successfully", "fieldAccessId", id.toString()));
+        return ResponseEntity.noContent().build();
     }
 }

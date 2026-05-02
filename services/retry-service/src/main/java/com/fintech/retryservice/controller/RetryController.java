@@ -123,7 +123,7 @@ public class RetryController {
     @PutMapping("/{id}/status")
     public ResponseEntity<RetryResponse> updateStatus(
             @PathVariable String id,
-            @RequestBody RetryStatusUpdate statusUpdate) {
+            @Valid @RequestBody RetryStatusUpdate statusUpdate) {
         try {
             RetryResponse response = retryService.updateStatus(id, statusUpdate);
             return ResponseEntity.ok(response);

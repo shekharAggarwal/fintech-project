@@ -83,6 +83,9 @@ public class RetryAttempt {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Version
+    private Long version;
+
     @Column(name = "last_retry_time")
     private LocalDateTime lastRetryTime;
 
@@ -182,4 +185,7 @@ public class RetryAttempt {
 
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }
