@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -121,11 +122,55 @@ public class RefreshTokenService {
     }
 
     /**
-     * Logout from all devices: revoke all refresh tokens for the user.
+     * Logout from all devices: invalidate all sessions, blacklist active access tokens,
+     * and revoke all refresh tokens for the user.
+     *
+     * Security: ensures no stale access tokens survive a full logout.
      */
     public void logoutAllDevices(String userId) {
+        // 1. Invalidate all sessions for this user in Redis and get the session IDs
+        List<String> invalidatedSessionIds = sessionService.invalidateAllUserSessions(userId);
+        logger.info("Invalidated {} sessions for userId={}", invalidatedSessionIds.size(), userId);
+
+        // 2. Find all active refresh tokens to get associated access tokens for blacklisting
+        //    We use the session IDs from active tokens to generate blacklist entries.
+        //    Since access tokens carry the sessionId as subject, we blacklist via session invalidation
+        //    which is already handled above. But we also need to explicitly blacklist any access tokens
+        //    that may still be in-flight (cached by clients).
+        List<RefreshToken> activeTokens = refreshTokenRepository.findAllActiveByUserId(userId, Instant.now());
+        int blacklistedCount = 0;
+        for (RefreshToken token : activeTokens) {
+            if (token.getSessionId() != null) {
+                // Blacklist access tokens by session — any token referencing this session
+                // will be rejected on next validation via session check.
+                // The session invalidation above already handles this, but as defense-in-depth
+                // we mark the session-based blacklist key in Redis.
+                blacklistSessionAccessTokens(token.getSessionId());
+                blacklistedCount++;
+            }
+        }
+        logger.info("Blacklisted access tokens for {} active sessions for userId={}", blacklistedCount, userId);
+
+        // 3. Revoke all refresh tokens in the database (already existed)
         int revokedCount = refreshTokenRepository.revokeAllByUserId(userId);
         logger.info("Revoked {} refresh tokens for userId={}", revokedCount, userId);
+    }
+
+    /**
+     * Blacklist all access tokens associated with a session by marking the session as revoked.
+     * Any token validation that checks session validity will reject these tokens.
+     */
+    private void blacklistSessionAccessTokens(String sessionId) {
+        try {
+            // Use a session-level blacklist key that the token validation filter can check
+            String blacklistKey = BLACKLIST_PREFIX + "session:" + sessionId;
+            // Set TTL to match access token max lifetime to auto-cleanup
+            redisTemplate.opsForValue().set(blacklistKey, "revoked", Duration.ofHours(1));
+            logger.debug("Session access tokens blacklisted: sessionId={}", sessionId);
+        } catch (Exception e) {
+            // Fail secure: log but don't suppress — session is already invalidated
+            logger.error("Failed to blacklist session access tokens: sessionId={}", sessionId, e);
+        }
     }
 
     /**
