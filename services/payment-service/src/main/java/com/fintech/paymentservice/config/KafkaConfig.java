@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
+import org.springframework.kafka.listener.CommonErrorHandler;
 import org.springframework.kafka.listener.ContainerProperties;
 
 import java.util.HashMap;
@@ -27,6 +28,12 @@ public class KafkaConfig {
 
     @Value("${spring.kafka.consumer.client-id}")
     private String clientId;
+
+    private final CommonErrorHandler commonErrorHandler;
+
+    public KafkaConfig(CommonErrorHandler commonErrorHandler) {
+        this.commonErrorHandler = commonErrorHandler;
+    }
 
     @Bean
     public ConsumerFactory<String, String> consumerFactory() {
@@ -52,6 +59,9 @@ public class KafkaConfig {
         ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
+
+        // Wire DLQ-backed error handler from KafkaConsumerConfig
+        factory.setCommonErrorHandler(commonErrorHandler);
 
         // Enable manual acknowledgment for better error handling
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);

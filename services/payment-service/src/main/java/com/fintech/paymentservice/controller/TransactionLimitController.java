@@ -28,6 +28,19 @@ public class TransactionLimitController {
     }
 
     /**
+     * Create/set a transaction limit for an account
+     */
+    @PostMapping("/{accountId}/limits")
+    public ResponseEntity<TransactionLimitResponse> createLimit(
+            @PathVariable String accountId,
+            @Valid @RequestBody TransactionLimitRequest request) {
+        logger.info("Creating/setting {} limit for account {}: maxAmount={}", request.limitType(), accountId, request.maxAmount());
+        TransactionLimitResponse response = limitService.updateLimit(
+                accountId, request.limitType(), request.maxAmount(), request.enabled());
+        return ResponseEntity.status(201).body(response);
+    }
+
+    /**
      * Get all limits for an account
      */
     @GetMapping("/{accountId}/limits")
