@@ -2,9 +2,9 @@ name: CI - Build & Test All Services
 
 on:
   push:
-    branches: [main]
+    branches: [prod]
   pull_request:
-    branches: [main]
+    branches: [prod]
 
 env:
   JAVA_VERSION: '17'

@@ -2,10 +2,10 @@ name: Docker Build & Push
 
 on:
   push:
-    branches: [main]
+    branches: [prod]
   workflow_run:
     workflows: ["CI - Build & Test All Services"]
-    branches: [main]
+    branches: [prod]
     types: [completed]
 
 env:
