@@ -11,6 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,16 +49,17 @@ public class ReversalController {
     }
 
     /**
-     * GET /api/reversals?transactionId= — Get reversals for a transaction.
+     * GET /api/reversals?transactionId= — Get reversals for a transaction, or all reversals if no filter.
      */
     @GetMapping
     public ResponseEntity<List<ReversalResponse>> getReversals(
-            @RequestParam(required = false) String transactionId) {
+            @RequestParam(required = false) String transactionId,
+            @PageableDefault(size = 20) Pageable pageable) {
         List<Reversal> reversals;
         if (transactionId != null) {
             reversals = disputeService.getReversalsByTransaction(transactionId);
         } else {
-            reversals = disputeService.getReversalsByTransaction(null);
+            reversals = disputeService.getAllReversals(pageable).getContent();
         }
         return ResponseEntity.ok(reversals.stream().map(this::toResponse).collect(Collectors.toList()));
     }

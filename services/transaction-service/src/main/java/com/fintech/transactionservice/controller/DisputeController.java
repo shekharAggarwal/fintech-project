@@ -12,6 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -48,16 +52,17 @@ public class DisputeController {
     }
 
     /**
-     * GET /api/disputes?transactionId= — Get disputes by transaction.
+     * GET /api/disputes?transactionId= — Get disputes by transaction, or all disputes if no filter.
      */
     @GetMapping
     public ResponseEntity<List<DisputeResponse>> getDisputes(
-            @RequestParam(required = false) String transactionId) {
+            @RequestParam(required = false) String transactionId,
+            @PageableDefault(size = 20) Pageable pageable) {
         List<Dispute> disputes;
         if (transactionId != null) {
             disputes = disputeService.getDisputesByTransaction(transactionId);
         } else {
-            disputes = disputeService.getDisputesByTransaction(null);
+            disputes = disputeService.getAllDisputes(pageable).getContent();
         }
         return ResponseEntity.ok(disputes.stream().map(this::toResponse).collect(Collectors.toList()));
     }

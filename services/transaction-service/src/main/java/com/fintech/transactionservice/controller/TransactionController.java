@@ -50,8 +50,10 @@ public class TransactionController {
         // Check for duplicate via idempotency service
         Optional<Transaction> existing = idempotencyService.checkDuplicate(idempotencyKey);
         if (existing.isPresent()) {
-            logger.info("Returning existing transaction for idempotency key: {}", idempotencyKey);
-            return ResponseEntity.ok(toResponse(existing.get()));
+            logger.warn("Duplicate idempotency key detected: {}", idempotencyKey);
+            TransactionResponse conflictResponse = toResponse(existing.get());
+            conflictResponse.setDescription("Duplicate transaction: idempotency key already used");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(conflictResponse);
         }
 
         // Initiate new transaction

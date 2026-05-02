@@ -13,6 +13,8 @@ import com.fintech.transactionservice.util.SnowflakeIdGenerator;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -129,6 +131,10 @@ public class DisputeService {
         return disputeRepository.findByTransactionId(transactionId);
     }
 
+    public Page<Dispute> getAllDisputes(Pageable pageable) {
+        return disputeRepository.findAll(pageable);
+    }
+
     @Transactional
     public Reversal initiateReversal(ReversalRequest request) {
         // Verify original transaction exists and is completed
@@ -186,5 +192,9 @@ public class DisputeService {
 
     public List<Reversal> getReversalsByTransaction(String transactionId) {
         return reversalRepository.findByOriginalTransactionId(transactionId);
+    }
+
+    public Page<Reversal> getAllReversals(Pageable pageable) {
+        return reversalRepository.findAll(pageable);
     }
 }
