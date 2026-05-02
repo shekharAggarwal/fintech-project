@@ -153,7 +153,7 @@ public class KycController {
 
     private boolean isAdmin(String userId) {
         try {
-            return authorizationService.hasFullAccess();
+            return authorizationService.hasAccessLevel("full", "user");
         } catch (Exception e) {
             logger.warn("Error checking admin status for user: {}", userId, e);
             return false;

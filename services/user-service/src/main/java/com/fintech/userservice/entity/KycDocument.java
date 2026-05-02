@@ -1,7 +1,7 @@
 package com.fintech.userservice.entity;
 
-import com.fintech.userservice.entity.enums.DocumentStatus;
 import com.fintech.userservice.entity.enums.DocumentType;
+import com.fintech.userservice.entity.enums.KycStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -31,11 +31,11 @@ public class KycDocument {
     private String documentNumber;
 
     @Column(nullable = false, length = 500)
-    private String documentUrl;
+    private String filePath;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private DocumentStatus status = DocumentStatus.PENDING;
+    private KycStatus status = KycStatus.PENDING;
 
     @Column(length = 500)
     private String rejectionReason;
@@ -49,6 +49,9 @@ public class KycDocument {
     @Column
     private LocalDate expiryDate;
 
+    @Column
+    private LocalDateTime uploadedAt;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -61,13 +64,14 @@ public class KycDocument {
     }
 
     public KycDocument(String userId, DocumentType documentType, String documentNumber,
-                       String documentUrl, LocalDate expiryDate) {
+                       String filePath, LocalDate expiryDate) {
         this.userId = userId;
         this.documentType = documentType;
         this.documentNumber = documentNumber;
-        this.documentUrl = documentUrl;
+        this.filePath = filePath;
         this.expiryDate = expiryDate;
-        this.status = DocumentStatus.PENDING;
+        this.status = KycStatus.PENDING;
+        this.uploadedAt = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -98,19 +102,19 @@ public class KycDocument {
         this.documentNumber = documentNumber;
     }
 
-    public String getDocumentUrl() {
-        return documentUrl;
+    public String getFilePath() {
+        return filePath;
     }
 
-    public void setDocumentUrl(String documentUrl) {
-        this.documentUrl = documentUrl;
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 
-    public DocumentStatus getStatus() {
+    public KycStatus getStatus() {
         return status;
     }
 
-    public void setStatus(DocumentStatus status) {
+    public void setStatus(KycStatus status) {
         this.status = status;
     }
 
@@ -144,6 +148,14 @@ public class KycDocument {
 
     public void setExpiryDate(LocalDate expiryDate) {
         this.expiryDate = expiryDate;
+    }
+
+    public LocalDateTime getUploadedAt() {
+        return uploadedAt;
+    }
+
+    public void setUploadedAt(LocalDateTime uploadedAt) {
+        this.uploadedAt = uploadedAt;
     }
 
     public LocalDateTime getCreatedAt() {

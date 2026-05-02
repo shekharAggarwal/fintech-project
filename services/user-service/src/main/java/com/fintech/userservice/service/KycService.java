@@ -6,7 +6,7 @@ import com.fintech.userservice.dto.response.kyc.KycDocumentResponse;
 import com.fintech.userservice.dto.response.kyc.KycStatusResponse;
 import com.fintech.userservice.entity.KycDocument;
 import com.fintech.userservice.entity.UserProfile;
-import com.fintech.userservice.entity.enums.DocumentStatus;
+import com.fintech.userservice.entity.enums.DocumentType;
 import com.fintech.userservice.entity.enums.KycLevel;
 import com.fintech.userservice.entity.enums.KycStatus;
 import com.fintech.userservice.messaging.KycEventKafkaPublisher;
@@ -50,7 +50,7 @@ public class KycService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
         // Prevent duplicate active document submissions (PENDING or UNDER_REVIEW)
-        List<DocumentStatus> activeStatuses = List.of(DocumentStatus.PENDING, DocumentStatus.UNDER_REVIEW);
+        List<KycStatus> activeStatuses = List.of(KycStatus.PENDING, KycStatus.UNDER_REVIEW);
         boolean hasDuplicate = kycDocumentRepository.existsByUserIdAndDocumentTypeAndStatusIn(
                 userId, request.getDocumentType(), activeStatuses);
 
@@ -63,7 +63,7 @@ public class KycService {
                 userId,
                 request.getDocumentType(),
                 request.getDocumentNumber(),
-                request.getDocumentUrl(),
+                request.getFilePath(),
                 request.getExpiryDate()
         );
 
@@ -101,19 +101,19 @@ public class KycService {
         }
 
         // State machine validation — only PENDING or UNDER_REVIEW documents can be reviewed
-        if (document.getStatus() != DocumentStatus.PENDING && document.getStatus() != DocumentStatus.UNDER_REVIEW) {
+        if (document.getStatus() != KycStatus.PENDING && document.getStatus() != KycStatus.UNDER_REVIEW) {
             throw new IllegalStateException(
                     "Document cannot be reviewed in its current state: " + document.getStatus());
         }
 
         if (Boolean.TRUE.equals(request.getApproved())) {
-            document.setStatus(DocumentStatus.APPROVED);
+            document.setStatus(KycStatus.APPROVED);
             document.setRejectionReason(null);
         } else {
             if (request.getRejectionReason() == null || request.getRejectionReason().isBlank()) {
                 throw new IllegalArgumentException("Rejection reason is required when rejecting a document");
             }
-            document.setStatus(DocumentStatus.REJECTED);
+            document.setStatus(KycStatus.REJECTED);
             document.setRejectionReason(request.getRejectionReason());
         }
 
@@ -149,11 +149,11 @@ public class KycService {
                 .map(doc -> KycDocumentResponse.fromEntity(doc, isAdmin))
                 .toList();
 
-        int approved = (int) documents.stream().filter(d -> d.getStatus() == DocumentStatus.APPROVED).count();
+        int approved = (int) documents.stream().filter(d -> d.getStatus() == KycStatus.APPROVED).count();
         int pending = (int) documents.stream()
-                .filter(d -> d.getStatus() == DocumentStatus.PENDING || d.getStatus() == DocumentStatus.UNDER_REVIEW)
+                .filter(d -> d.getStatus() == KycStatus.PENDING || d.getStatus() == KycStatus.UNDER_REVIEW)
                 .count();
-        int rejected = (int) documents.stream().filter(d -> d.getStatus() == DocumentStatus.REJECTED).count();
+        int rejected = (int) documents.stream().filter(d -> d.getStatus() == KycStatus.REJECTED).count();
 
         return new KycStatusResponse(
                 userId,
@@ -182,10 +182,53 @@ public class KycService {
      * Get all pending KYC documents (admin).
      */
     public List<KycDocumentResponse> getPendingDocuments() {
-        List<KycDocument> documents = kycDocumentRepository.findByStatus(DocumentStatus.PENDING);
+        List<KycDocument> documents = kycDocumentRepository.findByStatus(KycStatus.PENDING);
         return documents.stream()
                 .map(doc -> KycDocumentResponse.fromEntity(doc, true))
                 .toList();
+    }
+
+    /**
+     * Get the KYC level for a user based on their approved documents.
+     * LEVEL mapping:
+     *   NONE = no approved documents
+     *   BASIC = at least 1 approved ID document (PASSPORT, DRIVERS_LICENSE, or ID_CARD)
+     *   STANDARD = 1 ID document + 1 proof of address (UTILITY_BILL or BANK_STATEMENT)
+     *   ENHANCED = 2+ ID documents + 1 proof of address (full verification)
+     */
+    public KycLevel getKycLevel(Long userId) {
+        String userIdStr = userId.toString();
+        List<KycDocument> approvedDocs = kycDocumentRepository.findByUserIdAndStatus(userIdStr, KycStatus.APPROVED);
+
+        long idDocuments = approvedDocs.stream()
+                .filter(d -> d.getDocumentType() == DocumentType.PASSPORT
+                        || d.getDocumentType() == DocumentType.DRIVERS_LICENSE
+                        || d.getDocumentType() == DocumentType.ID_CARD)
+                .count();
+
+        long proofOfAddress = approvedDocs.stream()
+                .filter(d -> d.getDocumentType() == DocumentType.UTILITY_BILL
+                        || d.getDocumentType() == DocumentType.BANK_STATEMENT)
+                .count();
+
+        if (idDocuments >= 2 && proofOfAddress >= 1) {
+            return KycLevel.ENHANCED;
+        } else if (idDocuments >= 1 && proofOfAddress >= 1) {
+            return KycLevel.STANDARD;
+        } else if (idDocuments >= 1) {
+            return KycLevel.BASIC;
+        } else {
+            return KycLevel.NONE;
+        }
+    }
+
+    /**
+     * Check if a user's KYC is approved (has at least BASIC/LEVEL_1 KYC).
+     * Returns true if user has at least one approved ID document.
+     */
+    public boolean isKycApproved(Long userId) {
+        KycLevel level = getKycLevel(userId);
+        return level != KycLevel.NONE;
     }
 
     /**
@@ -199,17 +242,17 @@ public class KycService {
         UserProfile userProfile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
 
-        List<KycDocument> approvedDocs = kycDocumentRepository.findByUserIdAndStatus(userId, DocumentStatus.APPROVED);
+        List<KycDocument> approvedDocs = kycDocumentRepository.findByUserIdAndStatus(userId, KycStatus.APPROVED);
 
         long idDocuments = approvedDocs.stream()
-                .filter(d -> d.getDocumentType() == com.fintech.userservice.entity.enums.DocumentType.PASSPORT
-                        || d.getDocumentType() == com.fintech.userservice.entity.enums.DocumentType.DRIVERS_LICENSE
-                        || d.getDocumentType() == com.fintech.userservice.entity.enums.DocumentType.NATIONAL_ID)
+                .filter(d -> d.getDocumentType() == DocumentType.PASSPORT
+                        || d.getDocumentType() == DocumentType.DRIVERS_LICENSE
+                        || d.getDocumentType() == DocumentType.ID_CARD)
                 .count();
 
         long proofOfAddress = approvedDocs.stream()
-                .filter(d -> d.getDocumentType() == com.fintech.userservice.entity.enums.DocumentType.UTILITY_BILL
-                        || d.getDocumentType() == com.fintech.userservice.entity.enums.DocumentType.BANK_STATEMENT)
+                .filter(d -> d.getDocumentType() == DocumentType.UTILITY_BILL
+                        || d.getDocumentType() == DocumentType.BANK_STATEMENT)
                 .count();
 
         KycLevel newLevel;
@@ -225,7 +268,7 @@ public class KycService {
 
         userProfile.setKycLevel(newLevel);
         if (newLevel != KycLevel.NONE) {
-            userProfile.setKycStatus(KycStatus.VERIFIED);
+            userProfile.setKycStatus(KycStatus.APPROVED);
             userProfile.setKycVerifiedAt(LocalDateTime.now());
         }
         userProfileRepository.save(userProfile);
@@ -243,10 +286,10 @@ public class KycService {
 
         List<KycDocument> documents = kycDocumentRepository.findByUserId(userId);
 
-        boolean hasApproved = documents.stream().anyMatch(d -> d.getStatus() == DocumentStatus.APPROVED);
-        boolean allRejected = documents.stream().allMatch(d -> d.getStatus() == DocumentStatus.REJECTED);
+        boolean hasApproved = documents.stream().anyMatch(d -> d.getStatus() == KycStatus.APPROVED);
+        boolean allRejected = documents.stream().allMatch(d -> d.getStatus() == KycStatus.REJECTED);
         boolean hasPending = documents.stream()
-                .anyMatch(d -> d.getStatus() == DocumentStatus.PENDING || d.getStatus() == DocumentStatus.UNDER_REVIEW);
+                .anyMatch(d -> d.getStatus() == KycStatus.PENDING || d.getStatus() == KycStatus.UNDER_REVIEW);
 
         if (hasApproved) {
             // Automatically upgrade level when documents are approved

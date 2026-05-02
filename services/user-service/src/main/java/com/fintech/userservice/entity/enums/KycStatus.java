@@ -2,6 +2,7 @@ package com.fintech.userservice.entity.enums;
 
 public enum KycStatus {
     PENDING,
-    VERIFIED,
+    UNDER_REVIEW,
+    APPROVED,
     REJECTED
 }

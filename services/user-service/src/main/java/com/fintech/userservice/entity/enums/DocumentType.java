@@ -3,7 +3,7 @@ package com.fintech.userservice.entity.enums;
 public enum DocumentType {
     PASSPORT,
     DRIVERS_LICENSE,
-    NATIONAL_ID,
+    ID_CARD,
     UTILITY_BILL,
     BANK_STATEMENT
 }

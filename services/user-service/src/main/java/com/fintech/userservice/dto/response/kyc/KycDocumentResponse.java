@@ -1,8 +1,8 @@
 package com.fintech.userservice.dto.response.kyc;
 
 import com.fintech.userservice.entity.KycDocument;
-import com.fintech.userservice.entity.enums.DocumentStatus;
 import com.fintech.userservice.entity.enums.DocumentType;
+import com.fintech.userservice.entity.enums.KycStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,12 +13,13 @@ public class KycDocumentResponse {
     private String userId;
     private DocumentType documentType;
     private String documentNumber;
-    private String documentUrl;
-    private DocumentStatus status;
+    private String filePath;
+    private KycStatus status;
     private String rejectionReason;
     private String verifiedBy;
     private LocalDateTime verifiedAt;
     private LocalDate expiryDate;
+    private LocalDateTime uploadedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -35,12 +36,13 @@ public class KycDocumentResponse {
         response.userId = document.getUserId();
         response.documentType = document.getDocumentType();
         response.documentNumber = isAdmin ? document.getDocumentNumber() : maskDocumentNumber(document.getDocumentNumber());
-        response.documentUrl = document.getDocumentUrl();
+        response.filePath = document.getFilePath();
         response.status = document.getStatus();
         response.rejectionReason = document.getRejectionReason();
         response.verifiedBy = document.getVerifiedBy();
         response.verifiedAt = document.getVerifiedAt();
         response.expiryDate = document.getExpiryDate();
+        response.uploadedAt = document.getUploadedAt();
         response.createdAt = document.getCreatedAt();
         response.updatedAt = document.getUpdatedAt();
         return response;
@@ -71,11 +73,11 @@ public class KycDocumentResponse {
         return documentNumber;
     }
 
-    public String getDocumentUrl() {
-        return documentUrl;
+    public String getFilePath() {
+        return filePath;
     }
 
-    public DocumentStatus getStatus() {
+    public KycStatus getStatus() {
         return status;
     }
 
@@ -93,6 +95,10 @@ public class KycDocumentResponse {
 
     public LocalDate getExpiryDate() {
         return expiryDate;
+    }
+
+    public LocalDateTime getUploadedAt() {
+        return uploadedAt;
     }
 
     public LocalDateTime getCreatedAt() {
