@@ -6,6 +6,9 @@ import com.fintech.schedulerservice.dto.JobResponse;
 import com.fintech.schedulerservice.dto.JobStatusUpdate;
 import com.fintech.schedulerservice.entity.JobType;
 import com.fintech.schedulerservice.entity.ScheduledJob;
+import com.fintech.schedulerservice.exception.InvalidJobStateException;
+import com.fintech.schedulerservice.exception.JobNotFoundException;
+import com.fintech.schedulerservice.exception.JobSchedulingException;
 import com.fintech.schedulerservice.repository.ScheduledJobRepository;
 import com.fintech.schedulerservice.util.SnowflakeIdGenerator;
 import org.quartz.*;
@@ -105,6 +108,17 @@ public class SchedulerService {
     }
 
     /**
+     * Get all jobs with pagination
+     */
+    public Page<JobResponse> getAllJobs(Pageable pageable) {
+        Page<ScheduledJob> jobsPage = scheduledJobRepository.findAll(pageable);
+        List<JobResponse> responses = jobsPage.getContent().stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+        return new PageImpl<>(responses, pageable, jobsPage.getTotalElements());
+    }
+
+    /**
      * Get jobs by type
      */
     public List<JobResponse> getJobsByType(JobType jobType) {
@@ -121,7 +135,7 @@ public class SchedulerService {
         log.info("Updating job status: {} -> {}", statusUpdate.getJobId(), statusUpdate.getJobStatus());
 
         ScheduledJob job = scheduledJobRepository.findById(statusUpdate.getJobId())
-                .orElseThrow(() -> new RuntimeException("Job not found: " + statusUpdate.getJobId()));
+                .orElseThrow(() -> new JobNotFoundException(statusUpdate.getJobId()));
 
         job.setJobStatus(statusUpdate.getJobStatus());
         job.setExecutionResult(statusUpdate.getExecutionResult());
@@ -167,10 +181,10 @@ public class SchedulerService {
         log.info("Cancelling job: {}", jobId);
 
         ScheduledJob job = scheduledJobRepository.findById(jobId)
-                .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
+                .orElseThrow(() -> new JobNotFoundException(jobId));
 
         if (job.getJobStatus() == JobStatus.COMPLETED || job.getJobStatus() == JobStatus.CANCELLED) {
-            throw new RuntimeException("Job cannot be cancelled in current status: " + job.getJobStatus());
+            throw new InvalidJobStateException(jobId, job.getJobStatus(), "cancel");
         }
 
         job.setJobStatus(JobStatus.CANCELLED);
@@ -224,17 +238,25 @@ public class SchedulerService {
     }
 
     /**
-     * Schedule job with Quartz
+     * Schedule job with Quartz — deletes existing job before re-scheduling
      */
     private void scheduleWithQuartz(ScheduledJob scheduledJob) {
         try {
+            JobKey jobKey = new JobKey(scheduledJob.getJobId(), "DEFAULT");
+
+            // Delete existing job if it exists (for re-scheduling scenarios)
+            if (quartzScheduler.checkExists(jobKey)) {
+                quartzScheduler.deleteJob(jobKey);
+                log.debug("Deleted existing Quartz job before re-scheduling: {}", scheduledJob.getJobId());
+            }
+
             JobDetail jobDetail = JobBuilder.newJob(QuartzJobService.class)
-                    .withIdentity(scheduledJob.getJobId(), "DEFAULT")
+                    .withIdentity(jobKey)
                     .usingJobData("jobId", scheduledJob.getJobId())
                     .build();
 
-            Date triggerDate = Date.from(scheduledJob.getScheduledTime()
-                    .atZone(ZoneId.systemDefault()).toInstant());
+            // scheduledTime is already Instant — no redundant conversion needed
+            Date triggerDate = Date.from(scheduledJob.getScheduledTime());
 
             Trigger trigger = TriggerBuilder.newTrigger()
                     .withIdentity(scheduledJob.getJobId() + "_trigger", "DEFAULT")
@@ -245,7 +267,7 @@ public class SchedulerService {
             log.info("Job scheduled with Quartz: {}", scheduledJob.getJobId());
         } catch (SchedulerException e) {
             log.error("Failed to schedule job with Quartz: {}", scheduledJob.getJobId(), e);
-            throw new RuntimeException("Failed to schedule job", e);
+            throw new JobSchedulingException("Failed to schedule job", scheduledJob.getJobId(), e);
         }
     }
 

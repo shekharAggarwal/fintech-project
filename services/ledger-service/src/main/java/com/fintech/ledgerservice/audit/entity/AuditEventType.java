@@ -1,0 +1,26 @@
+package com.fintech.ledgerservice.audit.entity;
+
+/**
+ * Enum representing all auditable event types in the system.
+ */
+public enum AuditEventType {
+    TRANSACTION_INITIATED,
+    TRANSACTION_COMPLETED,
+    TRANSACTION_FAILED,
+    TRANSACTION_REVERSED,
+    LEDGER_ENTRY_CREATED,
+    LEDGER_RECONCILIATION,
+    ACCOUNT_BALANCE_QUERIED,
+    ACCOUNT_STATEMENT_GENERATED,
+    PAYMENT_RECEIVED,
+    PAYMENT_SENT,
+    USER_LOGIN,
+    USER_LOGOUT,
+    USER_CREATED,
+    USER_UPDATED,
+    PERMISSION_CHANGED,
+    SESSION_STARTED,
+    SESSION_EXPIRED,
+    CONFIGURATION_CHANGED,
+    SYSTEM_ERROR
+}

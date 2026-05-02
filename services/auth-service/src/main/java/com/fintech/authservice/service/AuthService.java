@@ -46,16 +46,24 @@ public class AuthService {
 
     final private EmailNotificationPublisher emailNotificationPublisher;
 
+    final private RefreshTokenService refreshTokenService;
+
+    final private RateLimitingService rateLimitingService;
+
     public AuthService(AuthCoreRepository authCoreRepository, AuthCredentialsRepository credentialsRepository,
                        UserCreationKafkaPublisher userCreationKafkaPublisher, SessionService sessionService,
                        SessionCreationKafkaPublisher sessionCreationKafkaPublisher,
-                       EmailNotificationPublisher emailNotificationPublisher) {
+                       EmailNotificationPublisher emailNotificationPublisher,
+                       RefreshTokenService refreshTokenService,
+                       RateLimitingService rateLimitingService) {
         this.authCoreRepository = authCoreRepository;
         this.credentialsRepository = credentialsRepository;
         this.userCreationKafkaPublisher = userCreationKafkaPublisher;
         this.sessionService = sessionService;
         this.sessionCreationKafkaPublisher = sessionCreationKafkaPublisher;
         this.emailNotificationPublisher = emailNotificationPublisher;
+        this.refreshTokenService = refreshTokenService;
+        this.rateLimitingService = rateLimitingService;
     }
 
 
@@ -130,8 +138,13 @@ public class AuthService {
                 // The session is already stored in Redis and can be used
             }
 
+            // Generate refresh token
+            String refreshToken = refreshTokenService.generateRefreshToken(userId, sessionId);
 
-            return AuthenticationResult.success(authCore, sessionId);
+            // Clear rate limiting on successful authentication
+            rateLimitingService.clearLoginAttempts(sanitizedEmail, ipAddress);
+
+            return AuthenticationResult.success(authCore, sessionId, refreshToken);
 
         } catch (Exception e) {
             // Log error and return generic failure

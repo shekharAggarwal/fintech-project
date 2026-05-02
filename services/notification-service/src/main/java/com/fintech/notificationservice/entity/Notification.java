@@ -39,13 +39,19 @@ public class Notification {
     
     @Column
     private String errorMessage;
+
+    @Column
+    private Integer attemptCount = 0;
+
+    @Column
+    private LocalDateTime lastAttemptAt;
     
     public enum NotificationType {
         EMAIL, SMS, PUSH
     }
     
     public enum NotificationStatus {
-        PENDING, SENT, FAILED
+        PENDING, SENT, FAILED, RETRYING
     }
     
     // Constructors
@@ -130,5 +136,21 @@ public class Notification {
     
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
+    }
+
+    public Integer getAttemptCount() {
+        return attemptCount;
+    }
+
+    public void setAttemptCount(Integer attemptCount) {
+        this.attemptCount = attemptCount;
+    }
+
+    public LocalDateTime getLastAttemptAt() {
+        return lastAttemptAt;
+    }
+
+    public void setLastAttemptAt(LocalDateTime lastAttemptAt) {
+        this.lastAttemptAt = lastAttemptAt;
     }
 }

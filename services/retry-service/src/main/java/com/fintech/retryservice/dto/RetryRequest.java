@@ -41,4 +41,36 @@ public class RetryRequest {
 
     @Size(max = 20, message = "Priority cannot exceed 20 characters")
     private String priority;
+
+    // --- Getters and Setters ---
+
+    public String getOriginalId() { return originalId; }
+    public void setOriginalId(String originalId) { this.originalId = originalId; }
+
+    public RetryType getRetryType() { return retryType; }
+    public void setRetryType(RetryType retryType) { this.retryType = retryType; }
+
+    public String getServiceName() { return serviceName; }
+    public void setServiceName(String serviceName) { this.serviceName = serviceName; }
+
+    public String getEndpointUrl() { return endpointUrl; }
+    public void setEndpointUrl(String endpointUrl) { this.endpointUrl = endpointUrl; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public Map<String, String> getRetryData() { return retryData; }
+    public void setRetryData(Map<String, String> retryData) { this.retryData = retryData; }
+
+    public Integer getMaxRetries() { return maxRetries; }
+    public void setMaxRetries(Integer maxRetries) { this.maxRetries = maxRetries; }
+
+    public Integer getRetryDelaySeconds() { return retryDelaySeconds; }
+    public void setRetryDelaySeconds(Integer retryDelaySeconds) { this.retryDelaySeconds = retryDelaySeconds; }
+
+    public LocalDateTime getNextRetryTime() { return nextRetryTime; }
+    public void setNextRetryTime(LocalDateTime nextRetryTime) { this.nextRetryTime = nextRetryTime; }
+
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
 }

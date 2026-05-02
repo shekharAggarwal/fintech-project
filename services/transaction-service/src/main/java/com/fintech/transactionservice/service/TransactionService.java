@@ -4,8 +4,10 @@ import com.fintech.transactionservice.adapter.BankAdapter;
 import com.fintech.transactionservice.adapter.BankAdapterFactory;
 import com.fintech.transactionservice.dto.message.PaymentInitiatedEvent;
 import com.fintech.transactionservice.dto.message.TransactionCompletedEvent;
+import com.fintech.transactionservice.dto.request.TransactionRequest;
 import com.fintech.transactionservice.entity.Transaction;
 import com.fintech.transactionservice.entity.TransactionStatus;
+import com.fintech.transactionservice.exception.TransactionProcessingException;
 import com.fintech.transactionservice.messaging.TransactionCompletedEventPublisher;
 import com.fintech.transactionservice.model.TransactionResult;
 import com.fintech.transactionservice.repository.TransactionRepository;
@@ -16,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -28,17 +31,104 @@ public class TransactionService {
     private final TransactionCompletedEventPublisher transactionCompletedEventPublisher;
     private final BankAdapterFactory bankAdapterFactory;
     private final TransactionRepository transactionRepository;
+    private final IdempotencyService idempotencyService;
 
     public TransactionService(
             SnowflakeIdGenerator snowflakeIdGenerator,
             TransactionCompletedEventPublisher transactionCompletedEventPublisher,
             BankAdapterFactory bankAdapterFactory,
-            TransactionRepository transactionRepository
+            TransactionRepository transactionRepository,
+            IdempotencyService idempotencyService
     ) {
         this.snowflakeIdGenerator = snowflakeIdGenerator;
         this.transactionCompletedEventPublisher = transactionCompletedEventPublisher;
         this.bankAdapterFactory = bankAdapterFactory;
         this.transactionRepository = transactionRepository;
+        this.idempotencyService = idempotencyService;
+    }
+
+    /**
+     * Initiate a new transaction from REST API request with idempotency.
+     */
+    @Transactional
+    public Transaction initiateTransaction(TransactionRequest request, String idempotencyKey) {
+        logger.info("Initiating transaction for user: {}, from: {}, to: {}, amount: {}, idempotencyKey: {}",
+                request.getUserId(), request.getFromAccount(), request.getToAccount(), request.getAmount(), idempotencyKey);
+
+        String txnId = snowflakeIdGenerator.nextId();
+
+        // Reserve idempotency key
+        if (!idempotencyService.tryReserve(idempotencyKey, txnId)) {
+            // Another thread may have reserved it; double check DB
+            Optional<Transaction> existing = transactionRepository.findByIdempotencyKey(idempotencyKey);
+            if (existing.isPresent()) {
+                logger.info("Duplicate transaction detected for idempotencyKey: {}", idempotencyKey);
+                return existing.get();
+            }
+        }
+
+        Transaction transaction = new Transaction(
+                txnId,
+                txnId, // paymentId same as txnId for REST-initiated transactions
+                request.getUserId(),
+                request.getFromAccount(),
+                request.getToAccount(),
+                request.getAmount(),
+                request.getDescription()
+        );
+        transaction.setIdempotencyKey(idempotencyKey);
+        transaction.setStatus(TransactionStatus.PENDING);
+        transaction = transactionRepository.save(transaction);
+
+        logger.info("Created transaction: {} with idempotencyKey: {}", transaction.getTxnId(), idempotencyKey);
+
+        try {
+            BankAdapter adapter = bankAdapterFactory.getAdapter("Self");
+            if (adapter == null) {
+                throw new IllegalArgumentException("No adapter configured for bank: Self");
+            }
+
+            TransactionResult result = adapter.process(transaction);
+            if (result.success()) {
+                transaction.setStatus(TransactionStatus.COMPLETED);
+            } else {
+                transaction.setStatus(TransactionStatus.FAILED);
+                transaction.setFailureReason("Bank processing returned failure: " + result.statusCode());
+            }
+            transaction = transactionRepository.save(transaction);
+        } catch (Exception ex) {
+            logger.error("Transaction processing failed for txnId: {}", transaction.getTxnId(), ex);
+            transaction.setStatus(TransactionStatus.FAILED);
+            transaction.setFailureReason(ex.getMessage());
+            transaction = transactionRepository.save(transaction);
+            throw new TransactionProcessingException("Transaction processing failed", transaction.getTxnId(), true, ex);
+        }
+
+        // Publish completed event
+        publishCompletedEvent(transaction);
+
+        return transaction;
+    }
+
+    /**
+     * Find transaction by ID.
+     */
+    public Optional<Transaction> findById(String txnId) {
+        return transactionRepository.findById(txnId);
+    }
+
+    /**
+     * Find transactions filtered by accountId and/or status.
+     */
+    public List<Transaction> findTransactions(String accountId, TransactionStatus status) {
+        if (accountId != null && status != null) {
+            return transactionRepository.findByAccountIdAndStatus(accountId, status);
+        } else if (accountId != null) {
+            return transactionRepository.findByAccountId(accountId);
+        } else if (status != null) {
+            return transactionRepository.findByStatus(status);
+        }
+        return transactionRepository.findAll();
     }
 
     @Transactional
@@ -108,6 +198,29 @@ public class TransactionService {
 
 
         return transaction;
+    }
+
+    /**
+     * Helper to publish TransactionCompletedEvent safely.
+     */
+    private void publishCompletedEvent(Transaction transaction) {
+        try {
+            TransactionCompletedEvent completedEvent = new TransactionCompletedEvent(
+                    transaction.getTxnId(),
+                    transaction.getPaymentId(),
+                    transaction.getUserId(),
+                    transaction.getFromAccount(),
+                    transaction.getToAccount(),
+                    transaction.getAmount(),
+                    transaction.getDescription(),
+                    transaction.getStatus().name()
+            );
+            transactionCompletedEventPublisher.publishTransactionCompleted(completedEvent);
+            logger.info("TransactionCompletedEvent published for txnId: {}", transaction.getTxnId());
+        } catch (Exception e) {
+            logger.error("Failed to publish TransactionCompletedEvent for txnId: {} - {}",
+                    transaction.getTxnId(), e.getMessage(), e);
+        }
     }
 
 /*

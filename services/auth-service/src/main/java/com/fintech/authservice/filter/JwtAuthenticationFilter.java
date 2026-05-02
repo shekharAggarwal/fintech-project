@@ -1,5 +1,6 @@
 package com.fintech.authservice.filter;
 
+import com.fintech.authservice.service.RefreshTokenService;
 import com.fintech.authservice.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -19,9 +20,11 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     final private JwtUtil jwtUtil;
+    final private RefreshTokenService refreshTokenService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, RefreshTokenService refreshTokenService) {
         this.jwtUtil = jwtUtil;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @Override
@@ -29,9 +32,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String jwt = getJwtFromRequest(request);
         if (StringUtils.hasText(jwt) && jwtUtil.validateToken(jwt)) {
+            // Check if the token has been blacklisted (user logged out)
+            if (refreshTokenService.isTokenBlacklisted(jwt)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Token has been revoked\"}");
+                return;
+            }
+
             Claims claims = jwtUtil.getClaims(jwt);
             String email = claims.getSubject();
-            // You can extract more info if needed
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(email, null, null);
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

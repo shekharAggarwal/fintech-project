@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -45,11 +46,11 @@ public class Report {
     @Column(name = "description", length = 1000)
     private String description;
 
- /*   @ElementCollection
+    @ElementCollection
     @CollectionTable(name = "report_parameters", joinColumns = @JoinColumn(name = "report_id"))
     @MapKeyColumn(name = "param_key")
     @Column(name = "param_value", length = 1000)
-    private Map<String, String> parameters;*/
+    private Map<String, String> parameters = new HashMap<>();
 
     @Column(name = "file_path", length = 500)
     private String filePath;
@@ -91,6 +92,68 @@ public class Report {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    // --- Getters and Setters ---
+
+    public String getReportId() { return reportId; }
+    public void setReportId(String reportId) { this.reportId = reportId; }
+
+    public String getReportName() { return reportName; }
+    public void setReportName(String reportName) { this.reportName = reportName; }
+
+    public ReportType getReportType() { return reportType; }
+    public void setReportType(ReportType reportType) { this.reportType = reportType; }
+
+    public ReportStatus getReportStatus() { return reportStatus; }
+    public void setReportStatus(ReportStatus reportStatus) { this.reportStatus = reportStatus; }
+
+    public ReportFormat getReportFormat() { return reportFormat; }
+    public void setReportFormat(ReportFormat reportFormat) { this.reportFormat = reportFormat; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public Map<String, String> getParameters() { return parameters; }
+    public void setParameters(Map<String, String> parameters) { this.parameters = parameters; }
+
+    public String getFilePath() { return filePath; }
+    public void setFilePath(String filePath) { this.filePath = filePath; }
+
+    public Long getFileSizeBytes() { return fileSizeBytes; }
+    public void setFileSizeBytes(Long fileSizeBytes) { this.fileSizeBytes = fileSizeBytes; }
+
+    public Long getRecordCount() { return recordCount; }
+    public void setRecordCount(Long recordCount) { this.recordCount = recordCount; }
+
+    public Long getGenerationTimeMs() { return generationTimeMs; }
+    public void setGenerationTimeMs(Long generationTimeMs) { this.generationTimeMs = generationTimeMs; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+
+    public LocalDateTime getScheduledAt() { return scheduledAt; }
+    public void setScheduledAt(LocalDateTime scheduledAt) { this.scheduledAt = scheduledAt; }
+
+    public LocalDateTime getStartedAt() { return startedAt; }
+    public void setStartedAt(LocalDateTime startedAt) { this.startedAt = startedAt; }
+
+    public LocalDateTime getCompletedAt() { return completedAt; }
+    public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+
+    public String getErrorMessage() { return errorMessage; }
+    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+
+    public Integer getDownloadCount() { return downloadCount; }
+    public void setDownloadCount(Integer downloadCount) { this.downloadCount = downloadCount; }
+
+    public LocalDateTime getExpiresAt() { return expiresAt; }
+    public void setExpiresAt(LocalDateTime expiresAt) { this.expiresAt = expiresAt; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
     /**
      * Check if report is expired

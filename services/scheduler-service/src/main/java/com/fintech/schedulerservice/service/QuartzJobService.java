@@ -41,7 +41,7 @@ public class QuartzJobService implements Job {
         Optional<ScheduledJob> optionalJob = scheduledJobRepository.findById(jobId);
         if (!optionalJob.isPresent()) {
             log.error("Job not found: {}", jobId);
-            return;
+            throw new JobExecutionException("Job not found: " + jobId);
         }
 
         ScheduledJob scheduledJob = optionalJob.get();

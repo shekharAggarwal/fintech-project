@@ -48,14 +48,12 @@ public class TransactionCompletedEventPublisher {
                             );
 
                         } else {
-                            logger.error("Failed to publish ledger entry message to topic: {} with offset: {} for tnxId: {} with userId: {} and amount: {} and description: {}",
+                            logger.error("Failed to publish ledger entry message to topic: {} for tnxId: {} with userId: {} and amount: {} and description: {}",
                                     transactionCompletedTopic,
-                                    result.getRecordMetadata().offset(),
                                     transactionCompletedEvent.getTxnId(),
                                     transactionCompletedEvent.getUserId(),
                                     transactionCompletedEvent.getAmount(),
                                     transactionCompletedEvent.getDescription(), ex);
-                            throw new RuntimeException("Failed to publish ledger entry message", ex);
                         }
                     });
 

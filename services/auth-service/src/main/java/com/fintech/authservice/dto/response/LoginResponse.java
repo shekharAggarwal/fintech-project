@@ -5,16 +5,18 @@ public record LoginResponse(
         String userId,
         String email,
         String accessToken,
+        String refreshToken,
         String message,
         String code) {
 
     // Static factory methods
-    public static LoginResponse success(String userId, String email, String accessToken) {
+    public static LoginResponse success(String userId, String email, String accessToken, String refreshToken) {
         return new LoginResponse(
                 true,
                 userId,
                 email,
                 accessToken,
+                refreshToken,
                 "Login successful",
                 "SUCCESS"
         );
@@ -24,6 +26,7 @@ public record LoginResponse(
     public static LoginResponse failed(String message, String code) {
         return new LoginResponse(
                 false,
+                null,
                 null,
                 null,
                 null,

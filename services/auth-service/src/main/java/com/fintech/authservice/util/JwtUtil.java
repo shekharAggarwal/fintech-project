@@ -113,4 +113,26 @@ public class JwtUtil {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+
+    /**
+     * Returns the remaining lifetime of the token in milliseconds.
+     * Returns 0 if the token is already expired or invalid.
+     */
+    public long getTokenRemainingLifeMillis(String token) {
+        try {
+            Claims claims = getClaims(token);
+            long expirationMillis = claims.getExpiration().getTime();
+            long remaining = expirationMillis - System.currentTimeMillis();
+            return Math.max(remaining, 0);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Returns the configured access token expiration duration in milliseconds.
+     */
+    public long getAccessTokenExpiration() {
+        return accessTokenExpiration;
+    }
 }

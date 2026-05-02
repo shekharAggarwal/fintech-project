@@ -5,6 +5,9 @@ package com.fintech.reportingservice.model;
  */
 public enum ReportType {
     TRANSACTION_SUMMARY,
+    ACCOUNT_STATEMENT,
+    DAILY_RECONCILIATION,
+    MONTHLY_SUMMARY,
     PAYMENT_ANALYSIS,
     USER_ACTIVITY,
     FINANCIAL_STATEMENT,

@@ -4,7 +4,6 @@
     <bytecodeTargetLevel>
       <module name="com.fintech.gateway-service.main" target="17" />
       <module name="com.fintech.gateway-service.test" target="17" />
-      <module name="gateway-service" target="17" />
       <module name="gateway-service.main" target="17" />
       <module name="gateway-service.test" target="17" />
     </bytecodeTargetLevel>
@@ -14,6 +13,9 @@
       <module name="auth-service" options="-parameters" />
       <module name="auth-service.main" options="-parameters" />
       <module name="auth-service.test" options="-parameters" />
+      <module name="authorization-service" options="-parameters" />
+      <module name="authorization-service.main" options="-parameters" />
+      <module name="authorization-service.test" options="-parameters" />
       <module name="com.fintech.gateway-service.main" options="-parameters" />
       <module name="com.fintech.gateway-service.test" options="-parameters" />
       <module name="config-server" options="-parameters" />
@@ -26,6 +28,9 @@
       <module name="notification-service" options="-parameters" />
       <module name="notification-service.main" options="-parameters" />
       <module name="notification-service.test" options="-parameters" />
+      <module name="payment-service" options="-parameters" />
+      <module name="payment-service.main" options="-parameters" />
+      <module name="payment-service.test" options="-parameters" />
       <module name="reporting-service" options="-parameters" />
       <module name="reporting-service.main" options="-parameters" />
       <module name="reporting-service.test" options="-parameters" />
@@ -35,6 +40,11 @@
       <module name="scheduler-service" options="-parameters" />
       <module name="scheduler-service.main" options="-parameters" />
       <module name="scheduler-service.test" options="-parameters" />
+      <module name="services.gateway-service.main" options="-parameters" />
+      <module name="services.gateway-service.test" options="-parameters" />
+      <module name="transaction-service" options="-parameters" />
+      <module name="transaction-service.main" options="-parameters" />
+      <module name="transaction-service.test" options="-parameters" />
       <module name="user-service" options="-parameters" />
       <module name="user-service.main" options="-parameters" />
       <module name="user-service.test" options="-parameters" />

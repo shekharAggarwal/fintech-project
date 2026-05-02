@@ -42,4 +42,10 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
      */
     @Query("SELECT r.name FROM UserRole ur JOIN Role r ON ur.role = r.roleId WHERE ur.userId = :userId")
     List<String> findRoleNamesByUserId(@Param("userId") String userId);
+
+    /**
+     * Check if any user is assigned to a specific role
+     */
+    @Query("SELECT COUNT(ur) > 0 FROM UserRole ur WHERE ur.role = :roleId")
+    boolean existsByRoleId(@Param("roleId") Long roleId);
 }

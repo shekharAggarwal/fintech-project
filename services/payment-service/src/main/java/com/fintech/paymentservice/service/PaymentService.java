@@ -5,6 +5,12 @@ import com.fintech.paymentservice.dto.message.TransactionCompletedMessage;
 import com.fintech.paymentservice.dto.request.InitiateRequest;
 import com.fintech.paymentservice.dto.response.PaymentInitiatedResponse;
 import com.fintech.paymentservice.entity.Payment;
+import com.fintech.paymentservice.exception.InsufficientFundsException;
+import com.fintech.paymentservice.exception.TransactionLimitExceededException;
+import com.fintech.paymentservice.fraud.exception.PaymentBlockedByFraudException;
+import com.fintech.paymentservice.fraud.model.FraudScreeningDecision;
+import com.fintech.paymentservice.fraud.model.FraudScreeningResult;
+import com.fintech.paymentservice.fraud.service.FraudDetectionService;
 import com.fintech.paymentservice.messaging.OtpEmailPublisher;
 import com.fintech.paymentservice.messaging.TransactionPublisher;
 import com.fintech.paymentservice.model.PaymentStatus;
@@ -36,12 +42,21 @@ public class PaymentService {
 
     private final SnowflakeIdGenerator idGenerator;
 
-    public PaymentService(PaymentRepository paymentRepository, StringRedisTemplate redis, TransactionPublisher eventPublisher, OtpEmailPublisher otpEmailPublisher, OtpService otpService, SnowflakeIdGenerator idGenerator) {
+    private final BalanceService balanceService;
+
+    private final TransactionLimitService transactionLimitService;
+
+    private final FraudDetectionService fraudDetectionService;
+
+    public PaymentService(PaymentRepository paymentRepository, StringRedisTemplate redis, TransactionPublisher eventPublisher, OtpEmailPublisher otpEmailPublisher, OtpService otpService, SnowflakeIdGenerator idGenerator, BalanceService balanceService, TransactionLimitService transactionLimitService, FraudDetectionService fraudDetectionService) {
         this.paymentRepository = paymentRepository;
         this.redis = redis;
         this.otpEmailPublisher = otpEmailPublisher;
         this.otpService = otpService;
         this.idGenerator = idGenerator;
+        this.balanceService = balanceService;
+        this.transactionLimitService = transactionLimitService;
+        this.fraudDetectionService = fraudDetectionService;
     }
 
     /**
@@ -50,6 +65,14 @@ public class PaymentService {
     @Transactional
     public PaymentInitiatedResponse initiate(InitiateRequest request, String currentUserId) {
         logger.info("Initiating payment for user {} from {} to {} amount {}", currentUserId, request.fromAccount(), request.toAccount(), request.amount());
+
+        // Check sufficient funds
+        if (!balanceService.hasSufficientFunds(request.fromAccount(), request.amount())) {
+            throw new InsufficientFundsException(request.fromAccount(), "Insufficient funds for payment of " + request.amount());
+        }
+
+        // Check transaction limits
+        transactionLimitService.checkLimits(request.fromAccount(), request.amount());
 
         // Generate unique payment ID using Snowflake
         String paymentId = idGenerator.generateStringId();
@@ -67,6 +90,22 @@ public class PaymentService {
         payment.setRetryCount(0);
 
         payment = paymentRepository.save(payment);
+
+        // Fraud screening (after save so we have paymentId for alerts)
+        try {
+            FraudScreeningResult fraudResult = fraudDetectionService.screenTransaction(payment);
+            if (fraudResult.decision() == FraudScreeningDecision.FLAG) {
+                payment.setStatus(PaymentStatus.FLAGGED);
+                paymentRepository.save(payment);
+                logger.warn("Payment {} flagged for review: {}", paymentId, fraudResult.reason());
+            }
+        } catch (PaymentBlockedByFraudException e) {
+            payment.setStatus(PaymentStatus.FAILED);
+            payment.setFailureReason("Blocked by fraud detection: " + e.getMessage());
+            payment.setFailedAt(Instant.now());
+            paymentRepository.save(payment);
+            throw e;
+        }
 
         // Generate OTP for verification
         String otp = otpService.generateOtp(paymentId);

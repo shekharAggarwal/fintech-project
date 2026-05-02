@@ -7,5 +7,6 @@ public enum PaymentStatus {
     FAILED,
     AUTHORIZED,
     PENDING_VERIFICATION,
-    STUCK
+    STUCK,
+    FLAGGED
 }

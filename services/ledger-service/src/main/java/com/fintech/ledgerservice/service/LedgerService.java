@@ -1,6 +1,7 @@
 package com.fintech.ledgerservice.service;
 
 import com.fintech.ledgerservice.dto.message.TransactionCompletedMessage;
+import com.fintech.ledgerservice.dto.response.AccountBalanceResponse;
 import com.fintech.ledgerservice.entity.LedgerEntry;
 import com.fintech.ledgerservice.entity.LedgerEntryType;
 import com.fintech.ledgerservice.repository.LedgerRepository;
@@ -9,6 +10,10 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 
 
 @Service
@@ -25,94 +30,144 @@ public class LedgerService {
         this.snowflakeIdGenerator = snowflakeIdGenerator;
     }
 
-    /*   @Transactional
-       public String postDoubleEntry(String txnId, String debitAccountId, String creditAccountId, BigDecimal amount) {
+    /**
+     * Creates a double-entry pair (DEBIT + CREDIT) for a completed transaction.
+     * Guarantees atomicity via @Transactional — both entries commit or neither does.
+     */
+    @Transactional
+    public void createDoubleEntry(String txnId, String senderAcct, String receiverAcct, BigDecimal amount, String paymentId, String description) {
+        logger.info("Creating double entry for txnId: {}, sender: {}, receiver: {}, amount: {}",
+                txnId, senderAcct, receiverAcct, amount);
 
-           logger.info("Processing double entry for txnId: {}, debit: {}, credit: {}, amount: {}",
-               txnId, debitAccountId, creditAccountId, amount);
+        LedgerEntry debitEntry = new LedgerEntry(
+                snowflakeIdGenerator.nextId(),
+                txnId,
+                paymentId,
+                senderAcct,
+                LedgerEntryType.DEBIT,
+                amount,
+                description
+        );
 
-           // Fetch balances (pessimistic lock can be added)
-           AccountBalance debit = accountRepo.findById(debitAccountId)
-               .orElseThrow(() -> new IllegalStateException("Payer account not found: " + debitAccountId));
+        LedgerEntry creditEntry = new LedgerEntry(
+                snowflakeIdGenerator.nextId(),
+                txnId,
+                paymentId,
+                receiverAcct,
+                LedgerEntryType.CREDIT,
+                amount,
+                description
+        );
 
-           if (debit.getCurrentBalance().compareTo(amount) < 0) {
-               throw new IllegalStateException("Insufficient funds in account: " + debitAccountId);
-           }
+        ledgerRepo.save(debitEntry);
+        ledgerRepo.save(creditEntry);
 
-           AccountBalance credit = accountRepo.findById(creditAccountId).orElseGet(() -> {
-               logger.info("Creating new account balance for creditAccountId: {}", creditAccountId);
-               AccountBalance a = new AccountBalance();
-               a.setBalanceId(snowflakeIdGenerator.nextId());
-               a.setAccountId(creditAccountId);
-               a.setCurrentBalance(BigDecimal.ZERO);
-               a.setAvailableBalance(BigDecimal.ZERO);
-               a.setPendingBalance(BigDecimal.ZERO);
-               a.setCurrency("USD");
-               return a;
-           });
+        logger.info("Successfully created double entry for txnId: {}", txnId);
+    }
 
-           // Create ledger entries with Snowflake IDs
-           LedgerEntry debitEntry = new LedgerEntry();
-           debitEntry.setEntryId(snowflakeIdGenerator.nextId());
-           debitEntry.setTxnId(txnId);
-           debitEntry.setAccountId(debitAccountId);
-           debitEntry.setEntryType("DEBIT");
-           debitEntry.setAmount(amount);
-           debitEntry.setCurrency("USD");
+    /**
+     * Creates reversal entries (opposite direction) for a failed transaction.
+     * CREDIT on sender + DEBIT on receiver to undo the original entry.
+     */
+    @Transactional
+    public void createReversalEntries(String txnId, String senderAcct, String receiverAcct, BigDecimal amount, String paymentId, String description) {
+        logger.info("Creating reversal entries for txnId: {}, sender: {}, receiver: {}, amount: {}",
+                txnId, senderAcct, receiverAcct, amount);
 
-           LedgerEntry creditEntry = new LedgerEntry();
-           creditEntry.setEntryId(snowflakeIdGenerator.nextId());
-           creditEntry.setTxnId(txnId);
-           creditEntry.setAccountId(creditAccountId);
-           creditEntry.setEntryType("CREDIT");
-           creditEntry.setAmount(amount);
-           creditEntry.setCurrency("USD");
+        String reversalDescription = "REVERSAL: " + (description != null ? description : "Transaction failed");
 
-           // Update balances
-           debit.setCurrentBalance(debit.getCurrentBalance().subtract(amount));
-           debit.setAvailableBalance(debit.getAvailableBalance().subtract(amount));
+        LedgerEntry reversalCredit = new LedgerEntry(
+                snowflakeIdGenerator.nextId(),
+                txnId,
+                paymentId,
+                senderAcct,
+                LedgerEntryType.CREDIT,
+                amount,
+                reversalDescription
+        );
 
-           credit.setCurrentBalance(credit.getCurrentBalance().add(amount));
-           credit.setAvailableBalance(credit.getAvailableBalance().add(amount));
+        LedgerEntry reversalDebit = new LedgerEntry(
+                snowflakeIdGenerator.nextId(),
+                txnId,
+                paymentId,
+                receiverAcct,
+                LedgerEntryType.DEBIT,
+                amount,
+                reversalDescription
+        );
 
-           // Persist all changes
-           ledgerRepo.save(debitEntry);
-           ledgerRepo.save(creditEntry);
-           accountRepo.save(debit);
-           accountRepo.save(credit);
+        ledgerRepo.save(reversalCredit);
+        ledgerRepo.save(reversalDebit);
 
-           // Publish event
-           LedgerEntryCreatedEvent event = new LedgerEntryCreatedEvent(
-               snowflakeIdGenerator.nextId(),
-               txnId,
-               debitAccountId,
-               creditAccountId,
-               amount,
-               "USD"
-           );
-           eventPublisher.publishLedgerEntryCreated(event);
+        logger.info("Successfully created reversal entries for txnId: {}", txnId);
+    }
 
-           logger.info("Successfully processed double entry for txnId: {}", txnId);
+    /**
+     * Reconciles a transaction by verifying sum(DEBIT) == sum(CREDIT).
+     * Returns true if balanced, false otherwise.
+     */
+    public boolean reconcile(String txnId) {
+        logger.info("Reconciling transaction: {}", txnId);
 
-           return txnId;
-       }
+        BigDecimal totalDebits = ledgerRepo.sumAmountByTxnIdAndEntryType(txnId, LedgerEntryType.DEBIT);
+        BigDecimal totalCredits = ledgerRepo.sumAmountByTxnIdAndEntryType(txnId, LedgerEntryType.CREDIT);
 
-       public AccountBalanceResponse getAccountBalance(String accountId) {
-           logger.info("Fetching balance for accountId: {}", accountId);
+        boolean balanced = totalDebits.compareTo(totalCredits) == 0;
 
-           AccountBalance balance = accountRepo.findById(accountId)
-               .orElseThrow(() -> new IllegalStateException("Account not found: " + accountId));
+        if (!balanced) {
+            logger.warn("Transaction {} is NOT balanced. Debits: {}, Credits: {}", txnId, totalDebits, totalCredits);
+        } else {
+            logger.info("Transaction {} is balanced. Total: {}", txnId, totalDebits);
+        }
 
-           return new AccountBalanceResponse(
-               balance.getBalanceId(),
-               balance.getAccountId(),
-               balance.getCurrentBalance(),
-               balance.getAvailableBalance(),
-               balance.getPendingBalance(),
-               balance.getCurrency()
-           );
-       }
-   */
+        return balanced;
+    }
+
+    /**
+     * Computes account balance as sum(CREDIT) - sum(DEBIT) for the given account.
+     */
+    public AccountBalanceResponse getAccountBalance(String accountId) {
+        logger.info("Computing balance for account: {}", accountId);
+
+        BigDecimal totalCredits = ledgerRepo.sumAmountByAccountNumberAndEntryType(accountId, LedgerEntryType.CREDIT);
+        BigDecimal totalDebits = ledgerRepo.sumAmountByAccountNumberAndEntryType(accountId, LedgerEntryType.DEBIT);
+        BigDecimal currentBalance = totalCredits.subtract(totalDebits);
+
+        return new AccountBalanceResponse(
+                null,
+                accountId,
+                currentBalance,
+                currentBalance,
+                BigDecimal.ZERO,
+                "USD"
+        );
+    }
+
+    /**
+     * Returns all ledger entries for an account within a date range (account statement).
+     */
+    public List<LedgerEntry> getAccountStatement(String accountId, Instant startDate, Instant endDate) {
+        logger.info("Fetching statement for account: {} from {} to {}", accountId, startDate, endDate);
+        return ledgerRepo.findByAccountNumberAndCreatedAtBetween(accountId, startDate, endDate);
+    }
+
+    /**
+     * Returns all ledger entries for a specific transaction.
+     */
+    public List<LedgerEntry> getEntriesByTransactionId(String txnId) {
+        return ledgerRepo.findByTxnId(txnId);
+    }
+
+    /**
+     * Returns all ledger entries for a specific account.
+     */
+    public List<LedgerEntry> getEntriesByAccountId(String accountId) {
+        return ledgerRepo.findByAccountNumber(accountId);
+    }
+
+    /**
+     * Legacy method — creates ledger entry from TransactionCompletedMessage DTO.
+     */
     @Transactional
     public void createLedgerEntry(TransactionCompletedMessage transactionCompletedMessage) {
 
@@ -122,30 +177,15 @@ public class LedgerService {
                 transactionCompletedMessage.getToAccount(),
                 transactionCompletedMessage.getAmount());
 
-        // Create ledger entries with Snowflake IDs
-        LedgerEntry debitEntry = new LedgerEntry(snowflakeIdGenerator.nextId(),
+        createDoubleEntry(
                 transactionCompletedMessage.getTxnId(),
-                transactionCompletedMessage.getPaymentId(),
                 transactionCompletedMessage.getFromAccount(),
-                LedgerEntryType.DEBIT,
-                transactionCompletedMessage.getAmount(),
-                transactionCompletedMessage.getDescription());
-
-        LedgerEntry creditEntry = new LedgerEntry(
-                snowflakeIdGenerator.nextId(),
-                transactionCompletedMessage.getTxnId(),
-                transactionCompletedMessage.getPaymentId(),
                 transactionCompletedMessage.getToAccount(),
-                LedgerEntryType.CREDIT,
                 transactionCompletedMessage.getAmount(),
+                transactionCompletedMessage.getPaymentId(),
                 transactionCompletedMessage.getDescription()
         );
 
-        // Persist all changes
-        ledgerRepo.save(debitEntry);
-        ledgerRepo.save(creditEntry);
-
         logger.info("Successfully processed double entry for txnId: {}", transactionCompletedMessage.getTxnId());
-
     }
 }

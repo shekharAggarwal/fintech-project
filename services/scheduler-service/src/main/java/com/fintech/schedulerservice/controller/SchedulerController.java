@@ -5,6 +5,7 @@ import com.fintech.schedulerservice.dto.JobResponse;
 import com.fintech.schedulerservice.dto.JobStatusUpdate;
 import com.fintech.schedulerservice.entity.JobStatus;
 import com.fintech.schedulerservice.entity.JobType;
+import com.fintech.schedulerservice.exception.JobNotFoundException;
 import com.fintech.schedulerservice.service.SchedulerService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -33,7 +34,6 @@ public class SchedulerController {
      */
     @PostMapping("/jobs")
     public ResponseEntity<JobResponse> createJob(@Valid @RequestBody JobRequest jobRequest) {
-        //log.info("Creating new job: {}", jobRequest.getJobName());
         JobResponse response = schedulerService.createJob(jobRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -43,28 +43,27 @@ public class SchedulerController {
      */
     @GetMapping("/jobs/{jobId}")
     public ResponseEntity<JobResponse> getJobById(@PathVariable String jobId) {
-//        log.info("Getting job by ID: {}", jobId);
         return schedulerService.getJobById(jobId)
-                .map(job -> ResponseEntity.ok(job))
-                .orElse(ResponseEntity.notFound().build());
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new JobNotFoundException(jobId));
     }
 
     /**
-     * Get jobs by status with pagination
+     * Get jobs with optional status filter and pagination
      */
     @GetMapping("/jobs")
-    public ResponseEntity<Page<JobResponse>> getJobsByStatus(
+    public ResponseEntity<Page<JobResponse>> getJobs(
             @RequestParam(required = false) JobStatus status,
             Pageable pageable) {
-        //log.info("Getting jobs by status: {} with pagination", status);
 
         if (status != null) {
             Page<JobResponse> jobs = schedulerService.getJobsByStatus(status, pageable);
             return ResponseEntity.ok(jobs);
         }
 
-        // If no status provided, return all jobs (implement in service if needed)
-        return ResponseEntity.badRequest().build();
+        // Return all jobs when no status filter is provided
+        Page<JobResponse> jobs = schedulerService.getAllJobs(pageable);
+        return ResponseEntity.ok(jobs);
     }
 
     /**
@@ -72,20 +71,17 @@ public class SchedulerController {
      */
     @GetMapping("/jobs/by-type/{jobType}")
     public ResponseEntity<List<JobResponse>> getJobsByType(@PathVariable JobType jobType) {
-        //log.info("Getting jobs by type: {}", jobType);
         List<JobResponse> jobs = schedulerService.getJobsByType(jobType);
         return ResponseEntity.ok(jobs);
     }
 
     /**
-     * Update job status
+     * Update job status (partial update)
      */
-    @PutMapping("/jobs/{jobId}/status")
+    @PatchMapping("/jobs/{jobId}/status")
     public ResponseEntity<JobResponse> updateJobStatus(
             @PathVariable String jobId,
             @Valid @RequestBody JobStatusUpdate statusUpdate) {
-        //log.info("Updating job status for ID: {} to {}", jobId, statusUpdate.getJobStatus());
-
         statusUpdate.setJobId(jobId);
         JobResponse response = schedulerService.updateJobStatus(statusUpdate);
         return ResponseEntity.ok(response);
@@ -95,12 +91,12 @@ public class SchedulerController {
      * Cancel a scheduled job
      */
     @DeleteMapping("/jobs/{jobId}")
-    public ResponseEntity<JobResponse> cancelJob(
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<Void> cancelJob(
             @PathVariable String jobId,
             @RequestParam String updatedBy) {
-        //log.info("Cancelling job: {} by user: {}", jobId, updatedBy);
-        JobResponse response = schedulerService.cancelJob(jobId, updatedBy);
-        return ResponseEntity.ok(response);
+        schedulerService.cancelJob(jobId, updatedBy);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -108,7 +104,6 @@ public class SchedulerController {
      */
     @GetMapping("/jobs/ready-for-execution")
     public ResponseEntity<List<JobResponse>> getJobsReadyForExecution() {
-        //log.info("Getting jobs ready for execution");
         List<JobResponse> jobs = schedulerService.getJobsReadyForExecution();
         return ResponseEntity.ok(jobs);
     }
@@ -118,7 +113,6 @@ public class SchedulerController {
      */
     @GetMapping("/jobs/for-retry")
     public ResponseEntity<List<JobResponse>> getJobsForRetry() {
-        //  log.info("Getting jobs for retry");
         List<JobResponse> jobs = schedulerService.getJobsForRetry();
         return ResponseEntity.ok(jobs);
     }
@@ -127,9 +121,9 @@ public class SchedulerController {
      * Trigger cleanup of old jobs
      */
     @DeleteMapping("/jobs/cleanup")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> cleanupOldJobs(@RequestParam(defaultValue = "30") int daysOld) {
-        //   log.info("Triggering cleanup of jobs older than {} days", daysOld);
         schedulerService.cleanupOldJobs(daysOld);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

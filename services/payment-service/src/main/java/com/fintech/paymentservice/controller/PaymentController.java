@@ -8,6 +8,9 @@ import com.fintech.paymentservice.dto.response.BulkTransferResponse;
 import com.fintech.paymentservice.dto.response.PaymentHistoryResponse;
 import com.fintech.paymentservice.dto.response.PaymentInitiatedResponse;
 import com.fintech.paymentservice.entity.Payment;
+import com.fintech.paymentservice.exception.InsufficientFundsException;
+import com.fintech.paymentservice.exception.TransactionLimitExceededException;
+import com.fintech.paymentservice.fraud.exception.PaymentBlockedByFraudException;
 import com.fintech.paymentservice.service.PaymentService;
 import com.fintech.security.annotation.FilterResponse;
 import com.fintech.security.annotation.RequireAuthorization;
@@ -55,6 +58,18 @@ public class PaymentController {
             PaymentInitiatedResponse response = paymentService.initiate(request, currentUserId);
             logger.info("Payment initiated successfully: {}", response.paymentId());
             return ResponseEntity.ok(response);
+        } catch (InsufficientFundsException e) {
+            logger.warn("Insufficient funds for user {}: {}", currentUserId, e.getMessage());
+            return ResponseEntity.status(409)
+                    .body(Map.of("error", "Insufficient funds", "reason", e.getMessage()));
+        } catch (TransactionLimitExceededException e) {
+            logger.warn("Transaction limit exceeded for user {}: {}", currentUserId, e.getMessage());
+            return ResponseEntity.status(429)
+                    .body(Map.of("error", "Transaction limit exceeded", "reason", e.getMessage()));
+        } catch (PaymentBlockedByFraudException e) {
+            logger.warn("Payment blocked by fraud detection for user {}: {}", currentUserId, e.getMessage());
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Payment blocked", "reason", e.getMessage()));
         } catch (Exception e) {
             logger.error("Failed to initiate payment for user {}: {}", currentUserId, e.getMessage(), e);
             return ResponseEntity.internalServerError()

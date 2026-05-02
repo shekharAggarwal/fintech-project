@@ -1,6 +1,8 @@
 package com.fintech.userservice.entity;
 
 import com.fintech.security.annotation.FieldAccessControl;
+import com.fintech.userservice.entity.enums.KycLevel;
+import com.fintech.userservice.entity.enums.KycStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -68,6 +70,20 @@ public class UserProfile {
     @Column
     @FieldAccessControl(resourceType = "user", fieldName = "accountNumber", sensitive = true, redactedValue = "****")
     private String accountNumber;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @FieldAccessControl(resourceType = "user", fieldName = "kycLevel")
+    private KycLevel kycLevel = KycLevel.NONE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @FieldAccessControl(resourceType = "user", fieldName = "kycStatus")
+    private KycStatus kycStatus = KycStatus.PENDING;
+
+    @Column
+    @FieldAccessControl(resourceType = "user", fieldName = "kycVerifiedAt")
+    private LocalDateTime kycVerifiedAt;
 
     public UserProfile() {
     }
@@ -178,5 +194,29 @@ public class UserProfile {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public KycLevel getKycLevel() {
+        return kycLevel;
+    }
+
+    public void setKycLevel(KycLevel kycLevel) {
+        this.kycLevel = kycLevel;
+    }
+
+    public KycStatus getKycStatus() {
+        return kycStatus;
+    }
+
+    public void setKycStatus(KycStatus kycStatus) {
+        this.kycStatus = kycStatus;
+    }
+
+    public LocalDateTime getKycVerifiedAt() {
+        return kycVerifiedAt;
+    }
+
+    public void setKycVerifiedAt(LocalDateTime kycVerifiedAt) {
+        this.kycVerifiedAt = kycVerifiedAt;
     }
 }

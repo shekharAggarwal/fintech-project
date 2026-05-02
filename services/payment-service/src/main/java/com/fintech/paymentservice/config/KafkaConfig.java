@@ -59,9 +59,6 @@ public class KafkaConfig {
         // Set concurrency level (number of consumer threads)
         factory.setConcurrency(3);
 
-        // Error handling
-        factory.setCommonErrorHandler(new org.springframework.kafka.listener.DefaultErrorHandler());
-
         return factory;
     }
 

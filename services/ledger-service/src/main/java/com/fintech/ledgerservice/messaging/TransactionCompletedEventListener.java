@@ -51,8 +51,25 @@ public class TransactionCompletedEventListener {
             logger.info("Successfully parsed account creation message for userId: {}", transactionCompletedMessage.getUserId());
 
             if (Objects.equals(transactionCompletedMessage.getStatus(), "COMPLETED")) {
-                // Process the user creation
-                ledgerService.createLedgerEntry(transactionCompletedMessage);
+                // Create standard double-entry for completed transactions
+                ledgerService.createDoubleEntry(
+                        transactionCompletedMessage.getTxnId(),
+                        transactionCompletedMessage.getFromAccount(),
+                        transactionCompletedMessage.getToAccount(),
+                        transactionCompletedMessage.getAmount(),
+                        transactionCompletedMessage.getPaymentId(),
+                        transactionCompletedMessage.getDescription()
+                );
+            } else if (Objects.equals(transactionCompletedMessage.getStatus(), "FAILED")) {
+                // Create reversal entries for failed transactions
+                ledgerService.createReversalEntries(
+                        transactionCompletedMessage.getTxnId(),
+                        transactionCompletedMessage.getFromAccount(),
+                        transactionCompletedMessage.getToAccount(),
+                        transactionCompletedMessage.getAmount(),
+                        transactionCompletedMessage.getPaymentId(),
+                        transactionCompletedMessage.getDescription()
+                );
             }
 
             logger.info("Successfully processed user account creation for userId: {}", transactionCompletedMessage.getUserId());

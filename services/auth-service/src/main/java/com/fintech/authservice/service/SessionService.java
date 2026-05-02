@@ -60,4 +60,43 @@ public class SessionService {
         }
     }
 
+    /**
+     * Retrieve userId from session stored in Redis.
+     */
+    public String getUserIdFromSession(String sessionId) {
+        try {
+            String sessionKey = SESSION_PREFIX + sessionId;
+            String sessionJson = redisTemplate.opsForValue().get(sessionKey);
+
+            if (sessionJson == null) {
+                logger.warn("Session not found in Redis: sessionId={}", sessionId);
+                return null;
+            }
+
+            Map<String, Object> sessionData = objectMapper.readValue(sessionJson, new TypeReference<>() {});
+            return (String) sessionData.get("userId");
+
+        } catch (Exception e) {
+            logger.error("Failed to retrieve session from Redis: sessionId={}", sessionId, e);
+            return null;
+        }
+    }
+
+    /**
+     * Invalidate (delete) a session from Redis.
+     */
+    public void invalidateSession(String sessionId) {
+        try {
+            String sessionKey = SESSION_PREFIX + sessionId;
+            Boolean deleted = redisTemplate.delete(sessionKey);
+            if (Boolean.TRUE.equals(deleted)) {
+                logger.info("Session invalidated in Redis: sessionId={}", sessionId);
+            } else {
+                logger.warn("Session not found for invalidation: sessionId={}", sessionId);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to invalidate session in Redis: sessionId={}", sessionId, e);
+        }
+    }
+
 }
