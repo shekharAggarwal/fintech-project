@@ -62,7 +62,9 @@ class LedgerServiceTest {
             when(ledgerRepo.save(any(LedgerEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
-            ledgerService.createDoubleEntry(validMessage);
+            ledgerService.createDoubleEntry(
+                    validMessage.getTxnId(), validMessage.getFromAccount(), validMessage.getToAccount(),
+                    validMessage.getAmount(), validMessage.getPaymentId(), validMessage.getDescription());
 
             // Assert
             verify(ledgerRepo, times(2)).save(ledgerEntryCaptor.capture());
@@ -91,7 +93,9 @@ class LedgerServiceTest {
             when(ledgerRepo.save(any(LedgerEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
-            ledgerService.createDoubleEntry(validMessage);
+            ledgerService.createDoubleEntry(
+                    validMessage.getTxnId(), validMessage.getFromAccount(), validMessage.getToAccount(),
+                    validMessage.getAmount(), validMessage.getPaymentId(), validMessage.getDescription());
 
             // Assert
             verify(ledgerRepo, times(2)).save(ledgerEntryCaptor.capture());
@@ -119,9 +123,15 @@ class LedgerServiceTest {
                     "ACC-1", "ACC-2", null, "Null amount", "COMPLETED");
 
             // Act & Assert
-            assertThrows(IllegalArgumentException.class, () -> ledgerService.createDoubleEntry(zeroMsg));
-            assertThrows(IllegalArgumentException.class, () -> ledgerService.createDoubleEntry(negativeMsg));
-            assertThrows(IllegalArgumentException.class, () -> ledgerService.createDoubleEntry(nullMsg));
+            assertThrows(IllegalArgumentException.class, () -> ledgerService.createDoubleEntry(
+                    zeroMsg.getTxnId(), zeroMsg.getFromAccount(), zeroMsg.getToAccount(),
+                    zeroMsg.getAmount(), zeroMsg.getPaymentId(), zeroMsg.getDescription()));
+            assertThrows(IllegalArgumentException.class, () -> ledgerService.createDoubleEntry(
+                    negativeMsg.getTxnId(), negativeMsg.getFromAccount(), negativeMsg.getToAccount(),
+                    negativeMsg.getAmount(), negativeMsg.getPaymentId(), negativeMsg.getDescription()));
+            assertThrows(IllegalArgumentException.class, () -> ledgerService.createDoubleEntry(
+                    nullMsg.getTxnId(), nullMsg.getFromAccount(), nullMsg.getToAccount(),
+                    nullMsg.getAmount(), nullMsg.getPaymentId(), nullMsg.getDescription()));
             verify(ledgerRepo, never()).save(any());
         }
     }

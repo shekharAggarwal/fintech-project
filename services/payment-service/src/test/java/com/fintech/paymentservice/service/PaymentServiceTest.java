@@ -5,7 +5,6 @@ import com.fintech.paymentservice.dto.response.PaymentInitiatedResponse;
 import com.fintech.paymentservice.entity.Account;
 import com.fintech.paymentservice.exception.AccountNotFoundException;
 import com.fintech.paymentservice.exception.InsufficientFundsException;
-import com.fintech.paymentservice.fraud.model.FraudScreeningDecision;
 import com.fintech.paymentservice.fraud.model.FraudScreeningResult;
 import com.fintech.paymentservice.fraud.service.FraudDetectionService;
 import com.fintech.paymentservice.messaging.OtpEmailPublisher;
@@ -69,8 +68,7 @@ class PaymentServiceTest {
     @BeforeEach
     void setUp() {
         validRequest = new InitiateRequest("ACC-FROM-001", "ACC-TO-002", new BigDecimal("250.00"), "Test payment");
-        senderAccount = new Account("acc-id-001", "user-001", "ACC-FROM-001");
-        senderAccount.setCurrentBalance(new BigDecimal("5000.00"));
+        senderAccount = new Account("user-001", "ACC-FROM-001", new BigDecimal("5000.00"));
         senderAccount.setAvailableBalance(new BigDecimal("5000.00"));
     }
 
@@ -78,10 +76,10 @@ class PaymentServiceTest {
     @DisplayName("should successfully initiate payment when all conditions are met")
     void shouldInitiatePaymentSuccessfully() {
         // Arrange
-        when(balanceService.hasSufficientFundsByAccountNumber("ACC-FROM-001", new BigDecimal("250.00"))).thenReturn(true);
+        when(balanceService.hasSufficientFunds("ACC-FROM-001", new BigDecimal("250.00"))).thenReturn(true);
         when(accountRepository.findByAccountNumber("ACC-FROM-001")).thenReturn(Optional.of(senderAccount));
-        when(fraudDetectionService.screenTransaction(any(), anyString(), anyString()))
-                .thenReturn(new FraudScreeningResult(FraudScreeningDecision.ALLOW, 0.1, "Low risk", java.util.List.of()));
+        when(fraudDetectionService.screenTransaction(any()))
+                .thenReturn(FraudScreeningResult.approve("PAY-123456", 10, java.util.List.of()));
         when(idGenerator.generateStringId()).thenReturn("PAY-123456");
         when(paymentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(otpService.generateOtp(anyString())).thenReturn("123456");
@@ -104,7 +102,7 @@ class PaymentServiceTest {
     @DisplayName("should throw InsufficientFundsException when sender has insufficient balance")
     void shouldThrowWhenInsufficientFunds() {
         // Arrange
-        when(balanceService.hasSufficientFundsByAccountNumber("ACC-FROM-001", new BigDecimal("250.00"))).thenReturn(false);
+        when(balanceService.hasSufficientFunds("ACC-FROM-001", new BigDecimal("250.00"))).thenReturn(false);
 
         // Act & Assert
         assertThrows(InsufficientFundsException.class,
@@ -116,7 +114,7 @@ class PaymentServiceTest {
     @DisplayName("should throw AccountNotFoundException when sender account does not exist")
     void shouldThrowWhenFromAccountNotFound() {
         // Arrange
-        when(balanceService.hasSufficientFundsByAccountNumber("ACC-FROM-001", new BigDecimal("250.00"))).thenReturn(true);
+        when(balanceService.hasSufficientFunds("ACC-FROM-001", new BigDecimal("250.00"))).thenReturn(true);
         when(accountRepository.findByAccountNumber("ACC-FROM-001")).thenReturn(Optional.empty());
 
         // Act & Assert

@@ -61,6 +61,8 @@ dependencies {
     implementation libs.bundles.logging
     
     testImplementation libs.bundles.test
+    testImplementation libs.spring.security.test
+    testImplementation libs.h2.database
     testRuntimeOnly libs.junit.platform.launcher
 }
 

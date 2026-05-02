@@ -12,6 +12,8 @@ import com.fintech.authorizationservice.messaging.AdminEventPublisher;
 import com.fintech.authorizationservice.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,6 +74,10 @@ public class AdminService {
         return roleRepository.findAll().stream()
                 .map(RoleResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    public Page<RoleResponse> getAllRoles(Pageable pageable) {
+        return roleRepository.findAll(pageable).map(RoleResponse::from);
     }
 
     public RoleResponse getRoleById(Long id) {
@@ -158,6 +164,10 @@ public class AdminService {
         return rolePermissionRepository.findAll().stream()
                 .map(PermissionResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    public Page<PermissionResponse> getAllPermissions(Pageable pageable) {
+        return rolePermissionRepository.findAll(pageable).map(PermissionResponse::from);
     }
 
     @Transactional

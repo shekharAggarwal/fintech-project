@@ -3,6 +3,7 @@ package com.fintech.paymentservice.fraud.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -59,11 +60,11 @@ public class FraudDetectionProperties {
     }
 
     public static class AmountConfig {
-        private double anomalyMultiplier = 3.0;
+        private BigDecimal anomalyMultiplier = new BigDecimal("3.0");
         private int riskScore = 50;
 
-        public double getAnomalyMultiplier() { return anomalyMultiplier; }
-        public void setAnomalyMultiplier(double anomalyMultiplier) { this.anomalyMultiplier = anomalyMultiplier; }
+        public BigDecimal getAnomalyMultiplier() { return anomalyMultiplier; }
+        public void setAnomalyMultiplier(BigDecimal anomalyMultiplier) { this.anomalyMultiplier = anomalyMultiplier; }
         public int getRiskScore() { return riskScore; }
         public void setRiskScore(int riskScore) { this.riskScore = riskScore; }
     }
@@ -82,11 +83,11 @@ public class FraudDetectionProperties {
     }
 
     public static class DestinationConfig {
-        private double largeAmountThreshold = 5000.0;
+        private BigDecimal largeAmountThreshold = new BigDecimal("5000.0");
         private int riskScore = 35;
 
-        public double getLargeAmountThreshold() { return largeAmountThreshold; }
-        public void setLargeAmountThreshold(double largeAmountThreshold) { this.largeAmountThreshold = largeAmountThreshold; }
+        public BigDecimal getLargeAmountThreshold() { return largeAmountThreshold; }
+        public void setLargeAmountThreshold(BigDecimal largeAmountThreshold) { this.largeAmountThreshold = largeAmountThreshold; }
         public int getRiskScore() { return riskScore; }
         public void setRiskScore(int riskScore) { this.riskScore = riskScore; }
     }

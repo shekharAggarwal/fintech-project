@@ -25,7 +25,7 @@ public class AmountAnomalyRule implements FraudRule {
 
     @Override
     public RuleResult evaluate(Payment payment) {
-        double multiplier = properties.getAmount().getAnomalyMultiplier();
+        BigDecimal multiplier = properties.getAmount().getAnomalyMultiplier();
 
         // Only look at last 90 days, limit to 1000 records to prevent OOM
         Instant windowStart = Instant.now().minus(90, ChronoUnit.DAYS);
@@ -45,7 +45,7 @@ public class AmountAnomalyRule implements FraudRule {
             .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal averageAmount = totalAmount.divide(BigDecimal.valueOf(userPayments.size()), 4, java.math.RoundingMode.HALF_UP);
-        BigDecimal threshold = averageAmount.multiply(BigDecimal.valueOf(multiplier));
+        BigDecimal threshold = averageAmount.multiply(multiplier);
 
         if (payment.getAmount().compareTo(threshold) > 0) {
             return RuleResult.triggered(getName(), properties.getAmount().getRiskScore(),

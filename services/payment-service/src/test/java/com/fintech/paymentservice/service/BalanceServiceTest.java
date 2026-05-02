@@ -34,8 +34,7 @@ class BalanceServiceTest {
 
     @BeforeEach
     void setUp() {
-        testAccount = new Account("acc-001", "user-001", "1234567890");
-        testAccount.setCurrentBalance(new BigDecimal("1000.00"));
+        testAccount = new Account("user-001", "1234567890", new BigDecimal("1000.00"));
         testAccount.setAvailableBalance(new BigDecimal("1000.00"));
         testAccount.setHoldAmount(BigDecimal.ZERO);
         testAccount.setCurrency("USD");
@@ -50,7 +49,7 @@ class BalanceServiceTest {
         void shouldIncreaseBothBalancesOnCredit() {
             // Arrange
             BigDecimal creditAmount = new BigDecimal("500.00");
-            when(accountRepository.findByIdWithLock("acc-001")).thenReturn(Optional.of(testAccount));
+            when(accountRepository.findByAccountNumber("acc-001")).thenReturn(Optional.of(testAccount));
             when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
@@ -59,7 +58,7 @@ class BalanceServiceTest {
             // Assert
             assertEquals(new BigDecimal("1500.00"), response.currentBalance());
             assertEquals(new BigDecimal("1500.00"), response.availableBalance());
-            verify(accountRepository).findByIdWithLock("acc-001");
+            verify(accountRepository).findByAccountNumber("acc-001");
             verify(accountRepository).save(any(Account.class));
         }
 
@@ -78,7 +77,7 @@ class BalanceServiceTest {
         @DisplayName("should throw AccountNotFoundException when account does not exist")
         void shouldThrowWhenAccountNotFound() {
             // Arrange
-            when(accountRepository.findByIdWithLock("invalid-acc")).thenReturn(Optional.empty());
+            when(accountRepository.findByAccountNumber("invalid-acc")).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThrows(AccountNotFoundException.class,
@@ -95,7 +94,7 @@ class BalanceServiceTest {
         void shouldDecreaseBothBalancesOnDebit() {
             // Arrange
             BigDecimal debitAmount = new BigDecimal("300.00");
-            when(accountRepository.findByIdWithLock("acc-001")).thenReturn(Optional.of(testAccount));
+            when(accountRepository.findByAccountNumber("acc-001")).thenReturn(Optional.of(testAccount));
             when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
@@ -112,7 +111,7 @@ class BalanceServiceTest {
         void shouldThrowWhenInsufficientFunds() {
             // Arrange
             BigDecimal debitAmount = new BigDecimal("2000.00");
-            when(accountRepository.findByIdWithLock("acc-001")).thenReturn(Optional.of(testAccount));
+            when(accountRepository.findByAccountNumber("acc-001")).thenReturn(Optional.of(testAccount));
 
             // Act & Assert
             assertThrows(InsufficientFundsException.class,
@@ -140,7 +139,7 @@ class BalanceServiceTest {
         void shouldReduceAvailableAndIncreaseHold() {
             // Arrange
             BigDecimal holdAmount = new BigDecimal("200.00");
-            when(accountRepository.findByIdWithLock("acc-001")).thenReturn(Optional.of(testAccount));
+            when(accountRepository.findByAccountNumber("acc-001")).thenReturn(Optional.of(testAccount));
             when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
@@ -158,7 +157,7 @@ class BalanceServiceTest {
         void shouldThrowWhenInsufficientFundsForHold() {
             // Arrange
             BigDecimal holdAmount = new BigDecimal("1500.00");
-            when(accountRepository.findByIdWithLock("acc-001")).thenReturn(Optional.of(testAccount));
+            when(accountRepository.findByAccountNumber("acc-001")).thenReturn(Optional.of(testAccount));
 
             // Act & Assert
             assertThrows(InsufficientFundsException.class,
@@ -178,7 +177,7 @@ class BalanceServiceTest {
             testAccount.setAvailableBalance(new BigDecimal("800.00"));
             testAccount.setHoldAmount(new BigDecimal("200.00"));
             BigDecimal releaseAmount = new BigDecimal("200.00");
-            when(accountRepository.findByIdWithLock("acc-001")).thenReturn(Optional.of(testAccount));
+            when(accountRepository.findByAccountNumber("acc-001")).thenReturn(Optional.of(testAccount));
             when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
             // Act
@@ -196,7 +195,7 @@ class BalanceServiceTest {
             // Arrange
             testAccount.setHoldAmount(new BigDecimal("100.00"));
             BigDecimal releaseAmount = new BigDecimal("200.00");
-            when(accountRepository.findByIdWithLock("acc-001")).thenReturn(Optional.of(testAccount));
+            when(accountRepository.findByAccountNumber("acc-001")).thenReturn(Optional.of(testAccount));
 
             // Act & Assert
             assertThrows(IllegalArgumentException.class,
@@ -213,7 +212,7 @@ class BalanceServiceTest {
         @DisplayName("should return true when available balance is greater than or equal to amount")
         void shouldReturnTrueWhenSufficientFunds() {
             // Arrange
-            when(accountRepository.findById("acc-001")).thenReturn(Optional.of(testAccount));
+            when(accountRepository.findByAccountNumber("acc-001")).thenReturn(Optional.of(testAccount));
 
             // Act & Assert
             assertTrue(balanceService.hasSufficientFunds("acc-001", new BigDecimal("1000.00")));
@@ -224,7 +223,7 @@ class BalanceServiceTest {
         @DisplayName("should return false when available balance is less than amount")
         void shouldReturnFalseWhenInsufficientFunds() {
             // Arrange
-            when(accountRepository.findById("acc-001")).thenReturn(Optional.of(testAccount));
+            when(accountRepository.findByAccountNumber("acc-001")).thenReturn(Optional.of(testAccount));
 
             // Act & Assert
             assertFalse(balanceService.hasSufficientFunds("acc-001", new BigDecimal("1500.00")));
@@ -234,7 +233,7 @@ class BalanceServiceTest {
         @DisplayName("should throw AccountNotFoundException when account does not exist")
         void shouldThrowWhenAccountNotFoundForFundsCheck() {
             // Arrange
-            when(accountRepository.findById("invalid")).thenReturn(Optional.empty());
+            when(accountRepository.findByAccountNumber("invalid")).thenReturn(Optional.empty());
 
             // Act & Assert
             assertThrows(AccountNotFoundException.class,

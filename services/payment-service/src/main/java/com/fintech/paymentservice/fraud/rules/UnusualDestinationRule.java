@@ -25,7 +25,7 @@ public class UnusualDestinationRule implements FraudRule {
 
     @Override
     public RuleResult evaluate(Payment payment) {
-        double largeAmountThreshold = properties.getDestination().getLargeAmountThreshold();
+        BigDecimal largeAmountThreshold = properties.getDestination().getLargeAmountThreshold();
 
         // Only look at last 30 days, limit to 100 records to prevent OOM
         Instant windowStart = Instant.now().minus(30, ChronoUnit.DAYS);
@@ -38,7 +38,7 @@ public class UnusualDestinationRule implements FraudRule {
         boolean isFirstTimeDestination = previousPayments.stream()
             .noneMatch(p -> payment.getToAccount().equals(p.getToAccount()));
 
-        boolean isLargeAmount = payment.getAmount().compareTo(BigDecimal.valueOf(largeAmountThreshold)) > 0;
+        boolean isLargeAmount = payment.getAmount().compareTo(largeAmountThreshold) > 0;
 
         if (isFirstTimeDestination && isLargeAmount) {
             return RuleResult.triggered(getName(), properties.getDestination().getRiskScore(),

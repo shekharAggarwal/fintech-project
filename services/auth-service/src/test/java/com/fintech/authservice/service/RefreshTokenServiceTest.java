@@ -1,5 +1,6 @@
 package com.fintech.authservice.service;
 
+import com.fintech.authservice.dto.response.RefreshTokenResponse;
 import com.fintech.authservice.entity.RefreshToken;
 import com.fintech.authservice.repository.RefreshTokenRepository;
 import com.fintech.authservice.util.JwtUtil;
@@ -12,11 +13,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -42,109 +44,114 @@ class RefreshTokenServiceTest {
     private RefreshTokenService refreshTokenService;
 
     @Test
-    @DisplayName("should return new access token when refresh token is valid")
-    void shouldReturnNewAccessTokenWhenRefreshTokenIsValid() {
+    @DisplayName("should return success response when refresh token is valid")
+    void shouldReturnSuccessWhenRefreshTokenIsValid() {
         // Arrange
-        RefreshToken validToken = new RefreshToken("valid-refresh-token", "user-001", "session-001",
-                LocalDateTime.now().plusDays(7));
+        RefreshToken validToken = new RefreshToken("valid-refresh-token", "user-001",
+                Instant.now().plusSeconds(86400), "session-001");
+        validToken.setId(1L);
         validToken.setRevoked(false);
 
         when(refreshTokenRepository.findByToken("valid-refresh-token")).thenReturn(Optional.of(validToken));
-        when(jwtUtil.generateAccessToken("session-001")).thenReturn("new-access-token-jwt");
+        when(refreshTokenRepository.revokeIfNotRevoked(1L)).thenReturn(1);
+        when(jwtUtil.generateAccessToken("user-001", "session-001")).thenReturn("new-access-token-jwt");
+        when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
-        Optional<String> result = refreshTokenService.refreshAccessToken("valid-refresh-token");
+        RefreshTokenResponse result = refreshTokenService.refreshAccessToken("valid-refresh-token");
 
         // Assert
-        assertTrue(result.isPresent());
-        assertEquals("new-access-token-jwt", result.get());
-        verify(jwtUtil).generateAccessToken("session-001");
+        assertTrue(result.success());
+        assertEquals("new-access-token-jwt", result.accessToken());
+        verify(jwtUtil).generateAccessToken("user-001", "session-001");
     }
 
     @Test
-    @DisplayName("should return empty when refresh token is expired")
-    void shouldReturnEmptyWhenRefreshTokenIsExpired() {
+    @DisplayName("should return failed response when refresh token is expired")
+    void shouldReturnFailedWhenRefreshTokenIsExpired() {
         // Arrange
-        RefreshToken expiredToken = new RefreshToken("expired-token", "user-001", "session-001",
-                LocalDateTime.now().minusDays(1)); // Already expired
+        RefreshToken expiredToken = new RefreshToken("expired-token", "user-001",
+                Instant.now().minusSeconds(86400), "session-001");
         expiredToken.setRevoked(false);
 
         when(refreshTokenRepository.findByToken("expired-token")).thenReturn(Optional.of(expiredToken));
 
         // Act
-        Optional<String> result = refreshTokenService.refreshAccessToken("expired-token");
+        RefreshTokenResponse result = refreshTokenService.refreshAccessToken("expired-token");
 
         // Assert
-        assertTrue(result.isEmpty());
-        verify(jwtUtil, never()).generateAccessToken(anyString());
+        assertFalse(result.success());
+        assertEquals("TOKEN_EXPIRED", result.code());
+        verify(jwtUtil, never()).generateAccessToken(anyString(), anyString());
     }
 
     @Test
-    @DisplayName("should return empty when refresh token is revoked")
-    void shouldReturnEmptyWhenRefreshTokenIsRevoked() {
+    @DisplayName("should return failed and revoke all when refresh token is already revoked")
+    void shouldRevokeAllWhenRefreshTokenIsRevoked() {
         // Arrange
-        RefreshToken revokedToken = new RefreshToken("revoked-token", "user-001", "session-001",
-                LocalDateTime.now().plusDays(7));
-        revokedToken.setRevoked(true); // Revoked
+        RefreshToken revokedToken = new RefreshToken("revoked-token", "user-001",
+                Instant.now().plusSeconds(86400), "session-001");
+        revokedToken.setRevoked(true);
 
         when(refreshTokenRepository.findByToken("revoked-token")).thenReturn(Optional.of(revokedToken));
 
         // Act
-        Optional<String> result = refreshTokenService.refreshAccessToken("revoked-token");
+        RefreshTokenResponse result = refreshTokenService.refreshAccessToken("revoked-token");
 
         // Assert
-        assertTrue(result.isEmpty());
-        verify(jwtUtil, never()).generateAccessToken(anyString());
+        assertFalse(result.success());
+        assertEquals("TOKEN_REVOKED", result.code());
+        verify(refreshTokenRepository).revokeAllByUserId("user-001");
     }
 
     @Test
-    @DisplayName("should return empty when refresh token does not exist")
-    void shouldReturnEmptyWhenTokenNotFound() {
+    @DisplayName("should return failed when refresh token does not exist")
+    void shouldReturnFailedWhenTokenNotFound() {
         // Arrange
         when(refreshTokenRepository.findByToken("nonexistent-token")).thenReturn(Optional.empty());
 
         // Act
-        Optional<String> result = refreshTokenService.refreshAccessToken("nonexistent-token");
+        RefreshTokenResponse result = refreshTokenService.refreshAccessToken("nonexistent-token");
 
         // Assert
-        assertTrue(result.isEmpty());
+        assertFalse(result.success());
+        assertEquals("INVALID_TOKEN", result.code());
     }
 
     @Test
     @DisplayName("should revoke token and invalidate session on logout")
     void shouldRevokeTokenOnLogout() {
         // Arrange
-        RefreshToken token = new RefreshToken("logout-token", "user-001", "session-001",
-                LocalDateTime.now().plusDays(7));
+        RefreshToken token = new RefreshToken("logout-token", "user-001",
+                Instant.now().plusSeconds(86400), "session-001");
         token.setRevoked(false);
 
         when(refreshTokenRepository.findByToken("logout-token")).thenReturn(Optional.of(token));
-        when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(redisTemplate.delete(anyString())).thenReturn(true);
+        when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(inv -> inv.getArgument(0));
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(jwtUtil.getTokenRemainingLifeMillis("access-token-123")).thenReturn(3600000L);
 
-        // Act
-        boolean result = refreshTokenService.logout("logout-token", "access-token-123");
+        // Act — logout returns void now
+        refreshTokenService.logout("logout-token", "access-token-123");
 
         // Assert
-        assertTrue(result);
-        assertTrue(token.getRevoked());
+        assertTrue(token.isRevoked());
         verify(refreshTokenRepository).save(token);
-        verify(redisTemplate).delete("session:session-001");
+        verify(sessionService).invalidateSession("session-001");
     }
 
     @Test
-    @DisplayName("should return false when logout with non-existent refresh token")
-    void shouldReturnFalseWhenLogoutTokenNotFound() {
+    @DisplayName("should still blacklist access token when refresh token not found on logout")
+    void shouldBlacklistAccessTokenWhenLogoutTokenNotFound() {
         // Arrange
         when(refreshTokenRepository.findByToken("no-such-token")).thenReturn(Optional.empty());
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(jwtUtil.getTokenRemainingLifeMillis("access-token")).thenReturn(3600000L);
 
-        // Act
-        boolean result = refreshTokenService.logout("no-such-token", "access-token");
+        // Act — should not throw
+        refreshTokenService.logout("no-such-token", "access-token");
 
-        // Assert
-        assertFalse(result);
+        // Assert — refresh token not saved, but access token still blacklisted
         verify(refreshTokenRepository, never()).save(any());
     }
 }

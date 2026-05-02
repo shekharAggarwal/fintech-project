@@ -53,7 +53,7 @@ public class TransactionController {
         // Check for duplicate via idempotency service
         Optional<Transaction> existing = idempotencyService.checkDuplicate(idempotencyKey);
         if (existing.isPresent()) {
-            logger.warn("Duplicate idempotency key detected: {}", idempotencyKey);
+            logger.warn("Duplicate idempotency key detected: {}", sanitizeLogInput(idempotencyKey));
             TransactionResponse conflictResponse = toResponse(existing.get());
             conflictResponse.setDescription("Duplicate transaction: idempotency key already used");
             return ResponseEntity.status(HttpStatus.CONFLICT).body(conflictResponse);
@@ -119,6 +119,11 @@ public class TransactionController {
         response.setFailureReason(transaction.getFailureReason());
         response.setUpdatedAt(transaction.getUpdatedAt());
         return ResponseEntity.ok(response);
+    }
+
+    private String sanitizeLogInput(String input) {
+        if (input == null) return "null";
+        return input.replaceAll("[\\n\\r\\t]", "_");
     }
 
     private TransactionResponse toResponse(Transaction transaction) {
