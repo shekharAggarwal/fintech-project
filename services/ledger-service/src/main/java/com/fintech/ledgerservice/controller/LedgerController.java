@@ -9,6 +9,10 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -30,12 +34,20 @@ public class LedgerController {
 
     /**
      * GET /api/ledger/entries?accountId={id}
-     * Returns all ledger entries for the given account.
+     * If accountId is provided, returns entries filtered by account.
+     * If accountId is omitted, returns all entries (paginated).
      */
     @GetMapping("/entries")
-    public ResponseEntity<List<LedgerEntry>> getEntriesByAccount(@RequestParam String accountId) {
-        logger.info("GET /api/ledger/entries?accountId={}", accountId);
-        List<LedgerEntry> entries = ledgerService.getEntriesByAccountId(accountId);
+    public ResponseEntity<?> getEntries(
+            @RequestParam(required = false) String accountId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        if (accountId != null) {
+            logger.info("GET /api/ledger/entries?accountId={}", accountId);
+            List<LedgerEntry> entries = ledgerService.getEntriesByAccountId(accountId);
+            return ResponseEntity.ok(entries);
+        }
+        logger.info("GET /api/ledger/entries (all, paginated)");
+        Page<LedgerEntry> entries = ledgerService.getAllEntries(pageable);
         return ResponseEntity.ok(entries);
     }
 

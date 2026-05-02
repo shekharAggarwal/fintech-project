@@ -22,35 +22,35 @@ public class AuditEvent {
 
     @Id
     @Column(name = "id", nullable = false, updatable = false)
-    private String id;
+    private final String id;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false, updatable = false, length = 50)
-    private AuditEventType eventType;
+    private final AuditEventType eventType;
 
     @Column(name = "actor_id", nullable = false, updatable = false, length = 100)
-    private String actorId;
+    private final String actorId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "actor_type", nullable = false, updatable = false, length = 20)
-    private ActorType actorType;
+    private final ActorType actorType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "resource_type", nullable = false, updatable = false, length = 30)
-    private ResourceType resourceType;
+    private final ResourceType resourceType;
 
     @Column(name = "resource_id", nullable = false, updatable = false, length = 100)
-    private String resourceId;
+    private final String resourceId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "action", nullable = false, updatable = false, length = 10)
-    private AuditAction action;
+    private final AuditAction action;
 
     @Column(name = "details", updatable = false, columnDefinition = "TEXT")
-    private String details;
+    private final String details;
 
     @Column(name = "ip_address", updatable = false, length = 45)
-    private String ipAddress;
+    private final String ipAddress;
 
     @CreationTimestamp
     @Column(name = "timestamp", nullable = false, updatable = false)
@@ -67,9 +67,17 @@ public class AuditEvent {
         throw new UnsupportedOperationException("Audit events are immutable and cannot be deleted.");
     }
 
-    // Constructors
-    public AuditEvent() {
+    // Protected no-arg constructor for JPA (spec allows protected)
+    protected AuditEvent() {
         this.id = UUID.randomUUID().toString();
+        this.eventType = null;
+        this.actorId = null;
+        this.actorType = null;
+        this.resourceType = null;
+        this.resourceId = null;
+        this.action = null;
+        this.details = null;
+        this.ipAddress = null;
     }
 
     public AuditEvent(AuditEventType eventType, String actorId, ActorType actorType,
@@ -86,7 +94,7 @@ public class AuditEvent {
         this.ipAddress = ipAddress;
     }
 
-    // Getters only (immutable)
+    // Getters only — no setters, entity is immutable after creation
     public String getId() {
         return id;
     }
@@ -125,46 +133,5 @@ public class AuditEvent {
 
     public Instant getTimestamp() {
         return timestamp;
-    }
-
-    // Setters for initial creation only (used by JPA)
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public void setEventType(AuditEventType eventType) {
-        this.eventType = eventType;
-    }
-
-    public void setActorId(String actorId) {
-        this.actorId = actorId;
-    }
-
-    public void setActorType(ActorType actorType) {
-        this.actorType = actorType;
-    }
-
-    public void setResourceType(ResourceType resourceType) {
-        this.resourceType = resourceType;
-    }
-
-    public void setResourceId(String resourceId) {
-        this.resourceId = resourceId;
-    }
-
-    public void setAction(AuditAction action) {
-        this.action = action;
-    }
-
-    public void setDetails(String details) {
-        this.details = details;
-    }
-
-    public void setIpAddress(String ipAddress) {
-        this.ipAddress = ipAddress;
-    }
-
-    public void setTimestamp(Instant timestamp) {
-        this.timestamp = timestamp;
     }
 }

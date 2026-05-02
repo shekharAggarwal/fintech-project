@@ -15,6 +15,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 
 @Service
 public class LedgerService {
@@ -163,6 +166,13 @@ public class LedgerService {
      */
     public List<LedgerEntry> getEntriesByAccountId(String accountId) {
         return ledgerRepo.findByAccountNumber(accountId);
+    }
+
+    /**
+     * Returns all ledger entries, paginated.
+     */
+    public Page<LedgerEntry> getAllEntries(Pageable pageable) {
+        return ledgerRepo.findAll(pageable);
     }
 
     /**
