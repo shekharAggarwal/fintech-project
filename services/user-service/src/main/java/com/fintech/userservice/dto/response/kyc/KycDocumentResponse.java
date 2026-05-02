@@ -13,7 +13,6 @@ public class KycDocumentResponse {
     private String userId;
     private DocumentType documentType;
     private String documentNumber;
-    private String filePath;
     private KycStatus status;
     private String rejectionReason;
     private String verifiedBy;
@@ -36,7 +35,6 @@ public class KycDocumentResponse {
         response.userId = document.getUserId();
         response.documentType = document.getDocumentType();
         response.documentNumber = isAdmin ? document.getDocumentNumber() : maskDocumentNumber(document.getDocumentNumber());
-        response.filePath = document.getFilePath();
         response.status = document.getStatus();
         response.rejectionReason = document.getRejectionReason();
         response.verifiedBy = document.getVerifiedBy();
@@ -71,10 +69,6 @@ public class KycDocumentResponse {
 
     public String getDocumentNumber() {
         return documentNumber;
-    }
-
-    public String getFilePath() {
-        return filePath;
     }
 
     public KycStatus getStatus() {

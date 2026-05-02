@@ -14,11 +14,13 @@ import com.fintech.userservice.repository.KycDocumentRepository;
 import com.fintech.userservice.repository.UserProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class KycService {
@@ -59,15 +61,24 @@ public class KycService {
                     "A document of type " + request.getDocumentType() + " is already pending or under review");
         }
 
+        // Server-generated file path — never trust client-provided paths
+        String filePath = "kyc/" + userId + "/" + UUID.randomUUID() + "_" + request.getDocumentType().name().toLowerCase();
+
         KycDocument document = new KycDocument(
                 userId,
                 request.getDocumentType(),
                 request.getDocumentNumber(),
-                request.getFilePath(),
+                filePath,
                 request.getExpiryDate()
         );
 
-        KycDocument savedDocument = kycDocumentRepository.save(document);
+        KycDocument savedDocument;
+        try {
+            savedDocument = kycDocumentRepository.save(document);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalStateException(
+                    "A document of type " + request.getDocumentType() + " already exists with the same status for this user");
+        }
 
         // Update user KYC status to PENDING if currently NONE level
         if (userProfile.getKycLevel() == KycLevel.NONE && userProfile.getKycStatus() != KycStatus.PENDING) {

@@ -16,20 +16,15 @@ public class KycDocumentSubmitRequest {
     @Size(min = 3, max = 100, message = "Document number must be between 3 and 100 characters")
     private String documentNumber;
 
-    @NotBlank(message = "File path is required")
-    @Size(max = 500, message = "File path must not exceed 500 characters")
-    private String filePath;
-
     private LocalDate expiryDate;
 
     public KycDocumentSubmitRequest() {
     }
 
     public KycDocumentSubmitRequest(DocumentType documentType, String documentNumber,
-                                    String filePath, LocalDate expiryDate) {
+                                    LocalDate expiryDate) {
         this.documentType = documentType;
         this.documentNumber = documentNumber;
-        this.filePath = filePath;
         this.expiryDate = expiryDate;
     }
 
@@ -47,14 +42,6 @@ public class KycDocumentSubmitRequest {
 
     public void setDocumentNumber(String documentNumber) {
         this.documentNumber = documentNumber;
-    }
-
-    public String getFilePath() {
-        return filePath;
-    }
-
-    public void setFilePath(String filePath) {
-        this.filePath = filePath;
     }
 
     public LocalDate getExpiryDate() {

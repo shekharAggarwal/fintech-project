@@ -13,12 +13,17 @@ import java.time.LocalDateTime;
 @Table(name = "kyc_documents", indexes = {
         @Index(name = "idx_kyc_doc_user_id", columnList = "userId"),
         @Index(name = "idx_kyc_doc_status", columnList = "status")
+}, uniqueConstraints = {
+        @UniqueConstraint(name = "uk_kyc_user_doctype_status", columnNames = {"userId", "documentType", "status"})
 })
 public class KycDocument {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
 
     @Column(nullable = false, length = 36)
     private String userId;
