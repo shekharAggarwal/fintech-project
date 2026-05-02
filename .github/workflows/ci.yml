@@ -1,0 +1,129 @@
+name: CI - Build & Test All Services
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  security-module:
+    name: Build Security Module
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            module/security/.gradle
+          key: ${{ runner.os }}-gradle-security-${{ hashFiles('module/security/**/*.gradle*', 'module/security/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-security-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x module/security/gradlew
+
+      - name: Build security module
+        run: cd module/security && ./gradlew build
+
+      - name: Upload security module artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-module
+          path: module/security/build/libs/
+          retention-days: 1
+
+  build-and-test:
+    name: Build & Test - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: security-module
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - auth-service
+          - authorization-service
+          - gateway-service
+          - payment-service
+          - transaction-service
+          - user-service
+          - ledger-service
+          - notification-service
+          - reporting-service
+          - scheduler-service
+          - retry-service
+          - config-server
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            services/${{ matrix.service }}/.gradle
+          key: ${{ runner.os }}-gradle-${{ matrix.service }}-${{ hashFiles(format('services/{0}/**/*.gradle*', matrix.service), 'services/gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-${{ matrix.service }}-
+            ${{ runner.os }}-gradle-
+
+      - name: Download security module
+        uses: actions/download-artifact@v4
+        with:
+          name: security-module
+          path: module/security/build/libs/
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x services/${{ matrix.service }}/gradlew
+
+      - name: Build
+        run: cd services/${{ matrix.service }} && ./gradlew build -x test
+
+      - name: Test
+        run: cd services/${{ matrix.service }} && ./gradlew test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.service }}
+          path: services/${{ matrix.service }}/build/reports/tests/
+          retention-days: 7
+
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [security-module, build-and-test]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          if [ "${{ needs.security-module.result }}" != "success" ] || [ "${{ needs.build-and-test.result }}" != "success" ]; then
+            echo "❌ CI failed. Security module: ${{ needs.security-module.result }}, Services: ${{ needs.build-and-test.result }}"
+            exit 1
+          fi
+          echo "✅ All services built and tested successfully"

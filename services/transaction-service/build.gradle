@@ -24,6 +24,7 @@ dependencies {
     implementation project(":security")
 
     implementation libs.bundles.spring.boot.web
+    implementation libs.springdoc.openapi.starter.webmvc.ui
     implementation libs.bundles.spring.boot.data
     implementation libs.bundles.spring.cloud
     implementation libs.spring.boot.starter.validation
@@ -47,11 +48,12 @@ dependencies {
     // WebClient for authorization service calls
     implementation libs.spring.boot.starter.webflux
 
+    // Redis for idempotency caching
+    implementation libs.spring.boot.starter.data.redis
+
     // Kafka for internal service communications
     implementation libs.spring.kafka
 
-    // RabbitMQ for email notifications
-    implementation libs.spring.boot.starter.amqp
     
     testImplementation libs.bundles.test
     testRuntimeOnly libs.junit.platform.launcher

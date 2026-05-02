@@ -7,7 +7,7 @@ spring:
 
   # Database Configuration using ShardingSphere-Proxy
   datasource:
-    url: ${AUTH_DB_URL}
+    url: ${SCHEDULER_DB_URL}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver

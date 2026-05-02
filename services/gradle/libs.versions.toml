@@ -7,6 +7,7 @@ splunkLogging = "1.11.8"
 bucket4j = "7.6.0"
 micrometerTracing = "1.2.2"
 redisson = "3.27.2"
+springdoc = "2.8.6"
 jakartaAnnotation = "2.1.1"
 jakartaServlet = "6.0.0"
 grpc = "1.62.2"
@@ -76,6 +77,9 @@ micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-p
 # Rate Limiting
 bucket4j-core = { module = "com.github.vladimir-bukhtoyarov:bucket4j-core", version.ref = "bucket4j" }
 bucket4j-redis = { module = "com.github.vladimir-bukhtoyarov:bucket4j-redis", version.ref = "bucket4j" }
+
+# OpenAPI / Swagger
+springdoc-openapi-starter-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 
 # HTTP Client
 #httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "httpclient5" }

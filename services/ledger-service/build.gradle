@@ -26,12 +26,12 @@ dependencies {
 	implementation project(":security")
 	
 	implementation libs.bundles.spring.boot.web
+    implementation libs.springdoc.openapi.starter.webmvc.ui
 	implementation libs.bundles.spring.boot.data
 //	implementation libs.bundles.spring.boot.security
 	implementation libs.spring.boot.starter.data.redis
 	implementation libs.spring.boot.starter.validation
 	implementation libs.bundles.spring.cloud
-	implementation libs.spring.boot.starter.amqp
 	implementation libs.spring.kafka
 
 	// Tracing dependencies - Use Spring Boot 3 compatible versions

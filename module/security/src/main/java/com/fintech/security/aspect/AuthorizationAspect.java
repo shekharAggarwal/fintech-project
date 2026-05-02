@@ -123,12 +123,38 @@ public class AuthorizationAspect {
         }
 
         // Full access permission check (for sensitive operations)
-        if (expression.startsWith("hasFullAccess('") && expression.endsWith("')")) {
-            return authorizationService.hasAccessLevel("full", authAnnotation.resourceType());
+        // Supports: hasFullAccess() — uses annotation's resourceType
+        //           hasFullAccess('resourceType') — uses the explicit resource type from expression
+        if (expression.equals("hasFullAccess()")) {
+            String resourceType = authAnnotation.resourceType();
+            if (resourceType.isEmpty()) {
+                logger.warn("hasFullAccess() expression used without resourceType in annotation on method — denying access");
+                return false;
+            }
+            return authorizationService.hasAccessLevel("full", resourceType);
         }
 
+        if (expression.startsWith("hasFullAccess('") && expression.endsWith("')")) {
+            String resourceType = expression.substring("hasFullAccess('".length(), expression.length() - 2);
+            if (resourceType.isEmpty()) {
+                logger.warn("hasFullAccess('') expression has empty resourceType — denying access");
+                return false;
+            }
+            return authorizationService.hasAccessLevel("full", resourceType);
+        }
 
-        //TODO: NEED TO FIX THIS EXP
+        // Self-only access check: canAccessUserData('paramName') or canAccessUserData()
+        if (expression.equals("canAccessUserData()")) {
+            // Requires that the first String argument in the method is the target userId
+            Object[] args = joinPoint.getArgs();
+            for (Object arg : args) {
+                if (arg instanceof String) {
+                    return authorizationService.canAccessUserData((String) arg);
+                }
+            }
+            logger.warn("canAccessUserData() expression used but no String argument found — denying access");
+            return false;
+        }
 
         // Field access check
         if (expression.contains("hasFieldAccess(")) {

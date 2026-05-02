@@ -5,8 +5,7 @@ spring:
   application:
     name: reporting-service
   datasource:
-  config:
-    url: ${AUTH_DB_URL}
+    url: ${MAIN_DB_URL}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver

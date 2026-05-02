@@ -8,8 +8,12 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 /**
- * Auto-configuration for the fintech security module
- * Automatically configures all security components when the module is included
+ * Auto-configuration for the fintech security module.
+ * Automatically configures all security components when the module is included.
+ * <p>
+ * Bean creation relies on component scanning via {@code @ComponentScan}.
+ * The explicit {@code @Bean} fallback below only activates if component scanning
+ * fails to register the service (e.g., in test contexts or unusual classloader setups).
  */
 @AutoConfiguration
 @EnableAspectJAutoProxy
@@ -22,8 +26,10 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 public class SecurityAutoConfiguration {
     
     /**
-     * Explicit bean definition for AuthorizationService to ensure it's available
-     * This helps when component scanning might not work properly
+     * Fallback bean definition for AuthorizationService.
+     * Only created if component scanning does not register one (e.g., in integration tests).
+     * AuthorizationService currently has no injected dependencies — if dependencies
+     * are added in the future, this method must be updated to wire them explicitly.
      */
     @Bean
     @ConditionalOnMissingBean

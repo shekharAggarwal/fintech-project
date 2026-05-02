@@ -30,7 +30,7 @@ dependencies {
 	implementation libs.spring.boot.starter.data.redis
 	implementation libs.redisson.spring.boot.starter
 	implementation libs.resilience4j.ratelimiter
-//	implementation libs.spring.boot.starter.security
+	implementation libs.spring.boot.starter.security
 
 	// Tracing dependencies
 	implementation libs.bundles.tracing

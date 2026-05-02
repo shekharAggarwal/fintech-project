@@ -606,20 +606,21 @@ volumes:
     driver: local
   postgres-main-data:
     driver: local
-  postgres-shard-1-data:
-    driver: local
-  postgres-shard-2-data:
-    driver: local
-  postgres-shard-3-data:
-    driver: local
-  postgres-main-replica-data:
-    driver: local
-  postgres-shard-1-replica-data:
-    driver: local
-  postgres-shard-2-replica-data:
-    driver: local
-  postgres-shard-3-replica-data:
-    driver: local
+  # Shard & replica volumes — uncomment when scaling requires it (see infra/SCALING.md)
+  # postgres-shard-1-data:
+  #   driver: local
+  # postgres-shard-2-data:
+  #   driver: local
+  # postgres-shard-3-data:
+  #   driver: local
+  # postgres-main-replica-data:
+  #   driver: local
+  # postgres-shard-1-replica-data:
+  #   driver: local
+  # postgres-shard-2-replica-data:
+  #   driver: local
+  # postgres-shard-3-replica-data:
+  #   driver: local
   postgres-auth-data:
     driver: local
   postgres-scheduler-data:

@@ -45,7 +45,7 @@ public class FieldFilterUtil {
      */
     public Object filterFields(Object object, String defaultResourceType) {
         if (object == null) {
-            return null;
+            return Map.of();
         }
 
         try {

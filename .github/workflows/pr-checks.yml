@@ -1,0 +1,240 @@
+name: PR Checks - Affected Services
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.services }}
+      security-module: ${{ steps.filter.outputs.security-module }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect path changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            auth-service:
+              - 'services/auth-service/**'
+            authorization-service:
+              - 'services/authorization-service/**'
+            gateway-service:
+              - 'services/gateway-service/**'
+            payment-service:
+              - 'services/payment-service/**'
+            transaction-service:
+              - 'services/transaction-service/**'
+            user-service:
+              - 'services/user-service/**'
+            ledger-service:
+              - 'services/ledger-service/**'
+            notification-service:
+              - 'services/notification-service/**'
+            reporting-service:
+              - 'services/reporting-service/**'
+            scheduler-service:
+              - 'services/scheduler-service/**'
+            retry-service:
+              - 'services/retry-service/**'
+            config-server:
+              - 'services/config-server/**'
+            security-module:
+              - 'module/security/**'
+            shared-gradle:
+              - 'services/gradle/**'
+
+      - name: Build affected services list
+        id: filter
+        run: |
+          SERVICES="[]"
+          ALL_SERVICES='["auth-service","authorization-service","gateway-service","payment-service","transaction-service","user-service","ledger-service","notification-service","reporting-service","scheduler-service","retry-service","config-server"]'
+
+          # If shared gradle or security module changed, rebuild all
+          if [ "${{ steps.changes.outputs.shared-gradle }}" == "true" ] || [ "${{ steps.changes.outputs.security-module }}" == "true" ]; then
+            SERVICES="$ALL_SERVICES"
+          else
+            # Build list of only changed services
+            CHANGED=()
+            for svc in auth-service authorization-service gateway-service payment-service transaction-service user-service ledger-service notification-service reporting-service scheduler-service retry-service config-server; do
+              KEY=$(echo "$svc" | tr '-' '_')
+              # dorny outputs use the filter name as-is (with hyphens)
+              if [ "${{ steps.changes.outputs[format('{0}', svc)] }}" == "true" ]; then
+                CHANGED+=("\"$svc\"")
+              fi
+            done
+
+            if [ ${#CHANGED[@]} -gt 0 ]; then
+              SERVICES="[$(IFS=,; echo "${CHANGED[*]}")]"
+            fi
+          fi
+
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "security-module=${{ steps.changes.outputs.security-module }}" >> $GITHUB_OUTPUT
+          echo "Affected services: $SERVICES"
+
+  build-security-module:
+    name: Build Security Module
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.security-module == 'true' || needs.detect-changes.outputs.services != '[]'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-security-${{ hashFiles('module/security/**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-security-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x module/security/gradlew
+
+      - name: Build security module
+        run: cd module/security && ./gradlew build
+
+      - name: Upload security module artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-module-pr
+          path: module/security/build/libs/
+          retention-days: 1
+
+  build-affected-services:
+    name: Build & Test - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-security-module]
+    if: needs.detect-changes.outputs.services != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            services/${{ matrix.service }}/.gradle
+          key: ${{ runner.os }}-gradle-${{ matrix.service }}-${{ hashFiles(format('services/{0}/**/*.gradle*', matrix.service), 'services/gradle/libs.versions.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-${{ matrix.service }}-
+            ${{ runner.os }}-gradle-
+
+      - name: Download security module
+        uses: actions/download-artifact@v4
+        with:
+          name: security-module-pr
+          path: module/security/build/libs/
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x services/${{ matrix.service }}/gradlew
+
+      - name: Build
+        run: cd services/${{ matrix.service }} && ./gradlew build -x test
+
+      - name: Test
+        run: cd services/${{ matrix.service }} && ./gradlew test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-pr-${{ matrix.service }}
+          path: services/${{ matrix.service }}/build/reports/tests/
+          retention-days: 5
+
+  pr-summary:
+    name: PR Summary
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-affected-services]
+    if: always()
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post PR comment with results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const services = JSON.parse('${{ needs.detect-changes.outputs.services }}');
+            const buildResult = '${{ needs.build-affected-services.result }}';
+
+            let body = '## 🔍 PR Check Results\n\n';
+
+            if (services.length === 0) {
+              body += '✅ No service changes detected — skipping builds.\n';
+            } else {
+              const icon = buildResult === 'success' ? '✅' : '❌';
+              body += `${icon} **Build Status**: ${buildResult}\n\n`;
+              body += '### Affected Services:\n';
+              services.forEach(svc => {
+                body += `- \`${svc}\`\n`;
+              });
+              body += '\n';
+
+              if (buildResult === 'success') {
+                body += '> All affected services built and tested successfully! 🚀\n';
+              } else {
+                body += '> ⚠️ One or more services failed. Check the workflow logs for details.\n';
+              }
+            }
+
+            body += `\n---\n*Workflow: ${context.workflow} | Run: [#${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})*`;
+
+            // Find existing comment to update
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('PR Check Results')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
