@@ -39,6 +39,19 @@ public class LedgerService {
      */
     @Transactional
     public void createDoubleEntry(String txnId, String senderAcct, String receiverAcct, BigDecimal amount, String paymentId, String description) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Ledger entry amount must be positive");
+        }
+        if (senderAcct == null || senderAcct.isBlank()) {
+            throw new IllegalArgumentException("Sender account must not be blank");
+        }
+        if (receiverAcct == null || receiverAcct.isBlank()) {
+            throw new IllegalArgumentException("Receiver account must not be blank");
+        }
+        if (senderAcct.equals(receiverAcct)) {
+            throw new IllegalArgumentException("Sender and receiver accounts must differ");
+        }
+
         logger.info("Creating double entry for txnId: {}, sender: {}, receiver: {}, amount: {}",
                 txnId, senderAcct, receiverAcct, amount);
 
@@ -128,13 +141,13 @@ public class LedgerService {
 
     /**
      * Computes account balance as sum(CREDIT) - sum(DEBIT) for the given account.
+     * Uses a single query to ensure read isolation (no phantom reads between two queries).
      */
+    @org.springframework.transaction.annotation.Transactional(readOnly = true, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public AccountBalanceResponse getAccountBalance(String accountId) {
         logger.info("Computing balance for account: {}", accountId);
 
-        BigDecimal totalCredits = ledgerRepo.sumAmountByAccountNumberAndEntryType(accountId, LedgerEntryType.CREDIT);
-        BigDecimal totalDebits = ledgerRepo.sumAmountByAccountNumberAndEntryType(accountId, LedgerEntryType.DEBIT);
-        BigDecimal currentBalance = totalCredits.subtract(totalDebits);
+        BigDecimal currentBalance = ledgerRepo.calculateNetBalance(accountId);
 
         return new AccountBalanceResponse(
                 null,

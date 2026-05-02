@@ -33,7 +33,7 @@ public class TransactionCompletedEventListener {
      * Listen for user creation messages from Kafka
      * Receives JSON strings from auth-service and deserializes to UserCreationMessage
      */
-    @KafkaListener(topics = "${kafka.topics.transaction-completed}", groupId = "${spring.kafka.consumer.group-id}")
+    @KafkaListener(topics = "${kafka.topics.transaction-completed}", groupId = "${spring.kafka.consumer.group-id}", containerFactory = "dlqKafkaListenerContainerFactory")
     public void handleAccountCreationMessage(
             @Payload String jsonMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
@@ -70,6 +70,8 @@ public class TransactionCompletedEventListener {
                         transactionCompletedMessage.getPaymentId(),
                         transactionCompletedMessage.getDescription()
                 );
+            } else {
+                throw new IllegalArgumentException("Unknown transaction status: " + transactionCompletedMessage.getStatus());
             }
 
             logger.info("Successfully processed user account creation for userId: {}", transactionCompletedMessage.getUserId());

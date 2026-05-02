@@ -23,6 +23,9 @@ public interface LedgerRepository extends JpaRepository<LedgerEntry, String> {
     @Query("SELECT COALESCE(SUM(le.amount), 0) FROM LedgerEntry le WHERE le.accountNumber = :accountNumber AND le.entryType = :entryType")
     BigDecimal sumAmountByAccountNumberAndEntryType(@Param("accountNumber") String accountNumber, @Param("entryType") LedgerEntryType entryType);
 
+    @Query("SELECT COALESCE(SUM(CASE WHEN l.entryType = 'CREDIT' THEN l.amount ELSE CAST(0 AS big_decimal) END), 0) - COALESCE(SUM(CASE WHEN l.entryType = 'DEBIT' THEN l.amount ELSE CAST(0 AS big_decimal) END), 0) FROM LedgerEntry l WHERE l.accountNumber = :accountNumber")
+    BigDecimal calculateNetBalance(@Param("accountNumber") String accountNumber);
+
     @Query("SELECT le FROM LedgerEntry le WHERE le.accountNumber = :accountNumber AND le.createdAt BETWEEN :startDate AND :endDate ORDER BY le.createdAt DESC")
     List<LedgerEntry> findByAccountNumberAndCreatedAtBetween(
             @Param("accountNumber") String accountNumber,

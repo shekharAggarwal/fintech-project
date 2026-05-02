@@ -30,7 +30,7 @@ public class AuditEventListener {
         this.auditService = auditService;
     }
 
-    @KafkaListener(topics = "${kafka.topics.payment-events}", groupId = "${spring.kafka.consumer.group-id}-audit")
+    @KafkaListener(topics = "${kafka.topics.payment-events}", groupId = "${spring.kafka.consumer.group-id}-audit", containerFactory = "dlqKafkaListenerContainerFactory")
     public void handlePaymentEvent(
             @Payload String jsonMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
@@ -41,7 +41,7 @@ public class AuditEventListener {
                 AuditEventType.PAYMENT_RECEIVED, ResourceType.PAYMENT);
     }
 
-    @KafkaListener(topics = "${kafka.topics.transaction-completed}", groupId = "${spring.kafka.consumer.group-id}-audit")
+    @KafkaListener(topics = "${kafka.topics.transaction-completed}", groupId = "${spring.kafka.consumer.group-id}-audit", containerFactory = "dlqKafkaListenerContainerFactory")
     public void handleTransactionCompletedEvent(
             @Payload String jsonMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
@@ -52,7 +52,7 @@ public class AuditEventListener {
                 AuditEventType.TRANSACTION_COMPLETED, ResourceType.TRANSACTION);
     }
 
-    @KafkaListener(topics = "${kafka.topics.transaction-failed}", groupId = "${spring.kafka.consumer.group-id}-audit")
+    @KafkaListener(topics = "${kafka.topics.transaction-failed}", groupId = "${spring.kafka.consumer.group-id}-audit", containerFactory = "dlqKafkaListenerContainerFactory")
     public void handleTransactionFailedEvent(
             @Payload String jsonMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
@@ -63,7 +63,7 @@ public class AuditEventListener {
                 AuditEventType.TRANSACTION_FAILED, ResourceType.TRANSACTION);
     }
 
-    @KafkaListener(topics = "${kafka.topics.user-events}", groupId = "${spring.kafka.consumer.group-id}-audit")
+    @KafkaListener(topics = "${kafka.topics.user-events}", groupId = "${spring.kafka.consumer.group-id}-audit", containerFactory = "dlqKafkaListenerContainerFactory")
     public void handleUserEvent(
             @Payload String jsonMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
@@ -74,7 +74,7 @@ public class AuditEventListener {
                 AuditEventType.USER_CREATED, ResourceType.USER);
     }
 
-    @KafkaListener(topics = "${kafka.topics.session-events}", groupId = "${spring.kafka.consumer.group-id}-audit")
+    @KafkaListener(topics = "${kafka.topics.session-events}", groupId = "${spring.kafka.consumer.group-id}-audit", containerFactory = "dlqKafkaListenerContainerFactory")
     public void handleSessionEvent(
             @Payload String jsonMessage,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
