@@ -66,6 +66,11 @@ public class PaymentService {
     public PaymentInitiatedResponse initiate(InitiateRequest request, String currentUserId) {
         logger.info("Initiating payment for user {} from {} to {} amount {}", currentUserId, request.fromAccount(), request.toAccount(), request.amount());
 
+        // Prevent self-transfers
+        if (request.fromAccount().equals(request.toAccount())) {
+            throw new IllegalArgumentException("Self-transfers are not allowed");
+        }
+
         // Check sufficient funds
         if (!balanceService.hasSufficientFunds(request.fromAccount(), request.amount())) {
             throw new InsufficientFundsException(request.fromAccount(), "Insufficient funds for payment of " + request.amount());
@@ -342,6 +347,14 @@ public class PaymentService {
     public PaymentInitiatedResponse withdraw(String account, BigDecimal amount, String description, String currentUserId) {
         logger.info("Processing withdrawal for user {} from account {} amount {}", currentUserId, account, amount);
 
+        // Check sufficient funds
+        if (!balanceService.hasSufficientFunds(account, amount)) {
+            throw new InsufficientFundsException(account, "Insufficient funds for withdrawal of " + amount);
+        }
+
+        // Check transaction limits
+        transactionLimitService.checkLimits(account, amount);
+
         String paymentId = idGenerator.generateStringId();
 
         Payment payment = new Payment();
@@ -417,7 +430,6 @@ public class PaymentService {
     /**
      * Process bulk transfers
      */
-    @Transactional
     public com.fintech.paymentservice.dto.response.BulkTransferResponse processBulkTransfers(
             java.util.List<InitiateRequest> transfers, String currentUserId) {
         

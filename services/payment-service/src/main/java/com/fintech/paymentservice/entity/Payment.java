@@ -83,6 +83,9 @@ public class Payment {
     @FieldAccessControl(resourceType = "payment", fieldName = "retryCount")
     private int retryCount = 0;
 
+    @Version
+    private Long version;
+
     // Constructors
     public Payment() {
         this.status = PaymentStatus.PENDING;
@@ -218,6 +221,10 @@ public class Payment {
 
     public void setRetryCount(int retryCount) {
         this.retryCount = retryCount;
+    }
+
+    public Long getVersion() {
+        return version;
     }
 
     @Override

@@ -7,7 +7,10 @@ import com.fintech.paymentservice.repository.PaymentRepository;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class AmountAnomalyRule implements FraudRule {
@@ -24,9 +27,13 @@ public class AmountAnomalyRule implements FraudRule {
     public RuleResult evaluate(Payment payment) {
         double multiplier = properties.getAmount().getAnomalyMultiplier();
 
-        // Calculate average transaction amount for this user
+        // Only look at last 90 days, limit to 1000 records to prevent OOM
+        Instant windowStart = Instant.now().minus(90, ChronoUnit.DAYS);
         List<Payment> userPayments = paymentRepository.findByFromAccountOrToAccount(
-            payment.getFromAccount(), payment.getFromAccount());
+            payment.getFromAccount(), payment.getFromAccount()).stream()
+            .filter(p -> p.getCreatedAt() != null && p.getCreatedAt().isAfter(windowStart))
+            .limit(1000)
+            .collect(Collectors.toList());
 
         if (userPayments.size() < 3) {
             // Not enough history to determine anomaly

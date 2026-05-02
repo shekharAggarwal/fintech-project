@@ -51,6 +51,9 @@ public class SagaState {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Version
+    private Long version;
+
     public SagaState() {}
 
     public SagaState(String paymentId) {
@@ -94,4 +97,6 @@ public class SagaState {
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public Long getVersion() { return version; }
 }

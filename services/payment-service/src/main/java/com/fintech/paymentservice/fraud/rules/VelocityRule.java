@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @Component
 public class VelocityRule implements FraudRule {
@@ -26,12 +25,10 @@ public class VelocityRule implements FraudRule {
         int windowMinutes = properties.getVelocity().getWindowMinutes();
         int maxTransactions = properties.getVelocity().getMaxTransactions();
 
-        // Count recent transactions from same account
-        Instant windowStart = Instant.now().minus(windowMinutes, ChronoUnit.MINUTES);
-        List<Payment> recentPayments = paymentRepository.findByFromAccountOrToAccount(
-            payment.getFromAccount(), payment.getFromAccount());
-
-        long recentCount = recentPayments.stream()
+        // Only look at last 24 hours max, use time-window filtering
+        Instant windowStart = Instant.now().minus(Math.min(windowMinutes, 1440), ChronoUnit.MINUTES);
+        long recentCount = paymentRepository.findByFromAccountOrToAccount(
+            payment.getFromAccount(), payment.getFromAccount()).stream()
             .filter(p -> p.getCreatedAt() != null && p.getCreatedAt().isAfter(windowStart))
             .count();
 

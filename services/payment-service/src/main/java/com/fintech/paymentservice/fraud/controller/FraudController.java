@@ -4,6 +4,7 @@ import com.fintech.paymentservice.fraud.entity.FraudAlert;
 import com.fintech.paymentservice.fraud.model.AlertStatus;
 import com.fintech.paymentservice.fraud.model.AlertType;
 import com.fintech.paymentservice.fraud.repository.FraudAlertRepository;
+import com.fintech.security.annotation.RequireAuthorization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/admin/fraud")
+@RequireAuthorization(roles = {"ADMIN"})
 public class FraudController {
 
     private static final Logger logger = LoggerFactory.getLogger(FraudController.class);

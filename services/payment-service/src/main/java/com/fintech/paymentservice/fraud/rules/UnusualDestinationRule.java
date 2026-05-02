@@ -7,7 +7,10 @@ import com.fintech.paymentservice.repository.PaymentRepository;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class UnusualDestinationRule implements FraudRule {
@@ -24,9 +27,13 @@ public class UnusualDestinationRule implements FraudRule {
     public RuleResult evaluate(Payment payment) {
         double largeAmountThreshold = properties.getDestination().getLargeAmountThreshold();
 
-        // Check if this is a first-time destination combined with large amount
+        // Only look at last 30 days, limit to 100 records to prevent OOM
+        Instant windowStart = Instant.now().minus(30, ChronoUnit.DAYS);
         List<Payment> previousPayments = paymentRepository.findByFromAccountOrToAccount(
-            payment.getFromAccount(), payment.getFromAccount());
+            payment.getFromAccount(), payment.getFromAccount()).stream()
+            .filter(p -> p.getCreatedAt() != null && p.getCreatedAt().isAfter(windowStart))
+            .limit(100)
+            .collect(Collectors.toList());
 
         boolean isFirstTimeDestination = previousPayments.stream()
             .noneMatch(p -> payment.getToAccount().equals(p.getToAccount()));

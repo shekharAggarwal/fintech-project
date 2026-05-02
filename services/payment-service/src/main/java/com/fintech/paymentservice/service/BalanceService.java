@@ -38,6 +38,9 @@ public class BalanceService {
      */
     @Transactional
     public BalanceResponse credit(String accountNumber, BigDecimal amount, String description) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
         logger.info("Crediting {} to account {}", amount, accountNumber);
 
         Account account = findAccountOrThrow(accountNumber);
@@ -57,6 +60,9 @@ public class BalanceService {
      */
     @Transactional
     public BalanceResponse debit(String accountNumber, BigDecimal amount, String description) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
         logger.info("Debiting {} from account {}", amount, accountNumber);
 
         Account account = findAccountOrThrow(accountNumber);
@@ -81,6 +87,9 @@ public class BalanceService {
      */
     @Transactional
     public BalanceResponse placeHold(String accountNumber, BigDecimal amount, String description) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
         logger.info("Placing hold of {} on account {}", amount, accountNumber);
 
         Account account = findAccountOrThrow(accountNumber);
@@ -105,6 +114,9 @@ public class BalanceService {
      */
     @Transactional
     public BalanceResponse releaseHold(String accountNumber, BigDecimal amount, String description) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
         logger.info("Releasing hold of {} on account {}", amount, accountNumber);
 
         Account account = findAccountOrThrow(accountNumber);

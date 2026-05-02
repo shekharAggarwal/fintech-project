@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -156,7 +157,8 @@ public class TransactionLimitService {
         return toResponse(limit);
     }
 
-    private List<TransactionLimit> createDefaultLimits(String accountId) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<TransactionLimit> createDefaultLimits(String accountId) {
         logger.info("Creating default transaction limits for account {}", accountId);
 
         String currency = limitProperties.getDefaultCurrency();

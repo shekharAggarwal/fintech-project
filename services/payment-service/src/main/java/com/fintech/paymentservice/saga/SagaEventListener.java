@@ -66,7 +66,7 @@ public class SagaEventListener {
             acknowledgment.acknowledge();
         } catch (Exception e) {
             logger.error("Error handling transaction completed event: {}", e.getMessage(), e);
-            acknowledgment.acknowledge(); // Acknowledge to prevent infinite retry; DLQ handles failures
+            throw new RuntimeException("Failed to process transaction completed event", e); // Let error propagate so DLQ/retry kicks in
         }
     }
 
@@ -107,7 +107,7 @@ public class SagaEventListener {
             acknowledgment.acknowledge();
         } catch (Exception e) {
             logger.error("Error handling transaction failed event: {}", e.getMessage(), e);
-            acknowledgment.acknowledge();
+            throw new RuntimeException("Failed to process transaction failed event", e); // Let error propagate so DLQ/retry kicks in
         }
     }
 }
